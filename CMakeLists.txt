@@ -7,24 +7,30 @@ project(
   LANGUAGES C
 )
 
-# This is an early scaffold. The repository is currently anchor/planning only.
 # Keep this file host-oriented; firmware/toolchain-specific builds belong in
 # adapters or integration-specific build files after the core exists.
 
 option(SCE_BUILD_TESTS "Build host tests when test/CMakeLists.txt exists" ON)
 option(SCE_BUILD_EXAMPLES "Build host examples when examples/CMakeLists.txt exists" ON)
 
-add_library(serial_command_extreme INTERFACE)
+add_library(
+  serial_command_extreme
+  STATIC
+    src/bsc_console.c
+    src/bsc_output.c
+    src/bsc_status.c
+    src/bsc_string_view.c
+)
 add_library(serial_command_extreme::serial_command_extreme ALIAS serial_command_extreme)
 
 target_include_directories(
   serial_command_extreme
-  INTERFACE
+  PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:include>
 )
 
-target_compile_features(serial_command_extreme INTERFACE c_std_99)
+target_compile_features(serial_command_extreme PUBLIC c_std_99)
 
 if(SCE_BUILD_TESTS)
   enable_testing()

@@ -2,11 +2,11 @@
 
 This directory is reserved for host-first tests.
 
-No test implementation exists yet. The core library should be testable on a normal host machine without Arduino, ESP-IDF, UART hardware, or firmware flashing.
+An initial self-contained C host test harness exists and runs through CTest. The core library should remain testable on a normal host machine without Arduino, ESP-IDF, UART hardware, or firmware flashing.
 
 ## Purpose
 
-Tests in this directory should prove the behavior of the platform-independent core:
+The current Phase 2A tests cover skeleton status, string-view, and output behavior. Future tests in this directory should prove the behavior of the platform-independent core:
 
 - Tokenization.
 - Quoted strings and escapes.
@@ -53,7 +53,7 @@ test/
     error_invalid_gain.txt
 ```
 
-Exact names may change after the architecture plan selects a host test framework.
+The initial harness uses `test/test_main.c` and CTest without a third-party framework. Exact future names may change as parser, registry, dispatch, and help tests are added.
 
 ## Required testing posture
 
@@ -70,7 +70,7 @@ Hardware validation
 Unverified items
 ```
 
-Do not claim hardware validation unless hardware was actually used and evidence is provided.
+Do not claim hardware validation unless hardware was actually used and evidence is provided. Full parser, golden-output, adapter compile, and hardware tests remain deferred after the Phase 2A skeleton.
 
 ## Golden tests
 

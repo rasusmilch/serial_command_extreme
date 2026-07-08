@@ -2,14 +2,22 @@
 
 This directory is reserved for the platform-independent core library.
 
-No implementation source exists yet. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
+Initial Phase 2A skeleton source exists here. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
 
 ## Intended core modules
 
-The implementation guide currently expects core files similar to:
+The current skeleton provides config, status, string-view, output, and minimal console-context files. The implementation guide still expects future parser modules similar to:
 
 ```text
 src/bsc_config.h
+src/bsc_status.h
+src/bsc_status.c
+src/bsc_string_view.h
+src/bsc_string_view.c
+src/bsc_output.h
+src/bsc_output.c
+src/bsc_console.h
+src/bsc_console.c
 src/bsc_types.h
 src/bsc_tokenizer.h
 src/bsc_tokenizer.c
@@ -43,7 +51,7 @@ The core must remain:
 
 ## Expected responsibilities
 
-Core source should implement only the reusable command subsystem:
+Future core source should implement only the reusable command subsystem:
 
 - Bounded line/token handling.
 - Tokenizer with quotes and escapes.
@@ -74,4 +82,4 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, dispatch, output, redaction, help, or access behavior.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, dispatch, output, redaction, help, or access behavior. Tokenizer, registry, matcher, argument parser, dispatch, help rendering, adapters, and examples remain deferred after the Phase 2A skeleton.
