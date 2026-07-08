@@ -1,0 +1,71 @@
+# Build outputs
+build/
+build-*/
+cmake-build-*/
+out/
+dist/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+DartConfiguration.tcl
+Testing/
+cmake_install.cmake
+compile_commands.json
+install_manifest.txt
+
+# Compiled objects and binaries
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+*.gcda
+*.gcno
+*.gcov
+
+# Test and coverage outputs
+coverage/
+*.profraw
+*.profdata
+*.lcov
+
+# Python helper/tooling cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Arduino / PlatformIO / embedded tooling
+.pio/
+.vscode/.browse.c_cpp.db*
+.vscode/ipch/
+*.ino.cpp
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Local scratch/log files
+*.log
+*.tmp
+*.bak
