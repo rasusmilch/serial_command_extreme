@@ -1,0 +1,874 @@
+I (1834) heap_phase: phase[net_supervisor_start] internal_free=99123 internal_largest=34804 internal_frag=65%
+I (1834) heap_phase: phase[net_supervisor_start] psram_free=1978980 psram_largest=1966068 psram_frag=1%
+I (1834) heap_phase: phase[wifi_start_before] internal_free=98235 internal_largest=32756 internal_frag=67%
+I (1834) heap_phase: phase[wifi_start_before] psram_free=1979020 psram_largest=1966068 psram_frag=1%
+I (1844) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10
+I (1844) heap_phase: phase[console_start] internal_free=78171 internal_largest=31732 internal_frag=60%
+I (1854) heap_phase: phase[console_start] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (1854) run_gpio: GPIO 7 initial=HIGH
+I (1854) run_gpio: Run stop GPIO enabled on 7
+I (1854) run_gpio: GPIO 6 initial=HIGH
+I (1854) run_gpio: Run start GPIO enabled on 6
+I (1854) heap_phase: phase[run_gpio_init] internal_free=75707 internal_largest=31732 internal_frag=59%
+I (1854) heap_phase: phase[run_gpio_init] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (1854) heap_phase: phase[pre_run_mode] internal_free=75707 internal_largest=31732 internal_frag=59%
+I (1864) heap_phase: phase[pre_run_mode] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (1864) app: app_init stack watermark before EnterRunMode: 12348 bytes
+
+Type 'help' to list commands.
+pt100> I (1884) runtime: control stack watermark: 3524 bytes free
+I (1884) heap_phase: phase[wifi_start_after] internal_free=77283 internal_largest=31732 internal_frag=59%
+I (1884) heap_phase: phase[wifi_start_after] psram_free=1971428 psram_largest=1966068 psram_frag=1%
+I (1884) net_sup: Wi-Fi service acquired (mode=1)
+I (1924) runtime: Drain progress: flushed=18 remaining=205
+I (1934) runtime: control stack watermark: 3316 bytes free
+I (2664) runtime: Drain FRAM->SD: flushed=223 remaining=0 duration=800 ms result=ESP_OK
+W (2664) runtime: start drain: flushed=223 remaining=0 duration=800 ms result=ESP_OK
+I (2664) runtime: Wi-Fi direct handled by net supervisor
+I (2664) runtime: net_tx stack watermark: 5540 bytes free
+I (2664) runtime: Runtime started (node=98:A3:16:12:57:B0 role=SENSOR)
+I (2674) app: app_init stack watermark after EnterRunMode: 12348 bytes
+I (2674) heap_phase: phase[post_run_mode] internal_free=61555 internal_largest=31732 internal_frag=49%
+I (2674) heap_phase: phase[post_run_mode] psram_free=1955168 psram_largest=1933300 psram_frag=2%
+I (2674) app: Boot complete (boot_mode=run)
+I (2674) runtime: alert_http stack watermark: 8996 bytes free
+I (2724) runtime: net_tx stack watermark: 3556 bytes free
+I (2924) runtime: alert_http stack watermark: 7332 bytes free
+I (2984) esp_netif_handlers: sta ip: 192.168.4.149, mask: 255.255.255.0, gw: 192.168.4.1
+I (2984) net_sup: Wi-Fi connected
+I (3024) alert_mgr: ntfy batch queued: total=2 unique=2
+I (3024) runtime: net_tx stack watermark: 1828 bytes free
+--- Error: device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+--- Waiting for the device to reconnect
+I (322) esp_image: segment 4: paddr=002101b8 vaddr=40376d34 sizeI (606) esp_psram: SPI SRAM memory test OK
+I (615) cpu_start: Pro cpu start user code
+I (615) cpu_start: cpu freq: 240000000 Hz
+I (615) app_init: Application information:
+I (615) app_init: Project name:     PT100_Mesh_Datalogger
+I (615) app_init: App version:      d13a6a8
+I (615) app_init: ELF file SHA256:  a3dfbde2e...
+I (615) app_init: ESP-IDF:          v5.5.1-dirty
+I (615) efuse_init: Min chip rev:     v0.0
+I (616) efuse_init: Max chip rev:     v0.99 
+I (616) efuse_init: Chip rev:         v0.2
+I (616) heap_init: Initializing. RAM available for dynamic allocation:
+I (616) heap_init: At 3FCBF6E0 len 0002A030 (168 KiB): RAM
+I (617) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (617) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (760) esp_psram: Adding pool of 2048K of PSRAM memory to heap allocator
+I (762) spi_flash: detected chip: boya
+I (762) spi_flash: flash io: qio
+I (763) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (763) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (764) main_task: Started on CPU0
+I (774) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (774) main_task: Calling app_main()
+I (804) heap_phase: phase[nvs_init] internal_free=186291 internal_largest=102388 internal_frag=46%
+I (814) heap_phase: phase[nvs_init] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+W (814) boot_mode: BOOT override: run mode forced
+BOOT override: run mode forced
+I (814) marker: Last markers: storage=NONE(1420906693) sd=NONE(1274197591)
+I (814) marker: Last marker meta: uptime_ms=2048518447 epoch_sec=4210660407 reset_reason=unknown(709830672)
+I (814) app: Reset reason: poweron (1)
+I (814) heap_phase: phase[startup_begin] internal_free=168523 internal_largest=86004 internal_frag=49%
+I (814) heap_phase: phase[startup_begin] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+I (814) settings: settings: loaded from blob cfg0 gen=6
+I (814) settings: Loaded: period=1000ms wm=512 sd_flush_ms=600000 sd_batch=4096 rtc_resync_ms=3600000 deg=1 cal_points=2 tz=CST6CDT,M3.2.0/2,M11.1.0/2 dst=1 role=SENSOR allow_children=0 display_units=F net_mode=WIFI mqtt_en=0 mqtt_uri=mqtt://192.168.1.50 mqtt_pfx=pt100 mqtt_qos=0 mqtt_ret=0 mqtt_bridge=BROKER rtd_f_as_ms=2000 rtd_f_cl_ms=3000 disp_attn_pol=0x000002AA disp_attn_mask=0x0000001F
+I (824) settings: Applied TZ=CST6CDT,M3.2.0/2,M11.1.0/2
+I (824) heap_phase: phase[wifi_reserve_before] internal_free=165771 internal_largest=86004 internal_frag=49%
+I (824) heap_phase: phase[wifi_reserve_before] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+I (824) heap_phase: phase[wifi_netif_init_before] internal_free=165771 internal_largest=86004 internal_frag=49%
+I (824) heap_phase: phase[wifi_netif_init_before] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+I (824) heap_phase: phase[wifi_netif_init_after] internal_free=161043 internal_largest=86004 internal_frag=47%
+I (824) heap_phase: phase[wifi_netif_init_after] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (824) heap_phase: phase[wifi_event_loop_before] internal_free=161043 internal_largest=86004 internal_frag=47%
+I (824) heap_phase: phase[wifi_event_loop_before] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (824) heap_phase: phase[wifi_event_loop_after] internal_free=155067 internal_largest=86004 internal_frag=45%
+I (824) heap_phase: phase[wifi_event_loop_after] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (824) heap_phase: phase[wifi_init_before] internal_free=154967 internal_largest=86004 internal_frag=45%
+I (824) heap_phase: phase[wifi_init_before] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (824) pp: pp rom version: e7ae62f
+I (824) net80211: net80211 rom version: e7ae62f
+I (824) main_task: Returned from app_main()
+I (834) wifi:wifi driver task: 3fceec20, prio:23, stack:6656, core=0
+I (844) wifi:wifi firmware version: 14da9b7
+I (844) wifi:wifi certification version: v7.0
+I (844) wifi:config NVS flash: enabled
+I (854) wifi:config nano formatting: disabled
+I (854) wifi:Init data frame dynamic rx buffer num: 8
+I (854) wifi:Init static rx mgmt buffer num: 5
+I (854) wifi:Init management short buffer num: 16
+I (854) wifi:Init static tx buffer num: 8
+I (854) wifi:Init tx cache buffer num: 8
+I (854) wifi:Init static tx FG buffer num: 2
+I (854) wifi:Init static rx buffer size: 1600
+I (854) wifi:Init static rx buffer num: 6
+I (854) wifi:Init dynamic rx buffer num: 8
+I (854) wifi_init: accept mbox: 6
+I (854) wifi_init: tcpip mbox: 32
+I (854) wifi_init: udp mbox: 6
+I (854) wifi_init: tcp mbox: 6
+I (854) wifi_init: tcp tx win: 5760
+I (854) wifi_init: tcp rx win: 5760
+I (854) wifi_init: tcp mss: 624
+I (854) wifi_init: WiFi/LWIP prefer SPIRAM
+I (854) wifi_init: WiFi IRAM OP enabled
+I (854) wifi_init: WiFi RX IRAM OP enabled
+I (854) heap_phase: phase[wifi_init_after] internal_free=127007 internal_largest=61428 internal_frag=52%
+I (854) heap_phase: phase[wifi_init_after] psram_free=2072900 psram_largest=2064372 psram_frag=1%
+I (854) runtime: wifi early reserve ok
+I (864) heap_phase: phase[wifi_reserve_after] internal_free=125487 internal_largest=61428 internal_frag=52%
+I (864) heap_phase: phase[wifi_reserve_after] psram_free=2072900 psram_largest=2064372 psram_frag=1%
+I (864) runtime: APP SPI: host=2 mosi=11 miso=13 sclk=12
+I (864) runtime: DISP SPI: host=3 mosi=17 sclk=18 cs=16 (share=0)
+I (874) time_sync: System time set from RTC: 2026-01-27 22:42:14Z
+I (874) fram_log: FRAM log: cap=656 rec write=321404 read=321404 count=0 seq=321489 id=321489
+W (884) fram_errlog: errlog init: copy0=ok copy1=ok blank=no state=ok
+I (884) sdspi_transaction: cmd=52, R1 response: command not supported
+I (924) sdspi_transaction: cmd=5, R1 response: command not supported
+I (944) sd_logger: SD mounted at /sdcard
+I (1094) max31865: Initialized MAX31865 (Rref_mohm=430000 R0_mohm=100000 wires=4 filter=60Hz mode=TABLE)
+I (1094) heap_phase: phase[runtime_init] internal_free=104035 internal_largest=38900 internal_frag=63%
+I (1094) runtime: control stack watermark: 4556 bytes free
+I (1094) heap_phase: phase[runtime_init] psram_free=1979020 psram_largest=1966068 psram_frag=1%
+I (1094) heap_phase: phase[net_supervisor_start] internal_free=99323 internal_largest=34804 internal_frag=65%
+I (1094) heap_phase: phase[net_supervisor_start] psram_free=1978980 psram_largest=1966068 psram_frag=1%
+I (1094) heap_phase: phase[wifi_start_before] internal_free=98435 internal_largest=32756 internal_frag=67%
+I (1094) heap_phase: phase[wifi_start_before] psram_free=1979020 psram_largest=1966068 psram_frag=1%
+I (1094) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10
+I (1104) heap_phase: phase[console_start] internal_free=78371 internal_largest=31732 internal_frag=60%
+I (1104) heap_phase: phase[console_start] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (1104) run_gpio: GPIO 7 initial=HIGH
+I (1114) run_gpio: Run stop GPIO enabled on 7
+I (1114) run_gpio: GPIO 6 initial=HIGH
+I (1114) run_gpio: Run start GPIO enabled on 6
+I (1114) heap_phase: phase[run_gpio_init] internal_free=75907 internal_largest=31732 internal_frag=59%
+I (1114) heap_phase: phase[run_gpio_init] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (1114) heap_phase: phase[pre_run_mode] internal_free=75907 internal_largest=31732 internal_frag=59%
+I (1114) heap_phase: phase[pre_run_mode] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (1124) app: app_init stack watermark before EnterRunMode: 12348 bytes
+W (1124) runtime: start drain: flushed=0 remaining=0 duration=0 ms result=ESP_OK
+I (1124) runtime: Wi-Fi direct handled by net supervisor
+I (1124) runtime: Runtime started (node=98:A3:16:12:57:B0 role=SENSOR)
+I (1124) app: app_init stack watermark after EnterRunMode: 12348 bytes
+I (1134) heap_phase: phase[post_run_mode] internal_free=60431 internal_largest=31732 internal_frag=48%
+I (1134) heap_phase: phase[post_run_mode] psram_free=1961864 psram_largest=1933300 psram_frag=2%
+I (1134) app: Boot complete (boot_mode=run)
+I (1144) heap_phase: phase[wifi_start_after] internal_free=62123 internal_largest=31732 internal_frag=49%
+I (1144) heap_phase: phase[wifi_start_after] psram_free=1960256 psram_largest=1933300 psram_frag=2%
+I (1144) runtime: net_tx stack watermark: 5540 bytes free
+I (1144) runtime: alert_http stack watermark: 9192 bytes free
+
+Type 'help' to list commands.
+I (1154) runtime: control stack watermark: 3532 bytes free
+I (1154) net_sup: Wi-Fi service acquired (mode=1)
+pt100> I (1194) runtime: net_tx stack watermark: 3684 bytes free
+I (1394) runtime: alert_http stack watermark: 7336 bytes free
+I (2234) esp_netif_handlers: sta ip: 192.168.4.149, mask: 255.255.255.0, gw: 192.168.4.1
+I (2234) net_sup: Wi-Fi connected
+I (2244) alert_mgr: ntfy batch queued: total=1 unique=1
+I (2244) runtime: net_tx stack watermark: 1908 bytes free
+I (2294) alert_mgr: ntfy batch queued: total=1 unique=1
+I (3354) runtime: ntfy job ok: status=200 attempt=1
+I (3354) runtime: alert_http stack watermark: 4072 bytes free
+I (5834) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769553735 after=1769553740 delta=5 cb_epoch=1769553739
+I (5834) time_sync: SNTP callback state: fired=yes cb_epoch=1769553739 cb_uptime_us=5018143 attempt_uptime_us=1615019
+I (5834) time_sync: SNTP synced
+I (5834) time_sync: RTC updated from system time
+I (5834) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (303364) runtime: ntfy job ok: status=200 attempt=1
+I (542884) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79339/31732 psram:1955212/1933300 stack_min(ctrl:3532 stor:3340 flush:6436 net:1908 http:4072)
+I (549724) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6840ms stack_min(ctrl:3532 stor:3340 flush:6436 net:1908 http:4072)
+I (1144244) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79187/31732 psram:1955212/1933300 stack_min(ctrl:3532 stor:3292 flush:4564 net:1908 http:4072)
+I (1151124) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3532 stor:3292 flush:4564 net:1908 http:4072)
+Guru Meditation Error: Core  0 panic'ed (StoreProhibited). Exception was unhandled.
+
+Setting breakpoint at 0x40374400 and retu
+--- 0x40374400: _invalid_pc_placeholder at /COMPONENT_XTENSA_DIR/xtensa_vectors.S:2235
+rning...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x3 (RTC_SW_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x400003c0
+pro cpu reset by JTAG
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16e4
+load:0x403c8700,len:0xe04
+--- 0x403c8700: _stext at ??:?
+load:0x403cb700,len:0x31cc
+entry 0x403c8934
+--- 0x403c8934: call_start_cpu0 at /COMPONENT_MAIN_DIR/bootloader_start.c:25
+I (26) boot: ESP-IDF v5.5.1-dirty 2nd stage bootloader
+I (26) boot: Multicore bootloader
+I (26) boot: chip revision: v0.2
+I (26) boot: efuse block revision: v1.3
+I (27) qio_mode: Enabling default flash chip QIO
+I (27) boot.esp32s3: Boot SPI Speed : 80MHz
+I (27) boot.esp32s3: SPI Mode       : QIO
+I (27) boot.esp32s3: SPI Flash Size : 8MB
+I (27) boot: Enabling RNG early entropy source...
+I (28) boot: Partition Table:
+I (28) boot: ## Label            Usage          Type ST Offset   Length
+I (28) boot:  0 nvs              WiFi data        01 02 00009000 00010000
+I (28) boot:  1 otadata          OTA data         01 00 00019000 00002000
+I (29) boot:  2 phy_init         RF data          01 01 0001b000 00001000
+I (29) boot:  3 nvs_keys         NVS keys         01 04 0001c000 00001000
+I (30) boot:  4 coredump         Unknown data     01 03 0001d000 00010000
+I (30) boot:  5 ota_0            OTA app          00 10 00030000 003e0000
+I (30) boot:  6 ota_1            OTA app          00 11 00410000 003e0000
+I (31) boot:  7 reserved         Unknown data     01 06 007f0000 00010000
+I (31) boot: End of partition table
+I (32) esp_image: segment 0: paddr=00030020 vaddr=3c190020 size=57b00h (359168) map
+I (86) esp_image: segment 1: paddr=00087b28 vaddr=3fcaec00 size=057b4h ( 22452) load
+I (90) esp_image: segment 2: paddr=0008d2e4 vaddr=40374000 size=02d34h ( 11572) load
+I (93) esp_image: segment 3: paddr=00090020 vaddr=42000020 size=180190h (1573264) map
+I (328) esp_image: segment 4: paddr=002101b8 vaddr=40376d34 size=27e2ch (163372) load
+I (359) esp_image: segment 5: paddr=00237fec vaddr=50000000 size=00020h (    32) load
+I (359) esp_image: segment 6: paddr=00238014 vaddr=500000a0 size=00020h (    32) load
+I (376) boot: Loaded app from partition at offset 0x30000
+I (376) boot: Disabling RNG early entropy source...
+I (377) esp_psram: Found 2MB PSRAM device
+I (377) esp_psram: Speed: 80MHz
+I (377) cpu_start: Multicore app
+I (607) esp_psram: SPI SRAM memory test OK
+I (616) cpu_start: Pro cpu start user code
+I (616) cpu_start: cpu freq: 240000000 Hz
+I (616) app_init: Application information:
+I (616) app_init: Project name:     PT100_Mesh_Datalogger
+I (616) app_init: App version:      d13a6a8
+I (616) app_init: ELF file SHA256:  a3dfbde2e...
+I (616) app_init: ESP-IDF:          v5.5.1-dirty
+I (617) efuse_init: Min chip rev:     v0.0
+I (617) efuse_init: Max chip rev:     v0.99 
+I (617) efuse_init: Chip rev:         v0.2
+I (617) heap_init: Initializing. RAM available for dynamic allocation:
+I (618) heap_init: At 3FCBF6E0 len 0002A030 (168 KiB): RAM
+I (618) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (618) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (761) esp_psram: Adding pool of 2048K of PSRAM memory to heap allocator
+I (763) spi_flash: detected chip: boya
+I (763) spi_flash: flash io: qio
+I (764) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (764) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (765) main_task: Started on CPU0
+I (775) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (775) main_task: Calling app_main()
+I (4435) heap_phase: phase[nvs_init] internal_free=186291 internal_largest=102388 internal_frag=46%
+I (4445) heap_phase: phase[nvs_init] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+W (4445) boot_mode: BOOT override: run mode forced
+BOOT override: run mode forced
+I (4445) marker: Last markers: storage=STORAGE_010_BEFORE_QUEUE_RECV(10) sd=SD_030_SCHEDULER(130)
+I (4445) marker: Last marker meta: uptime_ms=1237180 epoch_sec=1769554972 reset_reason=poweron(1)
+I (4445) app: Reset reason: software (3)
+I (4445) heap_phase: phase[startup_begin] internal_free=168523 internal_largest=86004 internal_frag=49%
+I (4445) heap_phase: phase[startup_begin] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+I (4445) settings: settings: loaded from blob cfg0 gen=6
+I (4445) settings: Loaded: period=1000ms wm=512 sd_flush_ms=600000 sd_batch=4096 rtc_resync_ms=3600000 deg=1 cal_points=2 tz=CST6CDT,M3.2.0/2,M11.1.0/2 dst=1 role=SENSOR allow_children=0 display_units=F net_mode=WIFI mqtt_en=0 mqtt_uri=mqtt://192.168.1.50 mqtt_pfx=pt100 mqtt_qos=0 mqtt_ret=0 mqtt_bridge=BROKER rtd_f_as_ms=2000 rtd_f_cl_ms=3000 disp_attn_pol=0x000002AA disp_attn_mask=0x0000001F
+I (4455) settings: Applied TZ=CST6CDT,M3.2.0/2,M11.1.0/2
+I (4455) heap_phase: phase[wifi_reserve_before] internal_free=165771 internal_largest=86004 internal_frag=49%
+I (4455) heap_phase: phase[wifi_reserve_before] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+I (4455) heap_phase: phase[wifi_netif_init_before] internal_free=165771 internal_largest=86004 internal_frag=49%
+I (4455) heap_phase: phase[wifi_netif_init_before] psram_free=2094952 psram_largest=2064372 psram_frag=2%
+I (4455) heap_phase: phase[wifi_netif_init_after] internal_free=161043 internal_largest=86004 internal_frag=47%
+I (4455) heap_phase: phase[wifi_netif_init_after] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (4455) heap_phase: phase[wifi_event_loop_before] internal_free=161043 internal_largest=86004 internal_frag=47%
+I (4455) heap_phase: phase[wifi_event_loop_before] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (4455) heap_phase: phase[wifi_event_loop_after] internal_free=155067 internal_largest=86004 internal_frag=45%
+I (4455) heap_phase: phase[wifi_event_loop_after] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (4455) heap_phase: phase[wifi_init_before] internal_free=154967 internal_largest=86004 internal_frag=45%
+I (4455) heap_phase: phase[wifi_init_before] psram_free=2094684 psram_largest=2064372 psram_frag=2%
+I (4455) pp: pp rom version: e7ae62f
+I (4455) net80211: net80211 rom version: e7ae62f
+I (4455) main_task: Returned from app_main()
+I (4465) wifi:wifi driver task: 3fceec20, prio:23, stack:6656, core=0
+I (4475) wifi:wifi firmware version: 14da9b7
+I (4475) wifi:wifi certification version: v7.0
+I (4485) wifi:config NVS flash: enabled
+I (4485) wifi:config nano formatting: disabled
+I (4485) wifi:Init data frame dynamic rx buffer num: 8
+I (4485) wifi:Init static rx mgmt buffer num: 5
+I (4485) wifi:Init management short buffer num: 16
+I (4485) wifi:Init static tx buffer num: 8
+I (4485) wifi:Init tx cache buffer num: 8
+I (4485) wifi:Init static tx FG buffer num: 2
+I (4485) wifi:Init static rx buffer size: 1600
+I (4485) wifi:Init static rx buffer num: 6
+I (4485) wifi:Init dynamic rx buffer num: 8
+I (4485) wifi_init: accept mbox: 6
+I (4485) wifi_init: tcpip mbox: 32
+I (4485) wifi_init: udp mbox: 6
+I (4485) wifi_init: tcp mbox: 6
+I (4485) wifi_init: tcp tx win: 5760
+I (4485) wifi_init: tcp rx win: 5760
+I (4485) wifi_init: tcp mss: 624
+I (4485) wifi_init: WiFi/LWIP prefer SPIRAM
+I (4485) wifi_init: WiFi IRAM OP enabled
+I (4485) wifi_init: WiFi RX IRAM OP enabled
+I (4485) heap_phase: phase[wifi_init_after] internal_free=127007 internal_largest=61428 internal_frag=52%
+I (4485) heap_phase: phase[wifi_init_after] psram_free=2072900 psram_largest=2064372 psram_frag=1%
+I (4485) runtime: wifi early reserve ok
+I (4495) heap_phase: phase[wifi_reserve_after] internal_free=125487 internal_largest=61428 internal_frag=52%
+I (4495) heap_phase: phase[wifi_reserve_after] psram_free=2072900 psram_largest=2064372 psram_frag=1%
+I (4495) runtime: APP SPI: host=2 mosi=11 miso=13 sclk=12
+I (4495) runtime: DISP SPI: host=3 mosi=17 sclk=18 cs=16 (share=0)
+I (4505) time_sync: System time set from RTC: 2026-01-27 23:02:58Z
+I (4555) fram_log: FRAM log: cap=656 rec write=322568 read=322537 count=31 seq=322654 id=322654
+W (4555) fram_errlog: errlog init: copy0=ok copy1=ok blank=no state=ok
+I (4595) sdspi_transaction: cmd=52, R1 response: command not supported
+I (4635) sdspi_transaction: cmd=5, R1 response: command not supported
+I (4655) sd_logger: SD mounted at /sdcard
+I (4855) max31865: Initialized MAX31865 (Rref_mohm=430000 R0_mohm=100000 wires=4 filter=60Hz mode=TABLE)
+I (4855) heap_phase: phase[runtime_init] internal_free=103935 internal_largest=38900 internal_frag=63%
+I (4855) runtime: control stack watermark: 4552 bytes free
+I (4855) heap_phase: phase[runtime_init] psram_free=1979020 psram_largest=1966068 psram_frag=1%
+I (4855) heap_phase: phase[net_supervisor_start] internal_free=99223 internal_largest=34804 internal_frag=65%
+I (4855) heap_phase: phase[net_supervisor_start] psram_free=1978980 psram_largest=1966068 psram_frag=1%
+I (4855) heap_phase: phase[wifi_start_before] internal_free=98335 internal_largest=32756 internal_frag=67%
+I (4855) heap_phase: phase[wifi_start_before] psram_free=1979020 psram_largest=1966068 psram_frag=1%
+I (4865) phy_init: phy_version 701,f4f1da3a,Mar  3 2025,15:50:10
+I (4865) heap_phase: phase[console_start] internal_free=78255 internal_largest=31732 internal_frag=60%
+I (4865) heap_phase: phase[console_start] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (4875) run_gpio: GPIO 7 initial=HIGH
+I (4875) run_gpio: Run stop GPIO enabled on 7
+I (4875) run_gpio: GPIO 6 initial=HIGH
+I (4875) run_gpio: Run start GPIO enabled on 6
+I (4875) heap_phase: phase[run_gpio_init] internal_free=75791 internal_largest=31732 internal_frag=59%
+I (4875) heap_phase: phase[run_gpio_init] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (4875) heap_phase: phase[pre_run_mode] internal_free=75791 internal_largest=31732 internal_frag=59%
+I (4875) heap_phase: phase[pre_run_mode] psram_free=1977264 psram_largest=1966068 psram_frag=1%
+I (4885) app: app_init stack watermark before EnterRunMode: 12348 bytes
+
+Type 'help' to list commands.
+pt100> I (4905) phy_init: Saving new calibration data due to checksum failure or outdated calibration data, mode(0)
+I (4905) runtime: control stack watermark: 3528 bytes free
+I (4935) heap_phase: phase[wifi_start_after] internal_free=77511 internal_largest=31732 internal_frag=60%
+I (4935) heap_phase: phase[wifi_start_after] psram_free=1971428 psram_largest=1966068 psram_frag=1%
+I (4935) net_sup: Wi-Fi service acquired (mode=1)
+I (4935) runtime: Drain progress: flushed=14 remaining=17
+I (4955) runtime: control stack watermark: 3400 bytes free
+I (5005) runtime: Drain FRAM->SD: flushed=31 remaining=0 duration=120 ms result=ESP_OK
+W (5005) runtime: start drain: flushed=31 remaining=0 duration=120 ms result=ESP_OK
+I (5005) runtime: Wi-Fi direct handled by net supervisor
+I (5005) runtime: net_tx stack watermark: 5540 bytes free
+I (5005) runtime: Runtime started (node=98:A3:16:12:57:B0 role=SENSOR)
+I (5015) app: app_init stack watermark after EnterRunMode: 12348 bytes
+I (5015) heap_phase: phase[post_run_mode] internal_free=61831 internal_largest=31732 internal_frag=49%
+I (5015) heap_phase: phase[post_run_mode] psram_free=1956028 psram_largest=1933300 psram_frag=2%
+I (5015) app: Boot complete (boot_mode=run)
+I (5015) runtime: alert_http stack watermark: 9004 bytes free
+I (5065) runtime: net_tx stack watermark: 3556 bytes free
+I (5265) runtime: alert_http stack watermark: 7340 bytes free
+I (6105) esp_netif_handlers: sta ip: 192.168.4.149, mask: 255.255.255.0, gw: 192.168.4.1
+I (6105) net_sup: Wi-Fi connected
+I (6115) alert_mgr: ntfy batch queued: total=2 unique=2
+I (6115) runtime: net_tx stack watermark: 1908 bytes free
+I (7275) runtime: ntfy job ok: status=200 attempt=1
+I (7275) runtime: alert_http stack watermark: 4076 bytes free
+I (9305) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769554979 after=1769554983 delta=4 cb_epoch=1769554983
+I (9305) time_sync: SNTP callback state: fired=yes cb_epoch=1769554983 cb_uptime_us=8595885 attempt_uptime_us=5485726
+I (9305) time_sync: SNTP synced
+I (9315) time_sync: RTC updated from system time
+I (9315) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (546755) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3500 flush:6516 net:1908 http:4076)
+I (553625) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3500 flush:6516 net:1908 http:4076)
+I (1148035) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3500 flush:4948 net:1908 http:4076)
+I (1154915) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3500 flush:4948 net:1908 http:4076)
+I (1748175) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3500 flush:4948 net:1908 http:4076)
+I (1755045) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3500 flush:4836 net:1908 http:4076)
+I (2348295) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3500 flush:4836 net:1908 http:4076)
+I (2355195) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3500 flush:4836 net:1908 http:4076)
+I (2948585) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4836 net:1908 http:4076)
+I (2955465) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3340 flush:4836 net:1908 http:4076)
+I (3547665) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4836 net:1908 http:4076)
+I (3554655) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6990ms stack_min(ctrl:3400 stor:3340 flush:4836 net:1908 http:4076)
+I (3606455) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769558578 after=1769558580 delta=2 cb_epoch=1769558580
+I (3606455) time_sync: SNTP callback state: fired=yes cb_epoch=1769558580 cb_uptime_us=3605670910 attempt_uptime_us=3604235837
+I (3606455) time_sync: SNTP synced
+I (3606455) time_sync: RTC updated from system time
+I (3606455) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (4147765) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (4154635) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (4747895) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (4754755) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (5348085) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (5354955) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (5948215) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (5955165) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6950ms stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (6548425) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (6555205) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6780ms stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (7148505) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (7155375) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3340 flush:4004 net:1908 http:4076)
+I (7209855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769562178 after=1769562183 delta=5 cb_epoch=1769562183
+I (7209855) time_sync: SNTP callback state: fired=yes cb_epoch=1769562183 cb_uptime_us=7209052339 attempt_uptime_us=7204236149
+I (7209855) time_sync: SNTP synced
+I (7209855) time_sync: RTC updated from system time
+I (7209855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (7748725) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (7755595) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (8347795) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79099/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (8354775) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6980ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (8947985) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (8954885) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (9548235) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (9555085) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6850ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (10148335) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (10155185) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6850ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (10748495) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (10755275) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6780ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (10808855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769565778 after=1769565782 delta=4 cb_epoch=1769565782
+I (10808855) time_sync: SNTP callback state: fired=yes cb_epoch=1769565782 cb_uptime_us=10808096093 attempt_uptime_us=10804236197
+I (10808855) time_sync: SNTP synced
+I (10808855) time_sync: RTC updated from system time
+I (10808855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (11348575) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (11355435) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (11947635) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (11954485) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6850ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (12547745) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (12554615) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (13147865) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (13154735) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (13747995) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (13754965) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6970ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (14348345) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (14355225) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (14405855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769569378 after=1769569379 delta=1 cb_epoch=1769569379
+I (14405855) time_sync: SNTP callback state: fired=yes cb_epoch=1769569379 cb_uptime_us=14405083400 attempt_uptime_us=14404235721
+I (14405855) time_sync: SNTP synced
+I (14405855) time_sync: RTC updated from system time
+I (14405855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (14948475) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (14955355) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (15548675) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (15555425) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6750ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (16148775) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (16155665) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (16749005) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (16755855) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6850ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (17348065) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (17354925) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (17948185) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (17955075) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (18006655) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769572978 after=1769572980 delta=2 cb_epoch=1769572980
+I (18006655) time_sync: SNTP callback state: fired=yes cb_epoch=1769572980 cb_uptime_us=18005858061 attempt_uptime_us=18004235723
+I (18006655) time_sync: SNTP synced
+I (18006655) time_sync: RTC updated from system time
+I (18006655) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (18548455) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (18555435) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6980ms stack_min(ctrl:3400 stor:3292 flush:4004 net:1908 http:4076)
+I (19148625) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (19155435) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6810ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (19748735) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (19755465) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6730ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (20348815) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (20355685) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (20947885) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (20954755) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (21548005) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (21554895) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (21609855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769576578 after=1769576583 delta=5 cb_epoch=1769576583
+I (21609855) time_sync: SNTP callback state: fired=yes cb_epoch=1769576583 cb_uptime_us=21609087265 attempt_uptime_us=21604235719
+I (21609855) time_sync: SNTP synced
+I (21609855) time_sync: RTC updated from system time
+I (21609855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (22148145) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (22155015) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (22748275) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (22755165) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (23348425) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (23355375) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6950ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (23948735) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (23955605) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (24548935) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (24555745) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6810ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (25149045) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (25155795) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6750ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (25207655) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769580178 after=1769580181 delta=3 cb_epoch=1769580181
+I (25207655) time_sync: SNTP callback state: fired=yes cb_epoch=1769580181 cb_uptime_us=25207023865 attempt_uptime_us=25204235745
+I (25207655) time_sync: SNTP synced
+I (25207655) time_sync: RTC updated from system time
+I (25207655) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (25749235) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (25756095) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (26348295) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (26355145) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6850ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (26948395) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (26955295) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (27548675) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (27555585) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6910ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (28148885) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (28155825) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6940ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (28749135) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (28756005) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (28807055) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769583778 after=1769583780 delta=2 cb_epoch=1769583780
+I (28807055) time_sync: SNTP callback state: fired=yes cb_epoch=1769583780 cb_uptime_us=28806330190 attempt_uptime_us=28804235899
+I (28807055) time_sync: SNTP synced
+I (28807055) time_sync: RTC updated from system time
+I (28807055) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (29348205) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (29355085) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (29948325) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (29955185) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (30548435) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (30555305) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (31148555) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (31155475) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6920ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (31748985) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (31755865) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (32349175) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (32356085) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6910ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (32406855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769587377 after=1769587380 delta=3 cb_epoch=1769587379
+I (32406855) time_sync: SNTP callback state: fired=yes cb_epoch=1769587379 cb_uptime_us=32406177494 attempt_uptime_us=32404235715
+I (32406855) time_sync: SNTP synced
+I (32406855) time_sync: RTC updated from system time
+I (32406855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (32948335) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (32955195) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (33548465) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (33555295) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6830ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (34148555) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (34155425) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (34748685) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (34755565) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (35348825) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (35355705) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (35948965) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (35955685) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6720ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (36008455) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769590978 after=1769590981 delta=3 cb_epoch=1769590981
+I (36008455) time_sync: SNTP callback state: fired=yes cb_epoch=1769590981 cb_uptime_us=36007686606 attempt_uptime_us=36004235711
+I (36008455) time_sync: SNTP synced
+I (36008465) time_sync: RTC updated from system time
+I (36008465) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (36549115) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (36555995) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (37149255) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (37156155) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (37749455) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (37756325) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (38349575) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (38356445) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (38949735) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (38956605) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (39548795) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (39555695) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (39606255) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769594577 after=1769594579 delta=2 cb_epoch=1769594579
+I (39606255) time_sync: SNTP callback state: fired=yes cb_epoch=1769594579 cb_uptime_us=39605475094 attempt_uptime_us=39604235790
+I (39606265) time_sync: SNTP synced
+I (39606265) time_sync: RTC updated from system time
+I (39606265) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (40149055) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (40155955) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (40749245) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79099/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (40756125) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (41349365) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (41356245) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (41949595) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (41956475) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (42549735) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (42556655) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6920ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (43148895) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (43155725) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6830ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (43208455) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769598177 after=1769598181 delta=4 cb_epoch=1769598181
+I (43208455) time_sync: SNTP callback state: fired=yes cb_epoch=1769598181 cb_uptime_us=43207722478 attempt_uptime_us=43204236037
+I (43208455) time_sync: SNTP synced
+I (43208455) time_sync: RTC updated from system time
+I (43208455) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (43748945) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (43755815) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (44349085) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (44355945) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (44949205) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (44956085) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (45549465) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (45556335) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (46149585) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (46156465) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (46749835) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (46756715) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (46805855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769601777 after=1769601778 delta=1 cb_epoch=1769601778
+I (46805855) time_sync: SNTP callback state: fired=yes cb_epoch=1769601778 cb_uptime_us=46805171137 attempt_uptime_us=46804235856
+I (46805855) time_sync: SNTP synced
+I (46805855) time_sync: RTC updated from system time
+I (46805855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (47350055) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (47356915) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (47949115) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (47955975) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (48549205) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (48556015) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6810ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (49149325) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+W (49154645) fram_log: PeekOldest retry attempt=1 slot=129 addr=0x1930 last_reason=bad-crc
+I (49156205) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (49749545) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (49756385) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6840ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (50349645) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (50356535) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (50409055) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769605377 after=1769605381 delta=4 cb_epoch=1769605381
+I (50409055) time_sync: SNTP callback state: fired=yes cb_epoch=1769605381 cb_uptime_us=50408433540 attempt_uptime_us=50404235880
+I (50409055) time_sync: SNTP synced
+I (50409055) time_sync: RTC updated from system time
+I (50409055) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (50949905) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (50956865) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6960ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (51549065) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (51555815) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6750ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (52149165) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (52156045) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (52749295) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79151/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (52756175) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (53349435) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (53356415) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6980ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (53949745) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (53956625) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (54009055) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769608977 after=1769608981 delta=4 cb_epoch=1769608981
+I (54009055) time_sync: SNTP callback state: fired=yes cb_epoch=1769608981 cb_uptime_us=54008364525 attempt_uptime_us=54004235804
+I (54009055) time_sync: SNTP synced
+I (54009055) time_sync: RTC updated from system time
+I (54009055) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (54549875) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (54556735) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (55150065) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79099/31732 psram:1955212/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (55156965) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (55750355) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (55757215) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (56349425) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (56356295) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (56949555) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (56956415) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (57549685) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (57556555) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (57606055) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769612577 after=1769612578 delta=1 cb_epoch=1769612578
+I (57606055) time_sync: SNTP callback state: fired=yes cb_epoch=1769612578 cb_uptime_us=57605249156 attempt_uptime_us=57604235070
+I (57606055) time_sync: SNTP synced
+I (57606055) time_sync: RTC updated from system time
+I (57606055) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (58149955) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (58156775) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6820ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (58749975) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (58756755) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6780ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (59350045) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (59356865) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6820ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (59950235) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (59957095) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (60550355) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (60557245) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (61149445) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (61156335) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (61205455) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769616177 after=1769616177 delta=0 cb_epoch=1769616177
+I (61205455) time_sync: SNTP callback state: fired=yes cb_epoch=1769616177 cb_uptime_us=61204741105 attempt_uptime_us=61204236193
+I (61205455) time_sync: SNTP synced
+I (61205455) time_sync: RTC updated from system time
+I (61205455) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (61749585) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79091/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (61756465) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (62349715) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (62356585) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (62949845) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (62956715) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (63549975) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (63556935) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6960ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (64150235) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79143/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+I (64157135) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6900ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1908 http:4076)
+E (64207575) i2c.master: I2C hardware NACK detected
+E (64207575) i2c.master: I2C transaction unexpected nack detected
+E (64207575) i2c.master: s_i2c_synchronous_transaction(945): I2C transaction failed
+E (64207575) i2c.master: i2c_master_transmit_receive(1248): I2C transaction failed
+W (64207575) runtime: I2C recovery start (fram io error): ESP_ERR_INVALID_STATE
+I (64207575) heap_event: event[i2c_recovery_start] detail=fram io error code=259 internal_free=79143 internal_largest=31732 internal_min_free=36383 internal_min_largest=31732 internal_frag=60% internal_warn=0 internal_crit=0
+I (64207585) heap_event: event[i2c_recovery_start] detail=fram io error code=259 psram_free=1955012 psram_largest=1933300 psram_min_free=1948996 psram_min_largest=1933300 psram_frag=2% psram_warn=0 psram_crit=0
+I (64207615) alert_mgr: ntfy batch queued: total=2 unique=2
+I (64207615) runtime: net_tx stack watermark: 1828 bytes free
+W (64207635) runtime: I2C mutex timeout
+W (64207635) time_sync: DS3231 not responding at 0x68: ESP_ERR_TIMEOUT
+I (64207635) runtime: I2C recovery succeeded
+I (64207635) heap_event: event[i2c_recovery_ok] detail=fram io error code=0 internal_free=74123 internal_largest=31732 internal_min_free=36383 internal_min_largest=31732 internal_frag=58% internal_warn=0 internal_crit=0
+I (64207635) heap_event: event[i2c_recovery_ok] detail=fram io error code=0 psram_free=1954336 psram_largest=1933300 psram_min_free=1948996 psram_min_largest=1933300 psram_frag=2% psram_warn=0 psram_crit=0
+I (64208705) runtime: ntfy job ok: status=200 attempt=1
+I (64750345) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (64757095) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6750ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (64806855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769619777 after=1769619779 delta=2 cb_epoch=1769619778
+I (64806855) time_sync: SNTP callback state: fired=yes cb_epoch=1769619778 cb_uptime_us=64806173543 attempt_uptime_us=64804234042
+I (64806855) time_sync: SNTP synced
+I (64806855) time_sync: RTC updated from system time
+I (64806855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (65350555) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (65357435) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (65949645) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (65956515) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (66549765) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (66556615) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6850ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (67149885) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79139/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (67156755) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (67750015) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (67756905) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (68350235) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79075/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (68357155) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6920ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (68405855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769623377 after=1769623377 delta=0 cb_epoch=1769623377
+I (68405855) time_sync: SNTP callback state: fired=yes cb_epoch=1769623377 cb_uptime_us=68405044173 attempt_uptime_us=68404234190
+I (68405855) time_sync: SNTP synced
+I (68405855) time_sync: RTC updated from system time
+I (68405855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (68950355) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (68957215) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (69550575) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (69557455) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (70150835) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (70157695) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (70749905) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (70756635) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6730ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (71349935) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (71356815) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (71950055) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79087/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (71956925) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (72006255) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769626976 after=1769626978 delta=2 cb_epoch=1769626978
+I (72006255) time_sync: SNTP callback state: fired=yes cb_epoch=1769626978 cb_uptime_us=72005491259 attempt_uptime_us=72004234051
+I (72006255) time_sync: SNTP synced
+I (72006255) time_sync: RTC updated from system time
+I (72006255) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (72550185) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79139/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (72557055) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (73150515) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (73157475) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6960ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (73750685) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (73757575) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (74350835) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (74357705) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (74949895) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (74956755) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (75550015) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79075/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (75556895) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (75608855) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769630576 after=1769630580 delta=4 cb_epoch=1769630580
+I (75608855) time_sync: SNTP callback state: fired=yes cb_epoch=1769630580 cb_uptime_us=75608122266 attempt_uptime_us=75604234037
+I (75608855) time_sync: SNTP synced
+I (75608855) time_sync: RTC updated from system time
+I (75608855) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (76150175) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (76157045) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (76750305) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (76757235) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6930ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (77350485) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (77357235) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6750ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (77950585) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (77957475) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6890ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (78550735) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (78557605) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (79150855) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79075/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (79157715) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (79206255) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769634176 after=1769634178 delta=2 cb_epoch=1769634178
+I (79206255) time_sync: SNTP callback state: fired=yes cb_epoch=1769634178 cb_uptime_us=79205549133 attempt_uptime_us=79204234055
+I (79206255) time_sync: SNTP synced
+I (79206255) time_sync: RTC updated from system time
+I (79206255) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (79750965) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (79757765) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6800ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (80350015) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (80356765) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6750ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (80950055) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (80957065) runtime: Drain post(watermark): flushed=512 remaining=0 duration=7010ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (81550265) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (81557135) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (82150395) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (82157255) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6860ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (82750515) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (82757385) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6870ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (82805255) time_sync: SNTP attempt summary: server=pool.ntp.org verified=yes callback=yes before=1769637776 after=1769637776 delta=0 cb_epoch=1769637776
+I (82805255) time_sync: SNTP callback state: fired=yes cb_epoch=1769637776 cb_uptime_us=82804629315 attempt_uptime_us=82804234042
+I (82805255) time_sync: SNTP synced
+I (82805255) time_sync: RTC updated from system time
+I (82805255) net_sup: Time synchronized (SNTP -> RTC UTC)
+I (83350625) runtime: Drain preflight(watermark): fram=512/656 wm=512 (78%) sd=mounted:1 degraded:0 backoff:0ms heap=int:79127/31732 psram:1955012/1933300 stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+I (83357505) runtime: Drain post(watermark): flushed=512 remaining=0 duration=6880ms stack_min(ctrl:3400 stor:3196 flush:4004 net:1828 http:4076)
+stack
+task            alloc  last_free   min_free  peak_used  recommended
+display          4608       2044       2044       2564         3840
+control          6144       3400       3400       2744         3840
+sensor           3584       1316       1316       2268         3328
+storage          6144       3196       3196       2948         4096
+sd_flush         8192       4004       4004       4188         5376
+export           3584       1104       1104       2480         3584
+net_tx           6144       1828       1828       4316         5376
+alert_http      11264       4076       4076       7188         8448
+pt100> status
+node_id: 98:A3:16:12:57:B0
+runtime_running: yes
+time_valid: yes
+log_period_ms: 1000
+rtc_resync_period_ms: 3600000
+sd_flush_period_ms: 600000
+sd_batch_target_bytes: 4096
+node_role: SENSOR
+net_mode: WIFI
+allow_children: no
+tz_posix: CST6CDT,M3.2.0/2,M11.1.0/2
+dst_enabled: yes
+mqtt_enabled: no
+mqtt_broker_uri: mqtt://192.168.1.50
+mqtt_topic_prefix: pt100
+mqtt_qos: 0
+mqtt_retain: no
+rtd_ema_enabled: yes
+rtd_ema_alpha: 0.200
+rtd_ema_valid: yes
+utc_time: 2026-01-28 22:13:50Z (epoch=1769638430)
+local_time: 2026-01-28 16:13:50 (utc_offset_sec=-21600 dst_in_effect=0)
+fram_count: 48
+fram_capacity: 656
+fram_fill_pct: 7
+fram_overrun_records_total: 0
+fram_flush_watermark_records: 512
+fram_full: no
+fram_count/seq: 48/401359
+fram_corrupt_detect_count: 0
+fram_corrupt_skip_count: 0
+fram_corrupt_last_reason: ok
+fram_corrupt_last_slot: 0
+fram_corrupt_last_addr: 0x0000
+fram_corrupt_last_magic: 0x00000000
+fram_corrupt_last_schema: 0
+fram_corrupt_last_exp_crc: 0x0000
+fram_corrupt_last_act_crc: 0x0000
+data_csv_drop_count: 0
+data_csv_write_fail_count: 0
+mqtt_connected: no
+export_outbox_depth/used: 16/0
+export_drop_count: 0
+export_send_fail_count: 0
+calibration: mode=linear degree=1 coeffs=[-0.425956764, 0.999898506, 0, 0]
+Calibration:
+  Last UTC:  2026-01-26T16:25:40Z
+  Due every: 1 year
+  Due date:  2027-01-26T00:00:00Z
+  Overdue:   no
+  Time valid: yes
+  Time stable: yes
+  Check: active
+sd_mounted: yes
+sd_card_present: yes
+sd_safe_to_remove: no
+sd_card_detect_gpio: 3
+sd_card_detect_present_level: low
+sd_degraded: no
+sd_fail_count: 0
+sd_backoff_remaining_ms: 0
+sd_last_record_id: 401310
+heap_internal_free_bytes: 79127
+heap_internal_largest_free_block_bytes: 31732
+heap_internal_min_free_bytes: 35567
+heap_internal_min_largest_free_block_bytes: 31732
+heap_internal_frag_percent: 60
+heap_internal_warn: no
+heap_internal_crit: no
+heap_psram_free_bytes: 1955012
+heap_psram_largest_free_block_bytes: 1933300
+heap_psram_min_free_bytes: 1948104
+heap_psram_min_largest_free_block_bytes: 1933300
+heap_psram_frag_percent: 2
+heap_psram_warn: no
+heap_psram_crit: no
+allocs_since_run: 0
+mesh_connected: no
+wifi_connected: yes
+wifi_ip: 192.168.4.149
+cal_points: 2
+pt100> 

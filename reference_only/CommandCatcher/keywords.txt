@@ -1,0 +1,10 @@
+CommandCatcher      KEYWORD1
+init                KEYWORD2
+addListener         KEYWORD2
+ready               KEYWORD2
+getCommand          KEYWORD2
+getParameter        KEYWORD2
+close               KEYWORD2
+setTerminator       KEYWORD2
+setSeparator        KEYWORD2
+update              KEYWORD2

@@ -1,0 +1,29 @@
+# 2.1 (Jul 2025)
+
+- Accept `F()` macro PROGMEM strings in the `LAZY_COMMAND()` macro to save on memory.
+
+# 2.0 (May 2025)
+
+- Redesign to be templated on the buffer size
+- Commands now take a LazySerial::Context object with args and invocation mode, command callback may be invoked multiple times for different purposes.
+- Use static array initialisation for command list.
+
+# 1.3 (Oct 2024)
+
+- Allow buffer sizes to be redefined (maybe? I think Arduino is precompiling headers...)
+
+# 1.2 (Apr 2024)
+
+- Alternative dispatch_command() that will take a `const char *` and copy it somewhere mutable for the sake of later tokenisation.
+
+# 1.1 (Apr 2024)
+
+- Callbacks bumped to 20 (this needs to be made more dynamic...), buffer size bumped to 512 (c'mon, microcontrollers have heaps of space these days)
+- Default help command can be changed.
+- dispatch_command() made public so alternate sources of commands can be used.
+- new run_script(const char\*) to dispatch a sequence of commands in bulk.
+
+# 1.0 (2016)
+
+- 10 commands are permitted, and buffer size is 64 bytes.
+- Commands are automatically read from the Serial object supplied, and dispatched according to the registered callbacks.

@@ -1,0 +1,26 @@
+{
+  "name": "SerialCommandManager",
+  "version": "1.0.0",
+  "description": "A flexible serial command parser and dispatcher for Arduino with handler-based architecture",
+  "keywords": [
+    "serial",
+    "command",
+    "parser",
+    "communication",
+    "protocol"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k3ldar/Arduino.git"
+  },
+  "authors": [
+    {
+      "name": "Simon Carter",
+      "maintainer": true
+    }
+  ],
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": "*",
+  "examples": "examples/*/*.ino"
+}
