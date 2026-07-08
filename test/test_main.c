@@ -5,6 +5,8 @@
 #include "bsc_status.h"
 #include "bsc_string_view.h"
 
+int bsc_run_tokenizer_tests(void);
+
 #define TEST_ASSERT_TRUE(condition)                                                                \
   do {                                                                                             \
     if (!(condition)) {                                                                            \
@@ -54,6 +56,7 @@ static size_t capture_write(void *user, const char *data, size_t length) {
 static int test_status_names(const char *test_name) {
   TEST_ASSERT_STR_EQ("BSC_STATUS_OK", bsc_status_name(BSC_STATUS_OK));
   TEST_ASSERT_STR_EQ("BSC_STATUS_LINE_TOO_LONG", bsc_status_name(BSC_STATUS_LINE_TOO_LONG));
+  TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_SYNTAX", bsc_status_name(BSC_STATUS_INVALID_SYNTAX));
   TEST_ASSERT_STR_EQ("BSC_STATUS_UNKNOWN", bsc_status_name((bsc_status_t)999));
   return 0;
 }
@@ -120,6 +123,8 @@ int main(void) {
   RUN_TEST(test_string_view_empty_behavior);
   RUN_TEST(test_output_write_and_writeln_capture);
   RUN_TEST(test_output_truncation);
+
+  failures += bsc_run_tokenizer_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);

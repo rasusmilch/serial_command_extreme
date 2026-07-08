@@ -20,6 +20,7 @@ add_library(
     src/bsc_output.c
     src/bsc_status.c
     src/bsc_string_view.c
+    src/bsc_tokenizer.c
 )
 add_library(serial_command_extreme::serial_command_extreme ALIAS serial_command_extreme)
 

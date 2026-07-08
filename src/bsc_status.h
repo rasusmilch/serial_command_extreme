@@ -36,6 +36,8 @@ typedef enum bsc_status {
   BSC_STATUS_TOO_MANY_TOKENS,
   /** Input ended before a quoted string was closed. */
   BSC_STATUS_UNTERMINATED_QUOTE,
+  /** Input contained malformed tokenizer or parser syntax. */
+  BSC_STATUS_INVALID_SYNTAX,
   /** No command matched the provided path. */
   BSC_STATUS_UNKNOWN_COMMAND,
   /** More than one command matched and the input was ambiguous. */
