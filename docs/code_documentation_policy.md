@@ -149,6 +149,25 @@ C documentation must explicitly cover these where applicable:
 - Lifetime rules: especially when string views point into a console line buffer and are valid only during callback dispatch.
 - Redaction and secrets: whether values may be printed, echoed, logged, or displayed in help examples.
 
+### Serial Command Extreme buffer/workspace documentation requirements
+
+New or touched tokenizer, parser, console, matcher, dispatch, and adapter-facing source must document buffer ownership and copy boundaries explicitly. At minimum, comments for public APIs and non-obvious internal helpers must state:
+
+- The owner of each buffer or array.
+- The capacity of each buffer or array, including whether it is governed by `BSC_MAX_LINE_LEN`, `BSC_MAX_TOKENS`, `BSC_MAX_TOKEN_LEN`, `BSC_MAX_ARGS`, or a caller-provided capacity.
+- The placement of each buffer: caller-owned, console-owned, workspace-owned, adapter-owned, stack-local, file-scope static, heap, or application-persistent.
+- The lifetime of buffers, token views, parsed argument views, callback pointers, and application context pointers.
+- Whether a view points into mutable command line storage.
+- Whether the function mutates the line buffer, including in-place quote/escape compaction.
+- Whether a buffer may be shared across calls and what serialization is required.
+- Reentrancy, thread, task, and ISR assumptions.
+- Whether pointers or views may escape the call, dispatch, or active command execution.
+- Every intentional copy boundary and why that copy exists.
+
+Core tokenizer/parser/matcher/dispatch code must not hide large storage in local automatic arrays or file-scope static scratch. Treat any local automatic array larger than 64 bytes in those core paths as requiring an explicit source comment and final-receipt report with file, function, size, and justification. Treat any tokenizer/parser local array larger than `sizeof(bsc_string_view_t) * 2`, or larger than a small scalar helper fragment, as suspicious even if it is under 64 bytes. This is a review and reporting rule, not yet a compiler-enforced check.
+
+Hidden large static scratch is prohibited in reusable core source unless an anchor first approves a service-owned or workspace-owned static placement and documents owner, capacity, lifetime, reentrancy, serialization, and pointer-escape rules. Heap allocation remains prohibited in the core.
+
 Public header example:
 
 ```c
@@ -391,7 +410,8 @@ Documentation acceptance criteria:
 - Read docs/code_documentation_policy.md before editing source.
 - Add or update Doxygen-compatible comments for new or touched public C/C++ APIs, structs, enums, callbacks, and macros that behave like APIs.
 - Add or update Python docstrings for new or touched Python modules/functions using PEP 257-compatible docstrings and Google-style sections where useful.
-- Document ownership, buffer sizes, units, lifetime, error/status codes, blocking behavior, thread/ISR safety, and redaction behavior where applicable.
+- Document ownership, buffer sizes, placement, lifetime, mutation, copy boundaries, pointer/view escape rules, units, error/status codes, blocking behavior, thread/ISR safety, and redaction behavior where applicable.
+- For tokenizer/parser/console/matcher/dispatch/adapter tasks, list new or touched buffer owners and any local automatic arrays over 64 bytes, including file, function, size, and justification.
 - Add inline comments only for non-obvious design, parser edge cases, memory/lifetime constraints, hardware/timing assumptions, or regression protections.
 - Do not add comments that narrate syntax, speculate, or contradict tests, schemas, or generated help.
 - Do not remove useful product/hardware/safety comments without replacing them with a more accurate statement.

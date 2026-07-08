@@ -357,7 +357,7 @@ Notes:
 - `bsc_string_view.*` is separated because string views are foundational to tokenizer, matcher, args, and tests.
 - `bsc_matcher.*` is separated from `bsc_registry.*` to keep command-table validation distinct from runtime path matching.
 - `bsc_dispatch.*` should coordinate matcher + args + handler, but not own line buffering.
-- `bsc_console.*` should be the high-level public entry point that copies/normalizes input into the bounded line buffer and calls tokenizer/matcher/dispatch/help.
+- `bsc_console.*` should be the high-level public entry point that owns or receives the bounded command-execution workspace, normalizes input in that workspace, and calls tokenizer/matcher/dispatch/help without creating a second command text buffer.
 - `adapters/` can be created later; do not add adapter code before the host-tested core exists.
 
 ## Module responsibilities
@@ -502,10 +502,12 @@ Responsibilities:
 - Return empty input as `BSC_STATUS_NO_INPUT`.
 - Avoid heap allocation.
 - Avoid unbounded recursion.
+- Do not allocate or own a second tokenizer text buffer.
+- Do not create per-token string buffers or large local token/text arrays.
 
 Implementation recommendation:
 
-Use an in-place state machine over `char line_buffer[]`. Store tokens as `bsc_str_view_t`. For quoted/unescaped strings, it is acceptable to compact escapes in-place inside `line_buffer` so the token view points to the unescaped content.
+Use an in-place state machine over the active workspace `char line_buffer[]`. Store tokens as `bsc_str_view_t` values in caller-owned or console/workspace-owned token storage. For quoted/unescaped strings, it is acceptable to compact escapes in-place inside `line_buffer` so the token view points to the unescaped content. Tokenizer code must not copy token text into another tokenizer-owned buffer.
 
 Tokenizer states:
 
@@ -530,7 +532,7 @@ Responsibilities:
 - Parse bool accepted forms: `on/off`, `true/false`, `yes/no`, `1/0`.
 - Parse enum choices, case-insensitively by default.
 - Validate string and secret byte lengths.
-- Store string/secret as views into the line buffer.
+- Store string/secret as views into the same active line buffer used by the tokenizer.
 - Store enum as index into the descriptor's choice array.
 
 Do not use `atoi()` or `atof()` without end-pointer validation. Prefer `strtol`, `strtoul`, and `strtof`/`strtod` with end-pointer and range checks.
@@ -647,20 +649,49 @@ const char *bsc_status_name(bsc_status_t status);
 
 Exact API may change during implementation, but the high-level `bsc_execute_line()` concept should remain.
 
-## Lifetime and ownership rules
+## Lifetime, ownership, and command-execution workspace rules
 
-These rules must be documented in headers and enforced by tests where practical:
+These rules must be documented in headers and enforced by tests or review checks where practical. Any task that deviates from this model must document and justify the deviation in its receipt.
+
+### Single workspace model
+
+The core uses one bounded command-execution workspace for one active command execution. `bsc_console_t`, or a future `bsc_console_workspace_t`, owns or receives that workspace and serializes access to it. The workspace is expected to contain, directly or through caller-owned members:
+
+- One mutable line buffer for the active command line.
+- One token-view array.
+- Later, one parsed-argument array.
+- Later, optional small bounded output-format scratch only if bounded formatting is explicitly approved.
+
+The reusable core must avoid serial/input-buffer -> console-buffer -> tokenizer-buffer -> parser-string-buffer copy chains. Future adapters should fill the console/workspace line buffer directly where practical. If an adapter must use an RX staging buffer, the adapter must document that buffer's owner, capacity, lifetime, serialization assumptions, and exact copy boundary.
+
+### Tokenizer and parser storage
+
+- The tokenizer operates on the active mutable line buffer in place.
+- The tokenizer may compact quote escapes in that same line buffer.
+- Token views point into that same mutable line buffer.
+- Token arrays are caller-owned or console/workspace-owned; tokenizer functions must not place large token arrays on the stack.
+- There is no separate tokenizer-owned text buffer.
+- There are no per-token string copies in the core tokenizer.
+- The matcher consumes token views and does not copy command text.
+- The argument parser consumes token views. Numeric, boolean, and enum arguments become small parsed values. String and secret arguments remain borrowed views into the same line buffer.
+- Parsed-argument arrays are caller-owned or console/workspace-owned; parser functions must not place large parsed-argument arrays on the stack.
+
+### Lifetime and pointer escape rules
 
 - Command descriptor arrays are caller-owned and must outlive the console context.
 - Descriptor strings are caller-owned/static and must outlive the console context.
-- `bsc_console_t` is caller-owned.
-- The console owns its bounded `line_buffer`.
-- Tokens are views into `line_buffer`.
-- Parsed string/secret arguments are views into `line_buffer`.
-- Parsed string/secret views are valid only during dispatch and until the next line-buffer mutation.
-- If the application needs to keep a string/secret, the handler must copy it into bounded application storage.
+- `bsc_console_t` is caller-owned unless a future adapter clearly documents another owner.
+- Borrowed token and parsed string/secret views are valid only for the active command execution: until the next line-buffer mutation or end of dispatch, whichever stricter policy is later formalized by console/dispatch.
+- Application handlers must explicitly copy string or secret values into bounded application-owned storage if they need persistence beyond the handler call.
 - Output callback user pointer is caller-owned and opaque to the core.
+- Core tokenizer/parser/matcher/dispatch code must not retain pointers into the workspace after the active execution completes.
+
+### Allocation and scratch storage rules
+
 - No core function may allocate heap memory.
+- Reusable core modules must not use hidden file-scope static scratch buffers.
+- Tokenizer, parser, matcher, and dispatch functions must not use large local arrays for command text, token text, token arrays, parsed arguments, or output chunks. Workspace/caller-owned storage is the default placement for bounded arrays.
+- A future task that proposes service-owned or file-scope static storage must first anchor the owner, capacity, lifetime, reentrancy, serialization, and pointer-escape rules.
 
 ## Built-in command policy
 
