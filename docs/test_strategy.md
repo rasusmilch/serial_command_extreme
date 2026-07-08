@@ -323,6 +323,16 @@ Additional tokenizer cases:
 - Backslash outside quotes, if supported or explicitly rejected.
 - Consecutive delimiters.
 - Tab delimiters.
+
+Buffer/workspace policy cases and review checks:
+
+- Tokenizer tests must prove token views can represent non-null-terminated slices.
+- Tokenizer tests must prove quoted and escaped tokens are represented by views into the mutable input line after in-place compaction, not by copied strings.
+- Tests or code inspection/static checks must verify tokenizer source does not introduce heap allocation, a separate tokenizer-owned text buffer, per-token text buffers, hidden static scratch, or large stack-local token/text arrays.
+- Future parser tests must prove string and secret parsed arguments remain borrowed views into the active line buffer until dispatch and are not copied into parser-owned text buffers.
+- Future adapter tests or plans must account for direct fill into the console/workspace line buffer where practical; any required RX staging buffer must have documented owner, capacity, lifetime, and copy boundary.
+- Receipts for tokenizer, parser, console, matcher, dispatch, and adapter tasks must report buffer owners and any large local arrays.
+- `sce_forbidden_patterns` remains a useful guard for heap/platform/API drift, but it is not proof of stack/local-buffer discipline or no-copy workspace discipline.
 - Non-ASCII input policy, once defined.
 
 ### Command matching
@@ -586,6 +596,7 @@ Implementation prompts should include this acceptance language:
 Testing acceptance criteria:
 - Read docs/test_strategy.md before editing source.
 - Add or update host tests for every new or changed parser, tokenizer, registry, validation, dispatch, output, redaction, help, or access behavior.
+- For tokenizer/parser/console/adapter tasks, report buffer owners, intentional copy boundaries, and any local automatic arrays over the documentation-policy threshold.
 - Include negative tests for malformed input and strict rejection cases.
 - Include golden-output updates for intentional help/manpage/error-output changes.
 - Run the available host test command and report the exact command and result.
@@ -719,6 +730,7 @@ Acceptance:
 
 - Required tokenizer accept/reject cases pass.
 - Boundary tests for line/token/token-count limits pass.
+- Tokenizer/parser buffer-policy tests or review checks prove views point into the active mutable line buffer and no extra tokenizer/parser text buffers were introduced.
 - No hardware required.
 
 ### Phase T3 — Registry, matching, and argument validation tests
