@@ -2,7 +2,7 @@
 
 This directory is reserved for host-first tests.
 
-An initial self-contained C host test harness exists and runs through CTest. The core library should remain testable on a normal host machine without Arduino, ESP-IDF, UART hardware, or firmware flashing.
+An initial self-contained C host test harness exists and runs through CTest. When Python3 is available, CTest also runs the forbidden-pattern checker against `src/`. The core library should remain testable on a normal host machine without Arduino, ESP-IDF, UART hardware, or firmware flashing.
 
 ## Purpose
 
@@ -53,7 +53,7 @@ test/
     error_invalid_gain.txt
 ```
 
-The initial harness uses `test/test_main.c` and CTest without a third-party framework. Exact future names may change as parser, registry, dispatch, and help tests are added.
+The initial harness uses `test/test_main.c` and CTest without a third-party framework. CTest registers `sce_host_tests` for behavior smoke tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Exact future names may change as parser, registry, dispatch, and help tests are added.
 
 ## Required testing posture
 
@@ -86,7 +86,7 @@ Intentional output changes must update the golden files and explain the change i
 
 ## Static checks
 
-Future test tooling should include forbidden-pattern checks for the core. At minimum, checks should guard against:
+The current CTest path includes a first-pass forbidden-pattern check for the core when Python3 is available. The checker is a guard against known bad patterns, not a full C parser. At minimum, checks should guard against:
 
 - Heap allocation in core source.
 - Arduino `String` in core source.
