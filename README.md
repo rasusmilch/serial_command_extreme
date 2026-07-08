@@ -4,7 +4,7 @@ Serial Command Extreme is a planned reusable bounded embedded serial command lib
 
 The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to register commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository is currently in the anchor/planning stage. Implementation source, build files, tests, examples, and platform adapters have not been added yet.
+This repository now has an initial Phase 2A C99 core skeleton and host test harness. The full parser, command registry, examples, and platform adapters have not been added yet.
 
 ## Intended use
 
@@ -85,17 +85,17 @@ Discovery can be menu-like through namespaces and help output, but normal operat
 Current status:
 
 ```text
-Stage: anchor/planning
-Implementation source: not added yet
-Build system: not added yet
-Tests: not added yet
+Stage: Phase 2A core skeleton
+Implementation source: initial skeleton added
+Build system: CMake scaffold builds the core library and host tests
+Tests: initial CTest host smoke tests added
 Examples: not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as an installable or usable library yet.
+Do not treat this repository as an installable or usable command parser yet; only the initial skeleton APIs and host smoke tests exist.
 
 ## Documentation anchors
 
