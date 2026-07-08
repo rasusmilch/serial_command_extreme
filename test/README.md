@@ -6,7 +6,7 @@ An initial self-contained C host test harness exists and runs through CTest. Whe
 
 ## Purpose
 
-The current Phase 2A tests cover skeleton status, string-view, and output behavior. Future tests in this directory should prove the behavior of the platform-independent core:
+The current host tests cover skeleton status, string-view, output behavior, and the Phase 2B bounded tokenizer. Future tests in this directory should prove the behavior of the platform-independent core:
 
 - Tokenization.
 - Quoted strings and escapes.
@@ -31,7 +31,7 @@ The test strategy currently recommends a layout similar to:
 test/
   README.md
   test_main.c
-  test_tokenizer.c
+  test_bsc_tokenizer.c
   test_parser.c
   test_args.c
   test_dispatch.c
@@ -53,7 +53,7 @@ test/
     error_invalid_gain.txt
 ```
 
-The initial harness uses `test/test_main.c` and CTest without a third-party framework. CTest registers `sce_host_tests` for behavior smoke tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Exact future names may change as parser, registry, dispatch, and help tests are added.
+The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for behavior smoke tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Exact future names may change as parser, registry, dispatch, and help tests are added.
 
 ## Required testing posture
 

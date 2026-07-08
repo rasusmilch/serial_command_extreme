@@ -2,7 +2,7 @@
 
 This directory is reserved for the platform-independent core library.
 
-Initial Phase 2A skeleton source exists here. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
+Initial Phase 2A skeleton source exists here, and the Phase 2B bounded tokenizer has been added. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
 
 ## Intended core modules
 
@@ -54,7 +54,7 @@ The core must remain:
 Future core source should implement only the reusable command subsystem:
 
 - Bounded line/token handling.
-- Tokenizer with quotes and escapes.
+- Bounded tokenizer with quotes and escapes.
 - Command descriptor model.
 - Command registry validation.
 - Longest-path command matching.
@@ -82,4 +82,4 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, dispatch, output, redaction, help, or access behavior. Tokenizer, registry, matcher, argument parser, dispatch, help rendering, adapters, and examples remain deferred after the Phase 2A skeleton.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, dispatch, output, redaction, help, or access behavior. Registry, matcher, argument parser, dispatch, help rendering, adapters, and examples remain deferred after the tokenizer step.

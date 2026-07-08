@@ -172,10 +172,10 @@ The tokenizer should produce token views. Tokens may point into the console line
 typedef struct {
   const char* ptr;
   uint16_t len;
-} bsc_str_view_t;
+} bsc_string_view_t;
 
 typedef struct {
-  bsc_str_view_t tokens[BSC_MAX_TOKENS];
+  bsc_string_view_t tokens[BSC_MAX_TOKENS];
   uint8_t count;
 } bsc_token_list_t;
 ```
@@ -242,7 +242,7 @@ typedef struct {
     uint32_t u;
     float f;
     bool b;
-    bsc_str_view_t s;
+    bsc_string_view_t s;
     uint8_t enum_index;
   } value;
 } bsc_arg_value_t;

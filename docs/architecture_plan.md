@@ -507,7 +507,7 @@ Responsibilities:
 
 Implementation recommendation:
 
-Use an in-place state machine over the active workspace `char line_buffer[]`. Store tokens as `bsc_str_view_t` values in caller-owned or console/workspace-owned token storage. For quoted/unescaped strings, it is acceptable to compact escapes in-place inside `line_buffer` so the token view points to the unescaped content. Tokenizer code must not copy token text into another tokenizer-owned buffer.
+Use an in-place state machine over the active workspace `char line_buffer[]`. Store tokens as `bsc_string_view_t` values in caller-owned or console/workspace-owned token storage. For quoted/unescaped strings, it is acceptable to compact escapes in-place inside `line_buffer` so the token view points to the unescaped content. Tokenizer code must not copy token text into another tokenizer-owned buffer.
 
 Tokenizer states:
 
