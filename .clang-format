@@ -1,0 +1,37 @@
+# Formatting policy for Serial Command Extreme.
+#
+# This project is expected to contain a C-first core plus C++ adapters.
+# Keep formatting boring and stable so future reviews focus on behavior.
+
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++17
+
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ColumnLimit: 100
+
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+
+BreakBeforeBraces: Attach
+PointerAlignment: Right
+ReferenceAlignment: Right
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: Align
+
+BinPackArguments: false
+BinPackParameters: false
+
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve
+
+DerivePointerAlignment: false
+SpaceBeforeParens: ControlStatements
+SpacesInParentheses: false
