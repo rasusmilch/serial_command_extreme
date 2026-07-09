@@ -24,10 +24,12 @@ extern "C" {
  * @brief Tokenize one bounded mutable command line in place.
  *
  * @param line Caller/workspace-owned mutable bytes to scan. Must not be NULL.
- *   The tokenizer may mutate this storage to remove quote delimiters and compact
- *   supported quoted escapes. The span is exactly @p line_length bytes and is
- *   not measured with strlen; a trailing C terminator, if present, is outside
- *   the scanned span unless included by @p line_length.
+ *   The tokenizer may mutate this storage while tokenizing quoted content. Quote
+ *   delimiters are excluded from returned token views, and supported quoted
+ *   escapes may be compacted in place inside this same buffer. The span is
+ *   exactly @p line_length bytes and is not measured with strlen; a trailing C
+ *   terminator, if present, is outside the scanned span unless included by
+ *   @p line_length.
  * @param line_length Number of bytes to scan, excluding any C terminator if the
  *   caller stores one. Values greater than #BSC_MAX_LINE_LEN are rejected.
  * @param tokens Caller/workspace-owned output array of #bsc_string_view_t

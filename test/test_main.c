@@ -6,6 +6,7 @@
 #include "bsc_string_view.h"
 
 int bsc_run_tokenizer_tests(void);
+int bsc_run_types_tests(void);
 
 #define TEST_ASSERT_TRUE(condition)                                                                \
   do {                                                                                             \
@@ -125,6 +126,7 @@ int main(void) {
   RUN_TEST(test_output_truncation);
 
   failures += bsc_run_tokenizer_tests();
+  failures += bsc_run_types_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);
