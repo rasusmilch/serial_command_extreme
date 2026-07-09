@@ -8,6 +8,7 @@
 int bsc_run_tokenizer_tests(void);
 int bsc_run_types_tests(void);
 int bsc_run_registry_tests(void);
+int bsc_run_matcher_tests(void);
 
 #define TEST_ASSERT_TRUE(condition)                                                                \
   do {                                                                                             \
@@ -130,6 +131,7 @@ int main(void) {
   failures += bsc_run_tokenizer_tests();
   failures += bsc_run_types_tests();
   failures += bsc_run_registry_tests();
+  failures += bsc_run_matcher_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);
