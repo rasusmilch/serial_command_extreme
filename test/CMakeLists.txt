@@ -1,4 +1,11 @@
-add_executable(sce_host_tests test_main.c test_bsc_tokenizer.c test_bsc_types.c test_bsc_registry.c)
+add_executable(
+  sce_host_tests
+  test_main.c
+  test_bsc_tokenizer.c
+  test_bsc_types.c
+  test_bsc_registry.c
+  test_bsc_matcher.c
+)
 
 target_link_libraries(sce_host_tests PRIVATE serial_command_extreme::serial_command_extreme)
 

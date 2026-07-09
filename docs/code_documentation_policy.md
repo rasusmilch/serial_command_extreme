@@ -118,14 +118,50 @@ Python comments should focus on why a validation exists, why a fixture is shaped
 
 ## C standard
 
-The core library is expected to be C-first. Public C APIs require Doxygen-compatible comments.
+The core library is expected to be C-first. Every C function must be documented.
+This includes public functions, static/private file-local functions, trivial
+helpers, test helper functions, callback stubs, validation helpers,
+matcher/parser/tokenizer helpers, result setters/clearers, and small boolean
+predicates. Do not rely on "obvious from the code" as the reason to omit a
+function comment; short comments are acceptable for obvious functions, but
+omission is not.
+
+Write comments for a fresh developer entering the codebase without prior chat
+history, task receipts, or design conversations. A reader should be able to
+understand each function's intent, ownership assumptions, status behavior, and
+module boundary from the source tree itself.
 
 Use Doxygen-compatible comments for:
 
 - Public headers.
-- Public structs, enums, typedefs, callbacks, macros that behave like APIs, and nontrivial functions.
-- Functions whose behavior depends on buffer sizes, ownership, lifetime, units, blocking behavior, or error/status codes.
-- Internal functions with non-obvious parser, tokenizer, matcher, validation, redaction, or output behavior.
+- Public structs, enums, typedefs, callbacks, and macros that behave like APIs.
+- Every C function, including static/private/internal helpers and test helpers.
+- Functions whose behavior depends on buffer sizes, ownership, lifetime, units,
+  blocking behavior, or error/status codes.
+- Parser, tokenizer, matcher, registry, validation, redaction, output, dispatch,
+  adapter, fixture, and callback-stub helpers, even when they are small.
+
+Comment depth should match the function's risk and complexity:
+
+- Public API functions require full Doxygen-compatible comments in the public
+  header that owns the public contract.
+- Public function definitions in `.c` files do not need duplicate full Doxygen
+  when the public header fully documents the API, but may add implementation
+  notes for choices, algorithms, branches, or constraints not already clear from
+  the header.
+- Static/private/internal functions require at least a short Doxygen-compatible
+  or structured block comment immediately above the function.
+- Trivial functions may use a one- or two-line `@brief`.
+- Non-obvious internal functions require more detail: purpose, why the helper
+  exists, status/error behavior, ownership/lifetime assumptions, and what it
+  intentionally does not do.
+- Inline comments are still required for non-obvious branches or algorithms, but
+  inline comments do not replace function-level documentation.
+
+Avoid duplicating long public API documentation in both a header and `.c` file.
+For public functions, the header owns the public contract. The implementation
+should document only implementation-specific choices, algorithms, branches, or
+constraints that are not already clear from the header.
 
 Preferred tags:
 
@@ -151,7 +187,7 @@ C documentation must explicitly cover these where applicable:
 
 ### Serial Command Extreme buffer/workspace documentation requirements
 
-New or touched tokenizer, parser, console, matcher, dispatch, and adapter-facing source must document buffer ownership and copy boundaries explicitly. At minimum, comments for public APIs and non-obvious internal helpers must state:
+New or touched tokenizer, parser, console, matcher, dispatch, and adapter-facing source must document buffer ownership and copy boundaries explicitly. These requirements apply to every function where relevant, including small static helpers and test fixtures. At minimum, function-level comments for public APIs and internal helpers must state:
 
 - The owner of each buffer or array.
 - The capacity of each buffer or array, including whether it is governed by `BSC_MAX_LINE_LEN`, `BSC_MAX_TOKENS`, `BSC_MAX_TOKEN_LEN`, `BSC_MAX_ARGS`, or a caller-provided capacity.
@@ -231,6 +267,46 @@ Macro example:
 #ifndef BSC_MAX_TOKENS
 #define BSC_MAX_TOKENS 24u
 #endif
+```
+
+Trivial static helper example:
+
+```c
+/**
+ * @brief Return whether a node type can participate in command matching.
+ */
+static int bsc_matcher_node_type_is_valid(bsc_node_type_t node_type) {
+  ...
+}
+```
+
+Internal validation helper example:
+
+```c
+/**
+ * @brief Validate only the path and node fields needed for safe matching.
+ *
+ * This helper intentionally does not duplicate full registry validation. It does
+ * not inspect handlers, argument metadata, access levels, flags, help strings,
+ * or command context because those fields are outside matcher responsibility.
+ *
+ * @retval BSC_STATUS_OK The path/node fields are safe to inspect.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Required path/node metadata was malformed.
+ */
+static bsc_status_t bsc_matcher_validate_path_fields(const bsc_command_t *command) {
+  ...
+}
+```
+
+Test helper example:
+
+```c
+/**
+ * @brief Build a minimal executable command descriptor for matcher fixtures.
+ */
+static bsc_command_t make_match_command(const char *const *path, size_t path_len) {
+  ...
+}
 ```
 
 Do not use Doxygen as a substitute for tests. If a function has a documented rejection case, the rejection case should have a test unless the task explicitly states why it cannot be tested yet.
@@ -396,8 +472,9 @@ Every Codex source-code task must require reading this policy before editing sou
 Codex must document:
 
 - New public modules, headers, classes, structs, enums, callbacks, macros that behave like APIs, and functions.
+- Every new or touched C function, including static/private helpers, callback stubs, trivial predicates, result setters/clearers, and test helpers.
 - Touched public APIs whose existing comments are missing, stale, or misleading.
-- New or touched parser/tokenizer/registry/help/dispatch paths when behavior is non-obvious.
+- New or touched parser/tokenizer/registry/matcher/help/dispatch paths, including obvious-looking helpers whose boundaries matter later.
 - New or touched tests and fixtures when they protect a regression, quality escape, hardware assumption, or strict rejection case.
 - Hardware abstractions and platform adapters when they define ownership, timing, blocking, or memory behavior.
 
@@ -409,6 +486,8 @@ Paste-ready acceptance language for future execute tasks:
 Documentation acceptance criteria:
 - Read docs/code_documentation_policy.md before editing source.
 - Add or update Doxygen-compatible comments for new or touched public C/C++ APIs, structs, enums, callbacks, and macros that behave like APIs.
+- Add at least a short Doxygen-compatible or structured block comment immediately above every new or touched C function, including static/private helpers, trivial predicates, callback stubs, result setters/clearers, and test helpers.
+- Avoid duplicating long public API comments in `.c` definitions when the public header already owns the contract; use implementation notes only where useful.
 - Add or update Python docstrings for new or touched Python modules/functions using PEP 257-compatible docstrings and Google-style sections where useful.
 - Document ownership, buffer sizes, placement, lifetime, mutation, copy boundaries, pointer/view escape rules, units, error/status codes, blocking behavior, thread/ISR safety, and redaction behavior where applicable.
 - For tokenizer/parser/console/matcher/dispatch/adapter tasks, list new or touched buffer owners and any local automatic arrays over 64 bytes, including file, function, size, and justification.
