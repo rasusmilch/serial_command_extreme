@@ -2,6 +2,9 @@
 
 #include "bsc_config.h"
 
+/**
+ * @brief Centralize the cleared-result invariant used by matcher failure paths.
+ */
 void bsc_match_result_clear(bsc_match_result_t *result) {
   if (result == NULL) {
     return;
@@ -16,10 +19,23 @@ void bsc_match_result_clear(bsc_match_result_t *result) {
   result->group_index = 0u;
 }
 
+/**
+ * @brief Return whether a node type can participate in command matching.
+ */
 static int bsc_matcher_node_type_is_valid(bsc_node_type_t node_type) {
   return node_type == BSC_NODE_GROUP || node_type == BSC_NODE_COMMAND;
 }
 
+/**
+ * @brief Validate only descriptor path and node fields needed for safe matching.
+ *
+ * This helper intentionally does not duplicate full registry validation. It does
+ * not inspect handlers, argument metadata, access levels, flags, help strings,
+ * or command context because those fields are outside matcher responsibility.
+ *
+ * @retval BSC_STATUS_OK The path/node fields are safe to inspect.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Required path/node metadata was malformed.
+ */
 static bsc_status_t bsc_matcher_validate_path_fields(const bsc_command_t *command) {
   size_t token_index;
 
@@ -38,8 +54,14 @@ static bsc_status_t bsc_matcher_validate_path_fields(const bsc_command_t *comman
   return BSC_STATUS_OK;
 }
 
-/* Compare descriptor path C strings against leading token views. Token views are
- * not C strings, so each element is compared as a bounded view without copying. */
+/**
+ * @brief Return whether a descriptor path matches the leading input tokens.
+ *
+ * Descriptor path tokens are null-terminated C strings, while input tokens are
+ * bounded borrowed views. Matching is ASCII case-insensitive through the
+ * string-view helper, copies no token text, and never treats token views as C
+ * strings.
+ */
 static int bsc_matcher_path_matches_tokens(const bsc_command_t *command,
                                            const bsc_string_view_t *tokens,
                                            size_t token_count) {
@@ -58,6 +80,13 @@ static int bsc_matcher_path_matches_tokens(const bsc_command_t *command,
   return 1;
 }
 
+/**
+ * @brief Populate the OK result shape for a matched executable command.
+ *
+ * The remaining-token fields define the future argument-parser handoff. The
+ * result pointer is optional, and any stored command pointer borrows from the
+ * caller-owned command table.
+ */
 static void bsc_matcher_set_command_result(bsc_match_result_t *result,
                                            const bsc_command_t *command,
                                            size_t command_index,
@@ -73,6 +102,13 @@ static void bsc_matcher_set_command_result(bsc_match_result_t *result,
   result->remaining_token_count = token_count - command->path_len;
 }
 
+/**
+ * @brief Populate the group-required result shape for an exact group match.
+ *
+ * Group results are produced only for exact-token-count matches, so the
+ * remaining-token count is zero. The result pointer is optional, and any stored
+ * group pointer borrows from the caller-owned command table.
+ */
 static void bsc_matcher_set_group_result(bsc_match_result_t *result,
                                          const bsc_command_t *group,
                                          size_t group_index) {
@@ -87,6 +123,14 @@ static void bsc_matcher_set_group_result(bsc_match_result_t *result,
   result->remaining_token_count = 0u;
 }
 
+/**
+ * @brief Scan descriptors with separate best-command and exact-group state.
+ *
+ * Longer executable paths supersede shorter command or group prefixes and
+ * define the remaining-token argument handoff. Exact groups are retained only as
+ * a fallback when no executable command wins. Ambiguity detection is defensive
+ * for unvalidated or inconsistent descriptor tables.
+ */
 bsc_status_t bsc_match_command(const bsc_command_t *commands,
                                size_t command_count,
                                const bsc_string_view_t *tokens,

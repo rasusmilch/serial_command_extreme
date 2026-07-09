@@ -9,6 +9,9 @@
 #include "bsc_string_view.h"
 #include "bsc_types.h"
 
+/**
+ * @brief Fail the current matcher test when a condition is false.
+ */
 #define MATCH_TEST_ASSERT_TRUE(condition)                                                           \
   do {                                                                                              \
     if (!(condition)) {                                                                             \
@@ -17,8 +20,14 @@
     }                                                                                               \
   } while (0)
 
+/**
+ * @brief Compare an expected matcher status against the actual status.
+ */
 #define MATCH_TEST_ASSERT_STATUS(expected, actual) MATCH_TEST_ASSERT_TRUE((expected) == (actual))
 
+/**
+ * @brief Run one matcher test case and accumulate failures.
+ */
 #define RUN_MATCH_TEST(fn)                                                                          \
   do {                                                                                              \
     int result;                                                                                     \
@@ -45,6 +54,9 @@ static const char *const k_status_upper_path[] = {"STATUS"};
 static int g_matcher_handler_calls;
 static int g_matcher_access_calls;
 
+/**
+ * @brief Test handler that increments a counter if matcher accidentally dispatches.
+ */
 static bsc_status_t matcher_test_handler(void *app_context,
                                          const struct bsc_command *command,
                                          const struct bsc_parsed_args *args,
@@ -57,6 +69,9 @@ static bsc_status_t matcher_test_handler(void *app_context,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Test access callback that records accidental access checks.
+ */
 static bool matcher_test_access(void *app_context,
                                 const struct bsc_command *command,
                                 bsc_access_level_t required_access) {
@@ -67,6 +82,9 @@ static bool matcher_test_access(void *app_context,
   return true;
 }
 
+/**
+ * @brief Build a minimal executable command descriptor for matcher fixtures.
+ */
 static bsc_command_t make_match_command(const char *const *path, size_t path_len) {
   bsc_command_t command;
 
@@ -84,6 +102,9 @@ static bsc_command_t make_match_command(const char *const *path, size_t path_len
   return command;
 }
 
+/**
+ * @brief Build a minimal group descriptor for matcher fixtures.
+ */
 static bsc_command_t make_match_group(const char *const *path, size_t path_len) {
   bsc_command_t group;
 
@@ -98,16 +119,25 @@ static bsc_command_t make_match_group(const char *const *path, size_t path_len) 
   return group;
 }
 
+/**
+ * @brief Create a borrowed token view from a null-terminated test literal.
+ */
 static bsc_string_view_t token_from_cstr(const char *text) {
   return bsc_string_view_from_cstr(text);
 }
 
+/**
+ * @brief Return whether a matcher result is in the documented cleared state.
+ */
 static int result_is_cleared(const bsc_match_result_t *result) {
   return result->command == NULL && result->command_index == 0u &&
          result->consumed_token_count == 0u && result->remaining_token_index == 0u &&
          result->remaining_token_count == 0u && result->group == NULL && result->group_index == 0u;
 }
 
+/**
+ * @brief Build a deliberately non-cleared result for failure-path tests.
+ */
 static bsc_match_result_t dirty_result(void) {
   bsc_match_result_t result;
 
@@ -121,6 +151,9 @@ static bsc_match_result_t dirty_result(void) {
   return result;
 }
 
+/**
+ * @brief Verify result clearing handles NULL and resets every result field.
+ */
 static int test_match_result_clear(const char *test_name) {
   bsc_match_result_t result = dirty_result();
 
@@ -130,6 +163,9 @@ static int test_match_result_clear(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify a simple executable path match populates command result fields.
+ */
 static int test_simple_executable_match(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_string_view_t tokens[] = {token_from_cstr("status")};
@@ -147,6 +183,9 @@ static int test_simple_executable_match(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify command_index identifies a matched descriptor after index zero.
+ */
 static int test_match_command_at_nonzero_index(const char *test_name) {
   bsc_command_t commands[] = {
       make_match_command(k_flags_path, 1u),
@@ -162,6 +201,9 @@ static int test_match_command_at_nonzero_index(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify the longest executable path wins and leaves remaining args.
+ */
 static int test_longest_executable_match_leaves_remaining_arg(const char *test_name) {
   bsc_command_t commands[] = {
       make_match_group(k_settings_path, 1u),
@@ -185,6 +227,9 @@ static int test_longest_executable_match_leaves_remaining_arg(const char *test_n
   return 0;
 }
 
+/**
+ * @brief Verify extra tokens after a command remain for future argument parsing.
+ */
 static int test_extra_token_is_remaining_arg(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_string_view_t tokens[] = {token_from_cstr("status"), token_from_cstr("extra")};
@@ -199,6 +244,9 @@ static int test_extra_token_is_remaining_arg(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify command path matching is ASCII case-insensitive.
+ */
 static int test_case_insensitive_matching(const char *test_name) {
   bsc_command_t commands[] = {
       make_match_command(k_status_path, 1u),
@@ -221,6 +269,9 @@ static int test_case_insensitive_matching(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify matching does not require token views to be null-terminated.
+ */
 static int test_non_null_terminated_token_view(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   const char text[] = "status-extra";
@@ -233,6 +284,9 @@ static int test_non_null_terminated_token_view(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify no-input, unknown-command, and empty-table statuses.
+ */
 static int test_no_input_and_unknown(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_string_view_t tokens[] = {token_from_cstr("unknown")};
@@ -259,6 +313,9 @@ static int test_no_input_and_unknown(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify exact group paths return group-required result fields.
+ */
 static int test_group_requires_subcommand(const char *test_name) {
   bsc_command_t commands[] = {
       make_match_group(k_settings_path, 1u),
@@ -289,6 +346,9 @@ static int test_group_requires_subcommand(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify known group prefixes with bad children remain unknown commands.
+ */
 static int test_group_prefix_bad_child_is_unknown(const char *test_name) {
   bsc_command_t commands[] = {
       make_match_group(k_settings_path, 1u),
@@ -305,6 +365,9 @@ static int test_group_prefix_bad_child_is_unknown(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify prefixes of longer commands do not fabricate group matches.
+ */
 static int test_input_prefix_without_group_is_unknown(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_settings_wifi_set_ssid_path, 4u)};
   bsc_string_view_t tokens[] = {token_from_cstr("settings"), token_from_cstr("wifi")};
@@ -316,6 +379,9 @@ static int test_input_prefix_without_group_is_unknown(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify duplicate and group/command path conflicts are ambiguous.
+ */
 static int test_ambiguity_detection(const char *test_name) {
   bsc_command_t duplicate_commands[] = {
       make_match_command(k_status_path, 1u),
@@ -364,6 +430,9 @@ static int test_ambiguity_detection(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify invalid API pointers and configured count bounds fail internally.
+ */
 static int test_invalid_api_and_count_bounds(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_string_view_t tokens[] = {token_from_cstr("status")};
@@ -392,6 +461,9 @@ static int test_invalid_api_and_count_bounds(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify malformed path/node descriptor fields are rejected defensively.
+ */
 static int test_invalid_descriptor_defensive_checks(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_string_view_t tokens[] = {token_from_cstr("status")};
@@ -429,6 +501,9 @@ static int test_invalid_descriptor_defensive_checks(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify callers may omit the optional match result pointer.
+ */
 static int test_optional_result_pointer(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_string_view_t tokens[] = {token_from_cstr("status")};
@@ -437,6 +512,9 @@ static int test_optional_result_pointer(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify matching performs no parsing, dispatch, access checks, or mutation.
+ */
 static int test_no_parser_dispatch_access_or_mutation(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};
   bsc_command_t before;
@@ -456,6 +534,9 @@ static int test_no_parser_dispatch_access_or_mutation(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Run all matcher unit tests and return the number of failed cases.
+ */
 int bsc_run_matcher_tests(void) {
   int failures = 0;
 
