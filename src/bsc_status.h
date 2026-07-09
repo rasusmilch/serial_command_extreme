@@ -56,6 +56,8 @@ typedef enum bsc_status {
   BSC_STATUS_ARGUMENT_TOO_LONG,
   /** An enum/string-choice argument was not in its allowed set. */
   BSC_STATUS_INVALID_ENUM_VALUE,
+  /** A caller-provided static command descriptor table is invalid. */
+  BSC_STATUS_INVALID_DESCRIPTOR,
   /** The caller or access policy denied command execution. */
   BSC_STATUS_ACCESS_DENIED,
   /** An output sink accepted only part of the requested bytes. */
