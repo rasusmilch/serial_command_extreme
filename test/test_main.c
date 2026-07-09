@@ -7,6 +7,7 @@
 
 int bsc_run_tokenizer_tests(void);
 int bsc_run_types_tests(void);
+int bsc_run_registry_tests(void);
 
 #define TEST_ASSERT_TRUE(condition)                                                                \
   do {                                                                                             \
@@ -58,6 +59,7 @@ static int test_status_names(const char *test_name) {
   TEST_ASSERT_STR_EQ("BSC_STATUS_OK", bsc_status_name(BSC_STATUS_OK));
   TEST_ASSERT_STR_EQ("BSC_STATUS_LINE_TOO_LONG", bsc_status_name(BSC_STATUS_LINE_TOO_LONG));
   TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_SYNTAX", bsc_status_name(BSC_STATUS_INVALID_SYNTAX));
+  TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_DESCRIPTOR", bsc_status_name(BSC_STATUS_INVALID_DESCRIPTOR));
   TEST_ASSERT_STR_EQ("BSC_STATUS_UNKNOWN", bsc_status_name((bsc_status_t)999));
   return 0;
 }
@@ -127,6 +129,7 @@ int main(void) {
 
   failures += bsc_run_tokenizer_tests();
   failures += bsc_run_types_tests();
+  failures += bsc_run_registry_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);

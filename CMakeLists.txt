@@ -19,6 +19,7 @@ add_library(
     src/bsc_console.c
     src/bsc_output.c
     src/bsc_status.c
+    src/bsc_registry.c
     src/bsc_string_view.c
     src/bsc_tokenizer.c
 )

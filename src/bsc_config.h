@@ -12,6 +12,16 @@
  * future parser features.
  */
 
+/** Maximum static command descriptors accepted by registry validation. */
+#ifndef BSC_MAX_COMMANDS
+#define BSC_MAX_COMMANDS 64u
+#endif
+
+/** Maximum enum choices accepted for one argument descriptor. */
+#ifndef BSC_MAX_ENUM_CHOICES
+#define BSC_MAX_ENUM_CHOICES 16u
+#endif
+
 /** Maximum bytes accepted for one input line in future console code. */
 #ifndef BSC_MAX_LINE_LEN
 #define BSC_MAX_LINE_LEN 160u
