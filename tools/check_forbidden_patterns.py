@@ -36,6 +36,32 @@ def iter_source_files(root: Path):
 
 
 def main(argv: list[str]) -> int:
+    """Validate arguments and scan core source files for forbidden patterns.
+
+    Args:
+        argv: Process-style argument list containing the program name and
+            exactly one source-directory path.
+
+    Returns:
+        Zero when no forbidden patterns are found, one when one or more
+        forbidden patterns are found, or two for invalid command-line usage or
+        a source path that is not a directory.
+
+    Raises:
+        OSError: Propagated from recursive traversal or source-file reading.
+        UnicodeDecodeError: Propagated when an eligible source file cannot be
+            decoded as UTF-8.
+
+    Side Effects:
+        Recursively reads eligible .c and .h files below the supplied
+        directory. Prints violations or success output to standard output, and
+        prints usage or path-validation errors to standard error.
+
+    Notes:
+        Comments are stripped before applying forbidden-pattern checks. The
+        function does not modify scanned files, and filesystem or decoding
+        exceptions are not converted to tool exit codes.
+    """
     if len(argv) != 2:
         print("usage: check_forbidden_patterns.py <src-dir>", file=sys.stderr)
         return 2
