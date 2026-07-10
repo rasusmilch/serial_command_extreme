@@ -61,9 +61,9 @@ typedef enum bsc_arg_type {
   BSC_ARG_BOOL,
   /** String choice argument matched against a borrowed enum choice table. */
   BSC_ARG_ENUM,
-  /** Bounded string argument borrowed from the active line buffer later. */
+  /** Bounded string argument borrowed from active token storage by the typed parser. */
   BSC_ARG_STRING,
-  /** Bounded secret argument borrowed from the active line buffer later. */
+  /** Bounded secret argument borrowed from active token storage by the typed parser. */
   BSC_ARG_SECRET
 } bsc_arg_type_t;
 
