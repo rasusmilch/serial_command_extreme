@@ -167,9 +167,15 @@ bsc_status_t bsc_parse_command_args(const bsc_command_t *command,
 /**
  * @brief Write a bounded operator-facing diagnostic for a parse failure.
  *
- * @param command Borrowed command descriptor used only to read argument and enum
- *   names for validated diagnostic indexes. May be NULL or malformed; the writer
- *   falls back to generic safe text rather than dereferencing invalid indexes.
+ * @param command Optional borrowed command descriptor used only to read argument
+ *   and enum names for validated diagnostic indexes. May be NULL when only
+ *   generic text can be rendered. When non-NULL and descriptor-derived names are
+ *   needed, the command, argument array, enum arrays, and strings read by the
+ *   writer must remain valid for the call; normal use passes the same
+ *   registry-validated descriptor that produced the parse diagnostic. The writer
+ *   can fall back for NULL commands, unavailable argument arrays, or diagnostic
+ *   indexes outside `arg_count`, but it cannot make arbitrary invalid pointers,
+ *   unterminated names, fabricated enum arrays, or invalid enum counts safe.
  * @param error Required borrowed diagnostic to render. NULL is treated as invalid
  *   parser/API use. The diagnostic is not retained.
  * @param output Required caller-owned output callback target. Its callback may

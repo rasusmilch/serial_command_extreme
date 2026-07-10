@@ -38,12 +38,10 @@ test/
   test_bsc_args.c
 ```
 
-The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Future parser, argument, dispatch, access, redaction, help, fixture, and golden-output tests may add files such as:
+The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. `test_bsc_args.c` is the current typed-parser suite; additional parser cases should be added there when defects or supported behavior require them. Future dispatch, access, orchestration, broader redaction, help, fixture, integration, and golden-output tests may add files such as:
 
 ```text
 test/
-  test_parser.c
-  test_args.c
   test_dispatch.c
   test_help.c
   test_redaction.c
@@ -63,7 +61,7 @@ test/
     error_invalid_gain.txt
 ```
 
-Exact future names may change as parser, dispatch, access, redaction, and help tests are added.
+Exact future names may change as dispatch, access, orchestration, redaction, help, integration, and additional parser-regression tests are added.
 
 ## Required testing posture
 

@@ -83,9 +83,11 @@ static int bsc_matcher_path_matches_tokens(const bsc_command_t *command,
 /**
  * @brief Populate the OK result shape for a matched executable command.
  *
- * The remaining-token fields define the future argument-parser handoff. The
- * result pointer is optional, and any stored command pointer borrows from the
- * caller-owned command table.
+ * The remaining-token fields define the current caller-mediated handoff to
+ * bsc_parse_command_args(). The matcher only records the slice indexes; it does
+ * not invoke the typed parser or retain parser-owned state. The result pointer
+ * is optional, and any stored command pointer borrows from the caller-owned
+ * command table.
  */
 static void bsc_matcher_set_command_result(bsc_match_result_t *result,
                                            const bsc_command_t *command,

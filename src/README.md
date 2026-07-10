@@ -92,4 +92,4 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. Argument parser, dispatch, help rendering, adapters, and examples remain future work.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser and compact-float diagnostics are implemented; access enforcement, dispatch, console orchestration, help rendering, adapters, and examples remain future work.

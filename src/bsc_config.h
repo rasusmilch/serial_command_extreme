@@ -8,7 +8,8 @@
  * These defaults are intentionally conservative bounds used across the current
  * and planned C core. Projects may override them with compiler definitions
  * before this header is included. The values document storage and validation
- * limits for tokenizer, registry, matcher, and future parser/output helpers.
+ * limits for tokenizer, registry, matcher, typed-parser behavior, and future
+ * output/console helpers.
  */
 
 /** Maximum static command descriptors accepted by registry validation and matcher inputs. */

@@ -196,7 +196,7 @@ dispatch callback
 render deterministic result or error
 ```
 
-Some future parser, dispatch, help, adapter, and example names may still change, but the approved constraints should not be weakened without explicit approval.
+Some future orchestration, dispatch, help, adapter, and example names may still change, but the approved constraints should not be weakened without explicit approval.
 
 ## Planned repository layout
 
@@ -219,11 +219,11 @@ test/
   golden/
 ```
 
-The current core source files include tokenizer, registry validation, matcher, descriptor, status, string-view, output, and console-context modules. Planned future modules still include typed argument parsing, dispatch, help/manpage rendering, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, and forbidden-pattern checks; future tests should add typed argument parsing, secret redaction, dispatch, and generated help output.
+The current core source files include tokenizer, registry validation, matcher, typed argument parser, internal compact-float parser, descriptor, status, string-view, output, and console-context modules. Planned future modules still include matcher/parser/console orchestration, access enforcement, dispatch, help/manpage rendering, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add access, dispatch, orchestration, generated-help, broader redaction, integration, adapter, and golden-output coverage.
 
 ## Example command descriptor intent
 
-The current descriptor metadata is intended to support behavior like this once the remaining parser, access, dispatch, redaction, and help modules are implemented:
+The current descriptor metadata already supports command matching and typed argument parsing when applications call the tokenizer, matcher, and parser stages directly. It is also intended to support future access, dispatch, broader redaction, and help modules:
 
 ```text
 path:        settings wifi set password
@@ -233,14 +233,20 @@ handler:     handle_wifi_set_password
 access:      normal
 ```
 
-From that metadata, the library should know how to:
+From that metadata, the current reusable core can already:
 
-- Match `settings wifi set password "example password"`.
-- Validate exactly one secret string argument.
-- Reject too-short or too-long values.
-- Redact the value in echo/status/log paths.
-- Generate `help settings wifi set password`.
+- Match the `settings wifi set password` path when the application supplies tokenizer output to the matcher.
+- Parse and length-check the secret argument when the application passes the matcher remaining-token slice to the typed parser.
+- Preserve the secret as a typed borrowed string view in caller-owned parsed storage.
+- Return structured parse diagnostics without echoing the secret value.
+
+Still-future integration must:
+
+- Orchestrate complete console execution from line input through parser output.
+- Enforce access policy.
 - Dispatch the handler with a typed parsed argument view.
+- Redact secrets in echo, status, logs, history, or other presentation layers outside the parser.
+- Generate `help settings wifi set password`.
 
 ## Development workflow expectation
 
@@ -250,7 +256,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-The read-only architecture planning milestone has already established the implementation direction. Future implementation should continue from the approved architecture and current tokenizer, registry-validation, and matcher foundation; do not skip ahead to adapters or examples before the remaining core parser, dispatch, access, and help behavior is defined and tested.
+The read-only architecture planning milestone has already established the implementation direction. Future implementation should continue from the approved architecture and current tokenizer, registry-validation, matcher, and typed-argument-parser foundation; do not skip ahead to adapters or examples before the remaining core orchestration, dispatch, access, and help behavior is defined and tested.
 
 Future Codex tasks should:
 
@@ -276,7 +282,7 @@ In short:
 
 ## Next recommended task
 
-The next useful implementation task should build on the approved architecture and the current tokenizer, registry-validation, and matcher foundation. Good candidates are the typed runtime argument parser, parsed-argument storage/API, dispatch/access integration, or generated help/manpage rendering, each with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
+Task 8A is the typed-parser milestone. After PR #8 is accepted, the next useful implementation task should be selected from the remaining approved roadmap areas, such as matcher/parser/console orchestration, dispatch/access integration, generated help/manpage rendering, or broader redaction integration, each with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
 
 ## License
 

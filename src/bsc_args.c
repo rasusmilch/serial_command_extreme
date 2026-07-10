@@ -69,7 +69,20 @@ void bsc_arg_parse_error_clear(bsc_arg_parse_error_t *error) {
   error->token_offset = 0u;
 }
 
-/** @brief Clear any partial result, populate scalar diagnostics, and return the selected status. */
+/**
+ * @brief Clear a failed parse result, populate scalar diagnostics, and return status.
+ *
+ * @param out_args Optional caller-owned parsed result. When non-NULL, any
+ *   partial values and borrowed string/secret views are cleared before return.
+ * @param error Optional caller-owned diagnostic that receives only reason,
+ *   positional index, and token-relative offset; no token or descriptor pointer
+ *   is retained.
+ * @param reason Diagnostic reason selected by the failing parser branch.
+ * @param arg_index Positional argument index when meaningful.
+ * @param token_offset Byte offset inside the rejected token when meaningful.
+ * @param status Public status to return unchanged.
+ * @return The caller-selected status.
+ */
 static bsc_status_t bsc_args_fail(bsc_parsed_args_t *out_args,
                                   bsc_arg_parse_error_t *error,
                                   bsc_arg_parse_error_reason_t reason,
@@ -92,7 +105,17 @@ static int bsc_args_type_valid(bsc_arg_type_t type) {
          type == BSC_ARG_SECRET;
 }
 
-/** @brief Defensively validate descriptor fields that typed parsing must read safely. */
+/**
+ * @brief Defensively validate descriptor fields required by typed parsing.
+ *
+ * The parser expects descriptor storage, strings, and arrays to be valid for the
+ * call and normal applications should use bsc_registry_validate() first. This
+ * helper does not replace full registry validation; it only checks ordinary
+ * metadata invariants the parser reads directly, including type/range shape,
+ * enum table presence, string bounds, command node kind, and float-disabled
+ * policy. It stores invalid-API, invalid-descriptor, or float-disabled
+ * diagnostics when possible and retains no descriptor pointers.
+ */
 static bsc_status_t bsc_args_validate_descriptor(const bsc_command_t *command,
                                                  bsc_arg_parse_error_t *error) {
   size_t index;
@@ -164,7 +187,16 @@ static bsc_status_t bsc_args_validate_descriptor(const bsc_command_t *command,
   return BSC_STATUS_OK;
 }
 
-/** @brief Parse a signed decimal int32 token with checked unsigned magnitude accumulation. */
+/**
+ * @brief Parse a borrowed explicit-length signed decimal token into int32.
+ *
+ * The conversion accepts the approved grammar directly from the token view,
+ * performs checked unsigned magnitude accumulation so INT32_MIN is safe, applies
+ * inclusive descriptor bounds, and reports syntax, embedded-NUL, below-range, or
+ * above-range diagnostics through bsc_args_fail(). It allocates no storage,
+ * copies no token bytes, uses no locale/libc conversion, and retains no
+ * pointers after return.
+ */
 static bsc_status_t bsc_args_parse_int(bsc_string_view_t token,
                                        const bsc_arg_def_t *arg,
                                        bsc_arg_value_t *value,
@@ -229,7 +261,14 @@ static bsc_status_t bsc_args_parse_int(bsc_string_view_t token,
   return BSC_STATUS_OK;
 }
 
-/** @brief Parse an unsigned decimal uint32 token with checked multiply/add. */
+/**
+ * @brief Parse a borrowed explicit-length unsigned decimal token into uint32.
+ *
+ * The helper rejects signs and non-digits, consumes the full token, uses checked
+ * multiply/add for UINT32_MAX, applies inclusive descriptor bounds, and clears
+ * the caller-owned result on failures through bsc_args_fail(). It performs no
+ * allocation, token copying, locale conversion, or pointer retention.
+ */
 static bsc_status_t bsc_args_parse_uint(bsc_string_view_t token,
                                         const bsc_arg_def_t *arg,
                                         bsc_arg_value_t *value,
@@ -272,7 +311,13 @@ static bsc_status_t bsc_args_parse_uint(bsc_string_view_t token,
   return BSC_STATUS_OK;
 }
 
-/** @brief Parse approved boolean spellings with ASCII case folding. */
+/**
+ * @brief Parse approved boolean spellings with ASCII case folding.
+ *
+ * The borrowed token is checked for embedded NUL and then matched exactly
+ * against on/off, true/false, and 1/0 without copying or retaining bytes. Syntax
+ * failures clear the parsed result and report an invalid-value diagnostic.
+ */
 static bsc_status_t bsc_args_parse_bool(bsc_string_view_t token,
                                         bsc_arg_value_t *value,
                                         bsc_arg_parse_error_t *error,
@@ -298,7 +343,15 @@ static bsc_status_t bsc_args_parse_bool(bsc_string_view_t token,
                        BSC_STATUS_INVALID_ARGUMENT_TYPE);
 }
 
-/** @brief Parse an enum by ASCII case-insensitive full-token choice matching. */
+/**
+ * @brief Parse an enum token into the descriptor's stable semantic value.
+ *
+ * The descriptor's borrowed enum-choice table must be valid for the call. The
+ * helper performs ASCII case-insensitive full-token matching, copies no choice
+ * or token text, exposes only the matched choice's semantic int32 value, and
+ * reports embedded-NUL or invalid-choice diagnostics without retaining
+ * descriptor pointers.
+ */
 static bsc_status_t bsc_args_parse_enum(bsc_string_view_t token,
                                         const bsc_arg_def_t *arg,
                                         bsc_arg_value_t *value,
@@ -322,7 +375,15 @@ static bsc_status_t bsc_args_parse_enum(bsc_string_view_t token,
                        BSC_STATUS_INVALID_ENUM_VALUE);
 }
 
-/** @brief Validate string/secret byte length and borrow the original token view. */
+/**
+ * @brief Validate a string or secret token and store its borrowed view.
+ *
+ * String and secret parsing share byte-length validation and embedded-NUL
+ * rejection. On success the caller-visible parsed value borrows the original
+ * token view and uses the descriptor type tag to preserve the secret boundary;
+ * no raw text is copied into parser-owned storage. On failure the partial result
+ * is cleared and no previously parsed string/secret view remains visible.
+ */
 static bsc_status_t bsc_args_parse_text(bsc_string_view_t token,
                                         const bsc_arg_def_t *arg,
                                         bsc_arg_value_t *value,
@@ -348,7 +409,16 @@ static bsc_status_t bsc_args_parse_text(bsc_string_view_t token,
 }
 
 #if BSC_ENABLE_FLOAT
-/** @brief Parse the compact decimal float grammar and enforce descriptor bounds. */
+/**
+ * @brief Parse the compact decimal float grammar and apply descriptor bounds.
+ *
+ * The helper delegates restricted explicit-length token conversion to the
+ * internal compact parser, maps syntax, embedded-NUL, precision, and supported
+ * range failures to public diagnostics, then enforces inclusive descriptor
+ * bounds. It copies no token bytes, uses no strtof/locale/math conversion,
+ * allocates no storage, retains no pointers, and clears partial results through
+ * bsc_args_fail() on every failure.
+ */
 static bsc_status_t bsc_args_parse_float(bsc_string_view_t token,
                                          const bsc_arg_def_t *arg,
                                          bsc_arg_value_t *value,
@@ -471,7 +541,14 @@ static bsc_status_t bsc_args_write(bsc_output_t *output, const char *text) {
   return bsc_out_write(output, text);
 }
 
-/** @brief Write an argument-name diagnostic prefix when descriptor metadata is safe. */
+/**
+ * @brief Write an argument-name diagnostic prefix without exposing token text.
+ *
+ * The diagnostic writer may use a valid descriptor name when command metadata
+ * and the diagnostic index are usable; otherwise it emits a generic prefix. It
+ * never receives raw token bytes, never writes string/secret values, propagates
+ * output truncation, and retains no output or descriptor pointers after return.
+ */
 static bsc_status_t bsc_args_write_arg_prefix(const bsc_command_t *command,
                                               const bsc_arg_parse_error_t *error,
                                               bsc_output_t *output) {
@@ -491,7 +568,14 @@ static bsc_status_t bsc_args_write_arg_prefix(const bsc_command_t *command,
   return bsc_args_write(output, "': ");
 }
 
-/** @brief Write the type-specific invalid-value diagnostic body. */
+/**
+ * @brief Write a type-specific invalid-value message for one argument.
+ *
+ * The message is selected from validated descriptor type metadata when
+ * available and otherwise falls back to a generic parser/API error. The helper
+ * only writes fixed operator text and descriptor names, never raw rejected token
+ * text or secret values, and propagates callback truncation from bsc_out_write().
+ */
 static bsc_status_t bsc_args_write_invalid_value(const bsc_command_t *command,
                                                  const bsc_arg_parse_error_t *error,
                                                  bsc_output_t *output) {
@@ -540,7 +624,16 @@ static const char *bsc_args_fraction_digit_limit_text(void) {
   }
 }
 
-/** @brief Write all enum choice names in descriptor order without copying token text. */
+/**
+ * @brief Write all enum choice names in descriptor order without token text.
+ *
+ * Normal use provides the same registry-validated command descriptor that
+ * produced the parse diagnostic, so enum choice arrays and names are valid for
+ * the call. The helper can fall back for NULL command data or invalid indexes,
+ * but it does not make arbitrary malformed enum arrays safe. It writes no raw
+ * input value, performs no allocation, and retains no descriptor or output
+ * pointer after return.
+ */
 static bsc_status_t bsc_args_write_enum_choices(const bsc_command_t *command,
                                                 const bsc_arg_parse_error_t *error,
                                                 bsc_output_t *output) {
