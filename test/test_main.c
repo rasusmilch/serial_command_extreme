@@ -5,11 +5,26 @@
 #include "bsc_status.h"
 #include "bsc_string_view.h"
 
+/**
+ * @brief Run tokenizer tests supplied by the tokenizer test module.
+ */
 int bsc_run_tokenizer_tests(void);
+/**
+ * @brief Run descriptor type tests supplied by the types test module.
+ */
 int bsc_run_types_tests(void);
+/**
+ * @brief Run registry validation tests supplied by the registry test module.
+ */
 int bsc_run_registry_tests(void);
+/**
+ * @brief Run matcher tests supplied by the matcher test module.
+ */
 int bsc_run_matcher_tests(void);
 
+/**
+ * @brief Fail the current host test when a condition is false.
+ */
 #define TEST_ASSERT_TRUE(condition)                                                                \
   do {                                                                                             \
     if (!(condition)) {                                                                            \
@@ -18,9 +33,18 @@ int bsc_run_matcher_tests(void);
     }                                                                                              \
   } while (0)
 
+/**
+ * @brief Assert that a status-producing call returns the expected status code.
+ */
 #define TEST_ASSERT_STATUS(expected, actual) TEST_ASSERT_TRUE((expected) == (actual))
+/**
+ * @brief Assert that two diagnostic strings are equal in the host harness.
+ */
 #define TEST_ASSERT_STR_EQ(expected, actual) TEST_ASSERT_TRUE(strcmp((expected), (actual)) == 0)
 
+/**
+ * @brief Run one local test function and accumulate failures without changing runner flow.
+ */
 #define RUN_TEST(fn)                                                                               \
   do {                                                                                             \
     int result;                                                                                    \
@@ -33,11 +57,20 @@ int bsc_run_matcher_tests(void);
     }                                                                                              \
   } while (0)
 
+/**
+ * @brief Small host fixture that captures bytes written through bsc_output_t.
+ */
 typedef struct capture_sink {
   char buffer[16];
   size_t used;
 } capture_sink_t;
 
+/**
+ * @brief Simulate a bounded output sink for output helper tests.
+ *
+ * Copies only the bytes that fit in the fixture buffer and deliberately returns
+ * a short write when full so tests can verify OUTPUT_TRUNCATED mapping.
+ */
 static size_t capture_write(void *user, const char *data, size_t length) {
   capture_sink_t *sink = (capture_sink_t *)user;
   size_t available;
@@ -56,6 +89,9 @@ static size_t capture_write(void *user, const char *data, size_t length) {
   return to_copy;
 }
 
+/**
+ * @brief Verify stable symbolic names for representative and unknown status values.
+ */
 static int test_status_names(const char *test_name) {
   TEST_ASSERT_STR_EQ("BSC_STATUS_OK", bsc_status_name(BSC_STATUS_OK));
   TEST_ASSERT_STR_EQ("BSC_STATUS_LINE_TOO_LONG", bsc_status_name(BSC_STATUS_LINE_TOO_LONG));
@@ -65,12 +101,18 @@ static int test_status_names(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Protect exact C-string equality for a borrowed string view.
+ */
 static int test_string_view_exact_match(const char *test_name) {
   bsc_string_view_t view = bsc_string_view_from_cstr("status");
   TEST_ASSERT_TRUE(bsc_string_view_equals_cstr(view, "status"));
   return 0;
 }
 
+/**
+ * @brief Protect mismatch behavior for different-length and different-text strings.
+ */
 static int test_string_view_mismatch(const char *test_name) {
   bsc_string_view_t view = bsc_string_view_from_cstr("status");
   TEST_ASSERT_TRUE(!bsc_string_view_equals_cstr(view, "stats"));
@@ -78,6 +120,9 @@ static int test_string_view_mismatch(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify length-based comparisons for a view into the middle of a buffer.
+ */
 static int test_string_view_non_null_terminated_slice(const char *test_name) {
   const char text[] = "xxGain=2048";
   bsc_string_view_t view = bsc_string_view_from_parts(&text[2], 4u);
@@ -87,6 +132,9 @@ static int test_string_view_non_null_terminated_slice(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify empty borrowed views compare correctly against empty and NULL text.
+ */
 static int test_string_view_empty_behavior(const char *test_name) {
   bsc_string_view_t empty = bsc_string_view_from_parts(NULL, 0u);
   TEST_ASSERT_TRUE(bsc_string_view_is_empty(empty));
@@ -96,6 +144,9 @@ static int test_string_view_empty_behavior(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify write and writeln append bytes to the bounded capture sink in order.
+ */
 static int test_output_write_and_writeln_capture(const char *test_name) {
   capture_sink_t sink = {{0}, 0u};
   bsc_output_t out = {capture_write, &sink};
@@ -107,6 +158,9 @@ static int test_output_write_and_writeln_capture(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify output helper short writes are reported as output truncation.
+ */
 static int test_output_truncation(const char *test_name) {
   capture_sink_t sink = {{0}, 0u};
   bsc_output_t out = {capture_write, &sink};
@@ -117,6 +171,11 @@ static int test_output_truncation(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Aggregate local host tests and module-specific suites.
+ *
+ * Returns nonzero if any local test or delegated module runner reports failure.
+ */
 int main(void) {
   int failures = 0;
 

@@ -9,6 +9,9 @@
 #include "bsc_status.h"
 #include "bsc_types.h"
 
+/**
+ * @brief Fail the current registry test when a condition is false.
+ */
 #define REG_TEST_ASSERT_TRUE(condition)                                                             \
   do {                                                                                              \
     if (!(condition)) {                                                                             \
@@ -17,9 +20,18 @@
     }                                                                                               \
   } while (0)
 
+/**
+ * @brief Assert that registry validation returns the expected status code.
+ */
 #define REG_TEST_ASSERT_STATUS(expected, actual) REG_TEST_ASSERT_TRUE((expected) == (actual))
+/**
+ * @brief Assert that registry diagnostics report the expected reason.
+ */
 #define REG_TEST_ASSERT_REASON(expected, actual) REG_TEST_ASSERT_TRUE((expected) == (actual).reason)
 
+/**
+ * @brief Run one registry test and accumulate failures for the module runner.
+ */
 #define RUN_REG_TEST(fn)                                                                            \
   do {                                                                                              \
     int result;                                                                                     \
@@ -68,6 +80,12 @@ static const bsc_enum_choice_t k_many_choices[BSC_MAX_ENUM_CHOICES + 1u] = {
     {"c16", 16, NULL},
 };
 
+/**
+ * @brief Stub handler used by command descriptor fixtures.
+ *
+ * The registry tests only validate descriptor shape and callback presence; this
+ * stub is never used for real command dispatch.
+ */
 static bsc_status_t test_handler(void *app_context,
                                  const struct bsc_command *command,
                                  const struct bsc_parsed_args *args,
@@ -79,6 +97,9 @@ static bsc_status_t test_handler(void *app_context,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Stub access callback used by registry descriptor fixtures.
+ */
 static bool test_access(void *app_context,
                         const struct bsc_command *command,
                         bsc_access_level_t required_access) {
@@ -87,6 +108,9 @@ static bool test_access(void *app_context,
   return required_access == BSC_ACCESS_NORMAL;
 }
 
+/**
+ * @brief Build a minimally valid argument descriptor fixture for validation tests.
+ */
 static bsc_arg_def_t make_arg(const char *name, bsc_arg_type_t type) {
   bsc_arg_def_t arg;
 
@@ -104,6 +128,9 @@ static bsc_arg_def_t make_arg(const char *name, bsc_arg_type_t type) {
   return arg;
 }
 
+/**
+ * @brief Build a minimally valid executable command descriptor fixture.
+ */
 static bsc_command_t make_command(const char *const *path, size_t path_len) {
   bsc_command_t command;
 
@@ -117,6 +144,9 @@ static bsc_command_t make_command(const char *const *path, size_t path_len) {
   return command;
 }
 
+/**
+ * @brief Build a group descriptor fixture by removing executable handler wiring.
+ */
 static bsc_command_t make_group(const char *const *path, size_t path_len) {
   bsc_command_t command = make_command(path, path_len);
 
@@ -125,6 +155,9 @@ static bsc_command_t make_group(const char *const *path, size_t path_len) {
   return command;
 }
 
+/**
+ * @brief Verify invalid descriptor status and the expected diagnostic reason.
+ */
 static int expect_invalid(const char *test_name,
                           const bsc_command_t *commands,
                           size_t command_count,
@@ -136,6 +169,9 @@ static int expect_invalid(const char *test_name,
   return 0;
 }
 
+/**
+ * @brief Verify representative valid command tables pass and clear diagnostics.
+ */
 static int test_registry_valid_tables(const char *test_name) {
   bsc_arg_def_t args[7];
   bsc_command_t commands[4];
@@ -186,6 +222,9 @@ static int test_registry_valid_tables(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify command table pointer, zero-count, and max-count validation.
+ */
 static int test_registry_table_pointer_and_count(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_registry_validation_error_t error;
@@ -202,6 +241,9 @@ static int test_registry_table_pointer_and_count(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify path pointer, depth, token, and token-length validation errors.
+ */
 static int test_registry_path_validation(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_registry_validation_error_t error;
@@ -230,6 +272,9 @@ static int test_registry_path_validation(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify node type and group/command handler presence rules.
+ */
 static int test_registry_node_and_handler_policy(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_registry_validation_error_t error;
@@ -252,6 +297,9 @@ static int test_registry_node_and_handler_policy(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify argument count, pointer, name, type, and NONE rejection diagnostics.
+ */
 static int test_registry_argument_metadata(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_arg_def_t arg = make_arg("value", BSC_ARG_INT);
@@ -289,6 +337,9 @@ static int test_registry_argument_metadata(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify numeric and string/secret range validation for argument metadata.
+ */
 static int test_registry_argument_ranges(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_arg_def_t arg = make_arg("value", BSC_ARG_INT);
@@ -336,6 +387,9 @@ static int test_registry_argument_ranges(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify enum choice table presence, count, name, and duplicate validation.
+ */
 static int test_registry_enum_metadata(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_arg_def_t arg = make_arg("mode", BSC_ARG_ENUM);
@@ -381,6 +435,9 @@ static int test_registry_enum_metadata(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify access-level and command-flag validation rules.
+ */
 static int test_registry_access_and_flags(const char *test_name) {
   bsc_command_t command = make_command(k_status_path, 1u);
   bsc_registry_validation_error_t error;
@@ -407,6 +464,9 @@ static int test_registry_access_and_flags(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify duplicate command paths are rejected with ASCII case-insensitive matching.
+ */
 static int test_registry_duplicate_paths(const char *test_name) {
   bsc_command_t commands[2];
   bsc_registry_validation_error_t error;
@@ -427,6 +487,9 @@ static int test_registry_duplicate_paths(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify diagnostic clear resets reason and index fields and accepts NULL.
+ */
 static int test_registry_diagnostic_clear(const char *test_name) {
   bsc_registry_validation_error_t error;
 
@@ -447,6 +510,9 @@ static int test_registry_diagnostic_clear(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Run all registry validation host tests and return accumulated failures.
+ */
 int bsc_run_registry_tests(void) {
   int failures = 0;
 
