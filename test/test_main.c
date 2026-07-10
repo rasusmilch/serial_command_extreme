@@ -197,6 +197,6 @@ int main(void) {
     return 1;
   }
 
-  printf("PASS: all skeleton host tests passed\n");
+  printf("PASS: all host tests passed\n");
   return 0;
 }

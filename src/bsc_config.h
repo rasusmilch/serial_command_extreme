@@ -5,44 +5,43 @@
  * @file bsc_config.h
  * @brief Compile-time defaults for the Serial Command Extreme C core.
  *
- * These defaults are intentionally conservative placeholders for the Phase 2A
- * skeleton. Projects may override them with compiler definitions before this
- * header is included. The values document bounded storage expectations for
- * future parser, registry, and output code; this task does not implement those
- * future parser features.
+ * These defaults are intentionally conservative bounds used across the current
+ * and planned C core. Projects may override them with compiler definitions
+ * before this header is included. The values document storage and validation
+ * limits for tokenizer, registry, matcher, and future parser/output helpers.
  */
 
-/** Maximum static command descriptors accepted by registry validation. */
+/** Maximum static command descriptors accepted by registry validation and matcher inputs. */
 #ifndef BSC_MAX_COMMANDS
 #define BSC_MAX_COMMANDS 64u
 #endif
 
-/** Maximum enum choices accepted for one argument descriptor. */
+/** Maximum enum choices accepted for one argument descriptor by registry validation. */
 #ifndef BSC_MAX_ENUM_CHOICES
 #define BSC_MAX_ENUM_CHOICES 16u
 #endif
 
-/** Maximum bytes accepted for one input line in future console code. */
+/** Maximum bytes accepted by tokenizer input validation; future console input may share it. */
 #ifndef BSC_MAX_LINE_LEN
 #define BSC_MAX_LINE_LEN 160u
 #endif
 
-/** Maximum token count reserved for future tokenizer output. */
+/** Maximum token count for tokenizer output and matcher input expectations. */
 #ifndef BSC_MAX_TOKENS
 #define BSC_MAX_TOKENS 24u
 #endif
 
-/** Maximum bytes in one future token, excluding any terminator owned by callers. */
+/** Maximum bytes in one tokenizer token or registry descriptor string. */
 #ifndef BSC_MAX_TOKEN_LEN
 #define BSC_MAX_TOKEN_LEN 64u
 #endif
 
-/** Maximum path depth for future static command descriptors. */
+/** Maximum path depth for registry descriptor paths and matcher path handling. */
 #ifndef BSC_MAX_PATH_TOKENS
 #define BSC_MAX_PATH_TOKENS 6u
 #endif
 
-/** Maximum positional arguments for a future executable command descriptor. */
+/** Maximum static positional argument descriptors for one executable command. */
 #ifndef BSC_MAX_ARGS
 #define BSC_MAX_ARGS 8u
 #endif
