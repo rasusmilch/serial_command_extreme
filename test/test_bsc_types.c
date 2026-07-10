@@ -49,24 +49,6 @@ static const char *const k_settings_path[] = {"settings"};
 static const char *const k_wifi_ssid_path[] = {"settings", "wifi", "set", "ssid"};
 static const char *const k_wifi_password_path[] = {"settings", "wifi", "set", "password"};
 
-static const bsc_arg_def_t k_gain_args[] = {
-    {
-        "level",
-        BSC_ARG_ENUM,
-        0,
-        0,
-        0u,
-        0u,
-        0.0f,
-        0.0f,
-        0u,
-        0u,
-        k_gain_choices,
-        sizeof(k_gain_choices) / sizeof(k_gain_choices[0]),
-        "Gain level",
-    },
-};
-
 static const bsc_arg_def_t k_representative_args[] = {
     {"offset", BSC_ARG_INT, -100, 100, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Signed offset"},
     {"count", BSC_ARG_UINT, 0, 0, 0u, 1000u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Unsigned count"},

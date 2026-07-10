@@ -102,7 +102,9 @@ typedef enum bsc_registry_error_reason {
   /** A command flags bitmask used unknown bits. */
   BSC_REGISTRY_ERROR_INVALID_COMMAND_FLAGS,
   /** Two command descriptors had the same path under ASCII case folding. */
-  BSC_REGISTRY_ERROR_DUPLICATE_COMMAND_PATH
+  BSC_REGISTRY_ERROR_DUPLICATE_COMMAND_PATH,
+  /** A float argument descriptor is disabled by BSC_ENABLE_FLOAT. */
+  BSC_REGISTRY_ERROR_FLOAT_DISABLED
 } bsc_registry_error_reason_t;
 
 /**

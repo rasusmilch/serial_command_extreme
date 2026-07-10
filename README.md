@@ -4,7 +4,7 @@ Serial Command Extreme is a reusable bounded embedded serial command library und
 
 The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to define commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, host tests, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: typed runtime argument parsing, access enforcement, command dispatch, generated help/manpages, examples, and platform adapters remain future work.
+This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, host tests, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: access enforcement, command dispatch, generated help/manpages, console orchestration, examples, and platform adapters remain future work.
 
 ## Intended use
 
@@ -85,11 +85,11 @@ Discovery can be menu-like through namespaces and help output, but normal operat
 Current status:
 
 ```text
-Stage: Foundational core, bounded tokenizer, static registry validation, and longest-path matcher implemented
-Implementation source: C99 core modules for config, status, string views, output, console context, descriptors, tokenizer, registry validation, and matcher
+Stage: Foundational core, bounded tokenizer, static registry validation, longest-path matcher, and typed positional argument parser implemented
+Implementation source: C99 core modules for config, status, string views, output, console context, descriptors, tokenizer, registry validation, matcher, typed argument parsing, and internal compact float parsing
 Build system: CMake builds the core library and host tests
-Tests: Host coverage for foundational helpers, descriptor types, tokenizer, registry validation, matcher, and forbidden-pattern checks
-Typed argument parser: not added yet
+Tests: Host coverage for foundational helpers, descriptor types, tokenizer, registry validation, matcher, typed argument parsing, operator diagnostics, compact float enabled/disabled behavior, and forbidden-pattern checks
+Typed argument parser: implemented for signed integer, unsigned integer, compact decimal float when enabled, boolean, enum, bounded string, and bounded secret
 Dispatch and access enforcement: not added yet
 Generated help/manpages: not added yet
 Examples: not added yet
@@ -98,7 +98,7 @@ ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, and match command paths, but it still lacks typed runtime argument parsing, access enforcement, dispatch, generated help/manpages, examples, and adapters.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, and parse typed positional arguments, but it still lacks access enforcement, dispatch, generated help/manpages, console orchestration, examples, and adapters.
 
 ## Documentation anchors
 

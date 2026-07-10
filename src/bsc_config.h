@@ -46,6 +46,24 @@
 #define BSC_MAX_ARGS 8u
 #endif
 
+/** Enable compact runtime float argument parsing when nonzero. */
+#ifndef BSC_ENABLE_FLOAT
+#define BSC_ENABLE_FLOAT 1
+#endif
+
+#if BSC_ENABLE_FLOAT != 0 && BSC_ENABLE_FLOAT != 1
+#error "BSC_ENABLE_FLOAT must be 0 or 1"
+#endif
+
+/** Maximum accepted digits after the decimal point in compact float arguments. */
+#ifndef BSC_MAX_FLOAT_FRACTION_DIGITS
+#define BSC_MAX_FLOAT_FRACTION_DIGITS 6u
+#endif
+
+#if BSC_MAX_FLOAT_FRACTION_DIGITS < 1 || BSC_MAX_FLOAT_FRACTION_DIGITS > 6
+#error "BSC_MAX_FLOAT_FRACTION_DIGITS must be between 1 and 6"
+#endif
+
 /** Maximum bytes that bounded formatting helpers may emit per chunk if added later. */
 #ifndef BSC_OUTPUT_CHUNK_LEN
 #define BSC_OUTPUT_CHUNK_LEN 96u

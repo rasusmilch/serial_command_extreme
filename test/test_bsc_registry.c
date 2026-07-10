@@ -173,7 +173,11 @@ static int expect_invalid(const char *test_name,
  * @brief Verify representative valid command tables pass and clear diagnostics.
  */
 static int test_registry_valid_tables(const char *test_name) {
+#if BSC_ENABLE_FLOAT
   bsc_arg_def_t args[7];
+#else
+  bsc_arg_def_t args[6];
+#endif
   bsc_command_t commands[4];
   bsc_registry_validation_error_t error;
   size_t index;
@@ -184,6 +188,7 @@ static int test_registry_valid_tables(const char *test_name) {
   args[1] = make_arg("count", BSC_ARG_UINT);
   args[1].min_uint = 1u;
   args[1].max_uint = 10u;
+#if BSC_ENABLE_FLOAT
   args[2] = make_arg("ratio", BSC_ARG_FLOAT);
   args[2].min_float = -1.0f;
   args[2].max_float = 1.0f;
@@ -195,6 +200,16 @@ static int test_registry_valid_tables(const char *test_name) {
   args[6] = make_arg("password", BSC_ARG_SECRET);
   args[6].min_length = 8u;
   args[6].max_length = 64u;
+#else
+  args[2] = make_arg("enabled", BSC_ARG_BOOL);
+  args[3] = make_arg("mode", BSC_ARG_ENUM);
+  args[4] = make_arg("ssid", BSC_ARG_STRING);
+  args[4].min_length = 1u;
+  args[4].max_length = 32u;
+  args[5] = make_arg("password", BSC_ARG_SECRET);
+  args[5].min_length = 8u;
+  args[5].max_length = 64u;
+#endif
 
   commands[0] = make_group(k_group_path, 1u);
   commands[1] = make_command(k_status_path, 1u);
@@ -358,9 +373,13 @@ static int test_registry_argument_ranges(const char *test_name) {
   REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
 
   arg = make_arg("value", BSC_ARG_FLOAT);
+#if BSC_ENABLE_FLOAT
   arg.min_float = 2.0f;
   arg.max_float = 1.0f;
   REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+#else
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_FLOAT_DISABLED, &error) == 0);
+#endif
 
   arg = make_arg("value", BSC_ARG_BOOL);
   arg.min_int = 2;
