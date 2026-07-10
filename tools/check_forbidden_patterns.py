@@ -29,7 +29,7 @@ def strip_comments(text: str) -> str:
 
 
 def iter_source_files(root: Path):
-    """Yield C core source files below root, excluding README and generated files."""
+    """Yield regular .c and .h files recursively below root in sorted path order."""
     for path in sorted(root.rglob("*")):
         if path.is_file() and path.suffix in SOURCE_SUFFIXES and path.name.lower() != "readme.md":
             yield path
