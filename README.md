@@ -1,10 +1,10 @@
 # Serial Command Extreme
 
-Serial Command Extreme is a planned reusable bounded embedded serial command library.
+Serial Command Extreme is a reusable bounded embedded serial command library under active development.
 
-The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to register commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
+The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to define commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository now has an initial Phase 2A C99 core skeleton, host test harness, and Phase 2B bounded tokenizer. The full parser, command registry, examples, and platform adapters have not been added yet.
+This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, host tests, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: typed runtime argument parsing, access enforcement, command dispatch, generated help/manpages, examples, and platform adapters remain future work.
 
 ## Intended use
 
@@ -85,17 +85,20 @@ Discovery can be menu-like through namespaces and help output, but normal operat
 Current status:
 
 ```text
-Stage: Phase 2B tokenizer added after the Phase 2A core skeleton
-Implementation source: initial skeleton plus bounded tokenizer added
-Build system: CMake scaffold builds the core library and host tests
-Tests: CTest host smoke and tokenizer tests added
+Stage: Foundational core, bounded tokenizer, static registry validation, and longest-path matcher implemented
+Implementation source: C99 core modules for config, status, string views, output, console context, descriptors, tokenizer, registry validation, and matcher
+Build system: CMake builds the core library and host tests
+Tests: Host coverage for foundational helpers, descriptor types, tokenizer, registry validation, matcher, and forbidden-pattern checks
+Typed argument parser: not added yet
+Dispatch and access enforcement: not added yet
+Generated help/manpages: not added yet
 Examples: not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as an installable or usable command parser yet; only the initial skeleton APIs and host smoke tests exist.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, and match command paths, but it still lacks typed runtime argument parsing, access enforcement, dispatch, generated help/manpages, examples, and adapters.
 
 ## Documentation anchors
 
@@ -133,9 +136,9 @@ The design should selectively borrow:
 
 The implementation should be original and shaped around this project's bounded C-first core, not copied wholesale from any reference implementation.
 
-## Planned core shape
+## Target core shape
 
-The implementation guide currently expects a core similar to:
+The approved design and implementation guide expect the completed core to evolve toward:
 
 ```text
 bsc_console_t
@@ -176,7 +179,7 @@ dispatch callback
 render deterministic result or error
 ```
 
-Exact names and layout may change after the read-only architecture plan, but the constraints should not be weakened without explicit approval.
+Some future parser, dispatch, help, adapter, and example names may still change, but the approved constraints should not be weakened without explicit approval.
 
 ## Planned repository layout
 
@@ -199,11 +202,11 @@ test/
   golden/
 ```
 
-The planned core source files include tokenizer, registry, parser, dispatch, help, and console modules. Host tests should cover tokenization, command matching, typed argument parsing, validation failures, secret redaction, dispatch, and generated help output.
+The current core source files include tokenizer, registry validation, matcher, descriptor, status, string-view, output, and console-context modules. Planned future modules still include typed argument parsing, dispatch, help/manpage rendering, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, and forbidden-pattern checks; future tests should add typed argument parsing, secret redaction, dispatch, and generated help output.
 
 ## Example command descriptor intent
 
-A future command descriptor should be able to express behavior like this without duplicating parser and help logic:
+The current descriptor metadata is intended to support behavior like this once the remaining parser, access, dispatch, redaction, and help modules are implemented:
 
 ```text
 path:        settings wifi set password
@@ -230,7 +233,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-Before implementation begins, create a read-only architecture plan from the anchors and prior-art review. Do not start by writing parser code, Arduino wrappers, or examples until the architecture plan is approved.
+The read-only architecture planning milestone has already established the implementation direction. Future implementation should continue from the approved architecture and current tokenizer, registry-validation, and matcher foundation; do not skip ahead to adapters or examples before the remaining core parser, dispatch, access, and help behavior is defined and tested.
 
 Future Codex tasks should:
 
@@ -256,24 +259,7 @@ In short:
 
 ## Next recommended task
 
-The next useful task is a read-only architecture plan.
-
-That plan should inspect the uploaded reference archive and current repository anchors, then define:
-
-- Recommended file layout.
-- Core data structures.
-- Tokenizer algorithm.
-- Command descriptor schema.
-- Longest-path matching rules.
-- Typed argument validation strategy.
-- Help/manpage renderer strategy.
-- Error/status code design.
-- Arduino adapter design.
-- Host test plan.
-- Example commands.
-- Open decisions requiring approval.
-
-No code should be written in that task.
+The next useful implementation task should build on the approved architecture and the current tokenizer, registry-validation, and matcher foundation. Good candidates are the typed runtime argument parser, parsed-argument storage/API, dispatch/access integration, or generated help/manpage rendering, each with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
 
 ## License
 

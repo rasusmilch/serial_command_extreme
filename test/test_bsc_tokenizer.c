@@ -6,6 +6,9 @@
 #include "bsc_string_view.h"
 #include "bsc_tokenizer.h"
 
+/**
+ * @brief Fail the current tokenizer test when a condition is false.
+ */
 #define TOKEN_TEST_ASSERT_TRUE(condition)                                                            \
   do {                                                                                                \
     if (!(condition)) {                                                                               \
@@ -14,8 +17,14 @@
     }                                                                                                 \
   } while (0)
 
+/**
+ * @brief Assert that tokenizer status matches the expected status code.
+ */
 #define TOKEN_TEST_ASSERT_STATUS(expected, actual) TOKEN_TEST_ASSERT_TRUE((expected) == (actual))
 
+/**
+ * @brief Run one tokenizer test and accumulate failures for the module runner.
+ */
 #define RUN_TOKEN_TEST(fn)                                                                            \
   do {                                                                                                \
     int result;                                                                                       \
@@ -28,6 +37,9 @@
     }                                                                                                 \
   } while (0)
 
+/**
+ * @brief Compare a borrowed token view with expected C-string text by length.
+ */
 static int token_equals(bsc_string_view_t token, const char *expected) {
   size_t expected_length = strlen(expected);
   if (token.length != expected_length) {
@@ -42,10 +54,16 @@ static int token_equals(bsc_string_view_t token, const char *expected) {
   return memcmp(token.data, expected, expected_length) == 0;
 }
 
+/**
+ * @brief Verify a token view still points inside the caller-owned line buffer.
+ */
 static int token_points_into_line(bsc_string_view_t token, const char *line, size_t storage_length) {
   return token.data >= line && token.data <= line + storage_length;
 }
 
+/**
+ * @brief Forward a mutable C string to bsc_tokenize_line using strlen for length.
+ */
 static int tokenize_text(char *line,
                          bsc_string_view_t *tokens,
                          size_t token_capacity,
@@ -53,6 +71,9 @@ static int tokenize_text(char *line,
   return bsc_tokenize_line(line, strlen(line), tokens, token_capacity, token_count);
 }
 
+/**
+ * @brief Protect invalid-argument handling and token-count clearing behavior.
+ */
 static int test_tokenizer_invalid_arguments(const char *test_name) {
   bsc_string_view_t tokens[2];
   char line[] = "status";
@@ -82,6 +103,9 @@ static int test_tokenizer_invalid_arguments(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify blank input returns NO_INPUT and leaves no borrowed tokens.
+ */
 static int test_tokenizer_no_input(const char *test_name) {
   bsc_string_view_t tokens[1];
   char empty[] = "";
@@ -100,6 +124,9 @@ static int test_tokenizer_no_input(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify basic space and tab token splitting into borrowed views.
+ */
 static int test_tokenizer_basic_tokens(const char *test_name) {
   bsc_string_view_t tokens[4];
   char one[] = "status";
@@ -131,6 +158,9 @@ static int test_tokenizer_basic_tokens(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Protect literal treatment for punctuation and shell-like bytes.
+ */
 static int test_tokenizer_literal_punctuation_and_non_shell_bytes(const char *test_name) {
   bsc_string_view_t tokens[6];
   char line[] = "a=b,c:1 #tag //path path\\part 'single'";
@@ -146,6 +176,9 @@ static int test_tokenizer_literal_punctuation_and_non_shell_bytes(const char *te
   return 0;
 }
 
+/**
+ * @brief Verify quoted tokens, including empty quoted tokens, exclude quote bytes.
+ */
 static int test_tokenizer_quoted_tokens(const char *test_name) {
   bsc_string_view_t tokens[4];
   char line[] = "set name \"shop floor\"";
@@ -170,6 +203,9 @@ static int test_tokenizer_quoted_tokens(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify supported quoted escapes are compacted in place in the line buffer.
+ */
 static int test_tokenizer_quoted_escapes_compact_in_place(const char *test_name) {
   bsc_string_view_t tokens[3];
   char line[] = "say \"a\\\"b\" \"c\\\\d\"";
@@ -187,6 +223,9 @@ static int test_tokenizer_quoted_escapes_compact_in_place(const char *test_name)
   return 0;
 }
 
+/**
+ * @brief Verify unsupported or incomplete escape sequences fail with invalid syntax.
+ */
 static int test_tokenizer_escape_rejections(const char *test_name) {
   bsc_string_view_t tokens[2];
   char unsupported[] = "\"bad\\n\"";
@@ -201,6 +240,9 @@ static int test_tokenizer_escape_rejections(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify unterminated and adjacent quote forms return the documented errors.
+ */
 static int test_tokenizer_quote_rejections(const char *test_name) {
   bsc_string_view_t tokens[2];
   char unterminated[] = "set \"name";
@@ -219,6 +261,9 @@ static int test_tokenizer_quote_rejections(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify carriage return and line feed bytes are rejected by the tokenizer.
+ */
 static int test_tokenizer_cr_lf_rejection(const char *test_name) {
   bsc_string_view_t tokens[2];
   char cr[] = "status\r";
@@ -237,6 +282,12 @@ static int test_tokenizer_cr_lf_rejection(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify tokenizer line, token length, token count, and caller capacity bounds.
+ *
+ * Large local arrays in this test are intentional boundary fixtures sized from
+ * BSC_MAX_* constants; they are not reusable core scratch buffers.
+ */
 static int test_tokenizer_capacity_limits(const char *test_name) {
   bsc_string_view_t tokens[BSC_MAX_TOKENS];
   char long_line[BSC_MAX_LINE_LEN + 2u];
@@ -281,6 +332,9 @@ static int test_tokenizer_capacity_limits(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify token views can describe a slice that is not null-terminated.
+ */
 static int test_tokenizer_non_null_terminated_view(const char *test_name) {
   bsc_string_view_t tokens[1];
   char line[] = {'a', 'b', 'c', 'X', '\0'};
@@ -295,6 +349,9 @@ static int test_tokenizer_non_null_terminated_view(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify non-ASCII bytes are preserved literally in token views.
+ */
 static int test_tokenizer_non_ascii_bytes_are_literal(const char *test_name) {
   bsc_string_view_t tokens[1];
   char line[] = {(char)0xc3, (char)0xa9, 'x', '\0'};
@@ -310,6 +367,9 @@ static int test_tokenizer_non_ascii_bytes_are_literal(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Run all tokenizer host tests and return the accumulated failure count.
+ */
 int bsc_run_tokenizer_tests(void) {
   int failures = 0;
 

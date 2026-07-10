@@ -6,6 +6,9 @@
 #include "bsc_status.h"
 #include "bsc_types.h"
 
+/**
+ * @brief Fail the current type-layout test when a condition is false.
+ */
 #define TYPE_TEST_ASSERT_TRUE(condition)                                                             \
   do {                                                                                                \
     if (!(condition)) {                                                                               \
@@ -14,6 +17,9 @@
     }                                                                                                 \
   } while (0)
 
+/**
+ * @brief Run one type test and accumulate failures for the module runner.
+ */
 #define RUN_TYPE_TEST(fn)                                                                             \
   do {                                                                                                \
     int result;                                                                                       \
@@ -85,6 +91,11 @@ static const bsc_arg_def_t k_representative_args[] = {
     {"password", BSC_ARG_SECRET, 0, 0, 0u, 0u, 0.0f, 0.0f, 8u, 64u, NULL, 0u, "Secret text"},
 };
 
+/**
+ * @brief Stub command handler used to verify callback typedef compatibility.
+ *
+ * This is a descriptor-wiring fixture only; it does not perform real dispatch.
+ */
 static bsc_status_t test_handler(void *app_context,
                                  const struct bsc_command *command,
                                  const struct bsc_parsed_args *args,
@@ -96,6 +107,9 @@ static bsc_status_t test_handler(void *app_context,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Stub access callback used to verify access typedef and descriptor wiring.
+ */
 static bool test_access(void *app_context,
                         const struct bsc_command *command,
                         bsc_access_level_t required_access) {
@@ -163,6 +177,9 @@ static const bsc_command_t k_commands[] = {
     },
 };
 
+/**
+ * @brief Verify enum choice fixtures preserve names, values, and help text.
+ */
 static int test_enum_choice_initialization(const char *test_name) {
   TYPE_TEST_ASSERT_TRUE(k_gain_choices[0].name != NULL);
   TYPE_TEST_ASSERT_TRUE(k_gain_choices[0].value == TEST_GAIN_LOW);
@@ -171,6 +188,9 @@ static int test_enum_choice_initialization(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify static command path arrays keep expected token layout.
+ */
 static int test_static_path_arrays(const char *test_name) {
   TYPE_TEST_ASSERT_TRUE(k_status_path[0][0] == 's');
   TYPE_TEST_ASSERT_TRUE((sizeof(k_wifi_ssid_path) / sizeof(k_wifi_ssid_path[0])) == 4u);
@@ -179,6 +199,9 @@ static int test_static_path_arrays(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify representative argument descriptors initialize each supported type.
+ */
 static int test_arg_def_initialization(const char *test_name) {
   TYPE_TEST_ASSERT_TRUE(k_representative_args[0].type == BSC_ARG_INT);
   TYPE_TEST_ASSERT_TRUE(k_representative_args[0].min_int == -100);
@@ -193,6 +216,9 @@ static int test_arg_def_initialization(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Protect size_t metadata fields for string and secret argument lengths.
+ */
 static int test_string_and_secret_metadata_use_size_t(const char *test_name) {
   size_t ssid_min = k_representative_args[5].min_length;
   size_t ssid_max = k_representative_args[5].max_length;
@@ -208,6 +234,9 @@ static int test_string_and_secret_metadata_use_size_t(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify group descriptors have namespace shape and no executable handler.
+ */
 static int test_group_descriptor_initialization(const char *test_name) {
   const bsc_command_t *group = &k_commands[0];
 
@@ -221,6 +250,9 @@ static int test_group_descriptor_initialization(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify executable command descriptors wire path, args, callbacks, and help.
+ */
 static int test_executable_descriptor_initialization(const char *test_name) {
   const bsc_command_t *command = &k_commands[2];
 
@@ -238,6 +270,9 @@ static int test_executable_descriptor_initialization(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify handler and access stubs can be assigned to public typedefs.
+ */
 static int test_callback_typedef_assignments(const char *test_name) {
   bsc_command_handler_t handler = test_handler;
   bsc_command_access_fn_t access = test_access;
@@ -247,6 +282,9 @@ static int test_callback_typedef_assignments(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify hidden command flags remain independent from access levels.
+ */
 static int test_hidden_flag_is_separate_from_access(const char *test_name) {
   const bsc_command_t *command = &k_commands[3];
 
@@ -257,6 +295,9 @@ static int test_hidden_flag_is_separate_from_access(const char *test_name) {
   return 0;
 }
 
+/**
+ * @brief Verify BSC_ARG_NONE exists even though registry validation rejects it as a concrete argument.
+ */
 static int test_none_argument_type_is_available_without_optional_semantics(const char *test_name) {
   static const bsc_arg_def_t none_arg = {
       "none", BSC_ARG_NONE, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, NULL,
@@ -268,6 +309,9 @@ static int test_none_argument_type_is_available_without_optional_semantics(const
   return 0;
 }
 
+/**
+ * @brief Run all type and descriptor-layout host tests.
+ */
 int bsc_run_types_tests(void) {
   int failures = 0;
 

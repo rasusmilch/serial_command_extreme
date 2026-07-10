@@ -2,6 +2,12 @@
 
 #include "bsc_config.h"
 
+/**
+ * @brief Fold an ASCII uppercase byte to lowercase for descriptor comparisons.
+ *
+ * This registry helper intentionally performs ASCII-only folding; it does not
+ * allocate, inspect locale, or normalize non-ASCII command descriptor text.
+ */
 static char bsc_registry_ascii_lower(char value) {
   if (value >= 'A' && value <= 'Z') {
     return (char)(value + ('a' - 'A'));
@@ -9,6 +15,13 @@ static char bsc_registry_ascii_lower(char value) {
   return value;
 }
 
+/**
+ * @brief Populate an optional validation error and return descriptor failure.
+ *
+ * The error output may be NULL. When supplied, it receives the reason and the
+ * relevant command/path/argument/enum/duplicate indexes for static descriptor
+ * schema validation; command descriptors themselves are not mutated.
+ */
 static bsc_status_t bsc_registry_fail(bsc_registry_validation_error_t *error,
                                       bsc_registry_error_reason_t reason,
                                       size_t command_index,
@@ -27,6 +40,12 @@ static bsc_status_t bsc_registry_fail(bsc_registry_validation_error_t *error,
   return BSC_STATUS_INVALID_DESCRIPTOR;
 }
 
+/**
+ * @brief Reset an optional registry validation error result to no-error state.
+ *
+ * Accepts NULL so callers can use the same validation path whether or not they
+ * need detailed diagnostics. This only clears the caller-owned result object.
+ */
 void bsc_registry_validation_error_clear(bsc_registry_validation_error_t *error) {
   if (error == NULL) {
     return;
@@ -39,7 +58,13 @@ void bsc_registry_validation_error_clear(bsc_registry_validation_error_t *error)
   error->duplicate_command_index = 0u;
 }
 
-/* Scan at most limit + 1 bytes so invalid descriptor strings cannot force an unbounded strlen. */
+/**
+ * @brief Measure a descriptor string without allowing an unbounded scan.
+ *
+ * Scans at most limit + 1 bytes so invalid static descriptor strings cannot
+ * force strlen over arbitrary memory. The caller owns the string storage and
+ * receives too_long when no null terminator appears within the accepted bound.
+ */
 static size_t bsc_registry_bounded_length(const char *text, size_t limit, int *too_long) {
   size_t length;
 
@@ -53,6 +78,12 @@ static size_t bsc_registry_bounded_length(const char *text, size_t limit, int *t
   return limit + 1u;
 }
 
+/**
+ * @brief Compare two validated C strings with ASCII case-insensitive matching.
+ *
+ * Used only after descriptor validation has ensured non-NULL, bounded strings.
+ * This is schema comparison for registry validation, not runtime token matching.
+ */
 static int bsc_registry_cstr_equal_ignore_case(const char *left, const char *right) {
   size_t index = 0u;
 
@@ -65,6 +96,13 @@ static int bsc_registry_cstr_equal_ignore_case(const char *left, const char *rig
   return left[index] == '\0' && right[index] == '\0';
 }
 
+/**
+ * @brief Compare two command descriptor paths for duplicate detection.
+ *
+ * Paths must have already passed shape validation so their token arrays and
+ * strings are safe to read. Duplicate command or group paths are rejected using
+ * ASCII case-insensitive token comparison to avoid ambiguous static descriptors.
+ */
 static int bsc_registry_paths_equal_ignore_case(const bsc_command_t *left, const bsc_command_t *right) {
   size_t index;
 
@@ -79,17 +117,30 @@ static int bsc_registry_paths_equal_ignore_case(const bsc_command_t *left, const
   return 1;
 }
 
+/**
+ * @brief Return whether an argument type enum value is part of the descriptor schema.
+ */
 static int bsc_registry_arg_type_is_valid(bsc_arg_type_t type) {
   return type == BSC_ARG_NONE || type == BSC_ARG_INT || type == BSC_ARG_UINT ||
          type == BSC_ARG_FLOAT || type == BSC_ARG_BOOL || type == BSC_ARG_ENUM ||
          type == BSC_ARG_STRING || type == BSC_ARG_SECRET;
 }
 
+/**
+ * @brief Return whether an access-level enum value is accepted in descriptors.
+ */
 static int bsc_registry_access_is_valid(bsc_access_level_t access) {
   return access == BSC_ACCESS_NORMAL || access == BSC_ACCESS_ADVANCED ||
          access == BSC_ACCESS_FACTORY || access == BSC_ACCESS_LOCKED;
 }
 
+/**
+ * @brief Validate one static descriptor string field against token limits.
+ *
+ * Checks NULL, empty, and BSC_MAX_TOKEN_LEN overflow cases and records the
+ * caller-selected error reason and descriptor indexes. This validates schema
+ * fields only; it does not parse runtime input or mutate descriptor storage.
+ */
 static bsc_status_t bsc_registry_validate_string_field(const char *text,
                                                        bsc_registry_error_reason_t null_reason,
                                                        bsc_registry_error_reason_t empty_reason,
@@ -119,6 +170,13 @@ static bsc_status_t bsc_registry_validate_string_field(const char *text,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Validate enum argument choices in a static command descriptor.
+ *
+ * Ensures the caller-owned choice table is present, bounded by
+ * BSC_MAX_ENUM_CHOICES, has valid names, and contains no duplicate names
+ * (ASCII case-insensitive) or values. This does not match user input.
+ */
 static bsc_status_t bsc_registry_validate_enum_choices(const bsc_arg_def_t *arg,
                                                        size_t command_index,
                                                        size_t arg_index,
@@ -168,6 +226,13 @@ static bsc_status_t bsc_registry_validate_enum_choices(const bsc_arg_def_t *arg,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Validate one argument descriptor for static registry schema correctness.
+ *
+ * Checks name, type, range, string length, and enum-choice metadata against the
+ * bounded core limits. The descriptor is only read; runtime argument parsing and
+ * handler dispatch are outside this module boundary.
+ */
 static bsc_status_t bsc_registry_validate_arg(const bsc_arg_def_t *arg,
                                               size_t command_index,
                                               size_t arg_index,
@@ -227,6 +292,13 @@ static bsc_status_t bsc_registry_validate_arg(const bsc_arg_def_t *arg,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Validate one static command or group descriptor.
+ *
+ * Checks path shape, node type, handler presence rules, argument descriptors,
+ * access level, and known flags without registering dynamically or dispatching
+ * handlers. Descriptor arrays remain caller-owned and unmodified.
+ */
 static bsc_status_t bsc_registry_validate_command(const bsc_command_t *command,
                                                   size_t command_index,
                                                   bsc_registry_validation_error_t *error) {
@@ -294,6 +366,14 @@ static bsc_status_t bsc_registry_validate_command(const bsc_command_t *command,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Validate a complete caller-owned static command descriptor table.
+ *
+ * This module validates descriptor schema only: it does not register commands
+ * dynamically, parse runtime input, dispatch handlers, or mutate descriptors.
+ * After per-command validation, it rejects duplicate command/group paths using
+ * ASCII case-insensitive comparison so later matching is unambiguous.
+ */
 bsc_status_t bsc_registry_validate(const bsc_command_t *commands,
                                    size_t command_count,
                                    bsc_registry_validation_error_t *error) {

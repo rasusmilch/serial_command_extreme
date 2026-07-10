@@ -2,11 +2,11 @@
 
 This directory is reserved for the platform-independent core library.
 
-Initial Phase 2A skeleton source exists here, and the Phase 2B bounded tokenizer has been added. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
+Current platform-independent C99 core source exists here for configuration, status diagnostics, borrowed string views, output callbacks, minimal console context initialization, static descriptor types, bounded tokenization, registry descriptor validation, and longest-path command matching. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
 
 ## Intended core modules
 
-The current skeleton provides config, status, string-view, output, and minimal console-context files. The implementation guide still expects future parser modules similar to:
+Current implemented modules are:
 
 ```text
 src/bsc_config.h
@@ -23,17 +23,11 @@ src/bsc_tokenizer.h
 src/bsc_tokenizer.c
 src/bsc_registry.h
 src/bsc_registry.c
-src/bsc_parser.h
-src/bsc_parser.c
-src/bsc_dispatch.h
-src/bsc_dispatch.c
-src/bsc_help.h
-src/bsc_help.c
-src/bsc_console.h
-src/bsc_console.c
+src/bsc_matcher.h
+src/bsc_matcher.c
 ```
 
-Exact names may change after the read-only architecture plan, but the core constraints must remain intact.
+Planned future modules still include typed argument parsing, command dispatch/access integration, help/manpage rendering, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
 
 ## Core constraints
 
@@ -51,7 +45,7 @@ The core must remain:
 
 ## Expected responsibilities
 
-Future core source should implement only the reusable command subsystem:
+Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, output helpers, and status diagnostics. Planned responsibilities still include typed runtime argument parsing, dispatch/access integration, help/manpage rendering, and redaction:
 
 - Bounded line/token handling.
 - Bounded tokenizer with quotes and escapes.
@@ -82,4 +76,4 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, dispatch, output, redaction, help, or access behavior. Registry, matcher, argument parser, dispatch, help rendering, adapters, and examples remain deferred after the tokenizer step.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. Argument parser, dispatch, help rendering, adapters, and examples remain future work.

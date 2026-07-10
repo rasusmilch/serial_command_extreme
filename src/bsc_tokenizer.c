@@ -10,18 +10,34 @@ typedef enum bsc_tokenizer_state {
   BSC_TOKENIZER_AFTER_QUOTED_TOKEN
 } bsc_tokenizer_state_t;
 
+/**
+ * @brief Return whether a byte separates tokens outside quotes.
+ */
 static int bsc_tokenizer_is_separator(char value) {
   return value == ' ' || value == '\t';
 }
 
+/**
+ * @brief Return whether a byte is a disallowed embedded line ending.
+ */
 static int bsc_tokenizer_is_line_ending(char value) {
   return value == '\r' || value == '\n';
 }
 
+/**
+ * @brief Clamp caller token capacity to the core BSC_MAX_TOKENS limit.
+ */
 static size_t bsc_tokenizer_limit(size_t token_capacity) {
   return token_capacity < (size_t)BSC_MAX_TOKENS ? token_capacity : (size_t)BSC_MAX_TOKENS;
 }
 
+/**
+ * @brief Append one borrowed token view when capacity and length allow it.
+ *
+ * The token array is caller-owned and bounded by the clamped token_limit. Each
+ * token length must fit BSC_MAX_TOKEN_LEN. Stored views borrow slices of the
+ * caller-owned mutable line buffer and must not outlive that buffer.
+ */
 static bsc_status_t bsc_tokenizer_add_token(bsc_string_view_t *tokens,
                                             size_t token_limit,
                                             size_t *count,
@@ -38,6 +54,16 @@ static bsc_status_t bsc_tokenizer_add_token(bsc_string_view_t *tokens,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Tokenize a caller-owned mutable input line into borrowed token views.
+ *
+ * The tokenizer allocates no storage and mutates the line in place only to
+ * compact quoted text and supported escapes. Token views borrow from that line
+ * buffer, are bounded by BSC_MAX_TOKENS and BSC_MAX_TOKEN_LEN, and remain valid
+ * only while the caller keeps the mutable line buffer alive and unchanged.
+ * This step does not parse command paths, convert typed arguments, dispatch
+ * handlers, or print output.
+ */
 bsc_status_t bsc_tokenize_line(char *line,
                                size_t line_length,
                                bsc_string_view_t *tokens,

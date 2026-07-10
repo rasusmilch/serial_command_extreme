@@ -17,16 +17,17 @@ extern "C" {
  * @file bsc_types.h
  * @brief Static command descriptor metadata for the Serial Command Extreme core.
  *
- * This header defines public metadata types shared by future registry,
- * matcher, argument parser, dispatch, and help-rendering modules. It performs
- * no validation, matching, parsing, dispatch, help rendering, I/O, allocation,
- * runtime registration, alias expansion, optional-argument handling, custom
- * parsing, or custom validation.
+ * This header defines public metadata types shared by the current registry
+ * validator and matcher plus future argument parser, dispatch, access, and
+ * help-rendering modules. It performs no validation, matching, parsing,
+ * dispatch, help rendering, I/O, allocation, runtime registration, alias
+ * expansion, optional-argument handling, custom parsing, or custom validation.
  *
  * Descriptor objects borrow all pointed-to storage. Command descriptor arrays,
  * path arrays, path strings, argument arrays, enum choice arrays, help strings,
  * callback functions, and opaque context pointers are caller-owned and must
- * remain valid for any future registry or console object that references them.
+ * remain valid while current registry validation, current matching, or future
+ * console/dispatch code references them.
  * The core does not copy or release descriptor metadata.
  *
  * Future parsed string and secret argument values are expected to remain
@@ -67,8 +68,9 @@ typedef enum bsc_arg_type {
 /**
  * @brief Command descriptor node kind.
  *
- * Groups are namespace nodes for future matching/help. Commands are executable
- * leaves once future argument parsing, access checks, and dispatch exist.
+ * Groups are namespace nodes used by current registry validation and matcher
+ * behavior. Commands are executable descriptor leaves for current matching,
+ * while actual argument parsing, access checks, and dispatch remain future work.
  */
 typedef enum bsc_node_type {
   /** Non-executable namespace/group node. */
@@ -129,8 +131,9 @@ typedef struct bsc_enum_choice {
  * @brief Borrowed positional argument descriptor.
  *
  * The fields are metadata only. This type performs no parsing or validation.
- * Numeric range fields are interpreted according to `type` by future parser and
- * validator modules. String and secret length fields use `size_t` to match
+ * Numeric range fields are checked for descriptor consistency by the current
+ * registry validator and will be interpreted by future runtime argument parsing.
+ * String and secret length fields use `size_t` to match
  * #bsc_string_view_t.length. `enum_choices` points to a caller/static-owned
  * array with `enum_choice_count` entries and is meaningful for #BSC_ARG_ENUM.
  */
@@ -191,7 +194,8 @@ typedef bool (*bsc_command_access_fn_t)(void *app_context,
  * Paths are represented by a borrowed array of borrowed string pointers plus a
  * length. The descriptor does not embed path, argument, enum, parsed-argument,
  * or workspace storage. All pointers remain owned by the application/static
- * descriptor table provider and must outlive future registry/console use.
+ * descriptor table provider and must outlive current registry validation,
+ * current matcher use, and future console/dispatch use.
  */
 typedef struct bsc_command {
   /** Borrowed static array of `path_len` literal command path tokens. */

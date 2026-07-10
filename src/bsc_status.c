@@ -1,5 +1,12 @@
 #include "bsc_status.h"
 
+/**
+ * @brief Return a stable symbolic name for a status value.
+ *
+ * The returned strings are static diagnostics for tests and logs. Unknown enum
+ * values are deliberately mapped to BSC_STATUS_UNKNOWN rather than exposing an
+ * invalid numeric value.
+ */
 const char *bsc_status_name(bsc_status_t status) {
   switch (status) {
   case BSC_STATUS_OK:

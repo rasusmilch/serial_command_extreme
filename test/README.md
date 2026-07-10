@@ -6,7 +6,7 @@ An initial self-contained C host test harness exists and runs through CTest. Whe
 
 ## Purpose
 
-The current host tests cover skeleton status, string-view, output behavior, and the Phase 2B bounded tokenizer. Future tests in this directory should prove the behavior of the platform-independent core:
+The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
 
 - Tokenization.
 - Quoted strings and escapes.
@@ -23,15 +23,24 @@ The current host tests cover skeleton status, string-view, output behavior, and 
 - Output/error formatting.
 - Generated help/manpage output.
 
-## Expected future layout
+## Current and future layout
 
-The test strategy currently recommends a layout similar to:
+The current host test files are:
 
 ```text
 test/
   README.md
   test_main.c
+  test_bsc_types.c
   test_bsc_tokenizer.c
+  test_bsc_registry.c
+  test_bsc_matcher.c
+```
+
+The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Future parser, argument, dispatch, access, redaction, help, fixture, and golden-output tests may add files such as:
+
+```text
+test/
   test_parser.c
   test_args.c
   test_dispatch.c
@@ -53,7 +62,7 @@ test/
     error_invalid_gain.txt
 ```
 
-The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for behavior smoke tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Exact future names may change as parser, registry, dispatch, and help tests are added.
+Exact future names may change as parser, dispatch, access, redaction, and help tests are added.
 
 ## Required testing posture
 
@@ -70,7 +79,7 @@ Hardware validation
 Unverified items
 ```
 
-Do not claim hardware validation unless hardware was actually used and evidence is provided. Full parser, golden-output, adapter compile, and hardware tests remain deferred after the Phase 2A skeleton.
+Do not claim hardware validation unless hardware was actually used and evidence is provided. Typed parser, dispatch, generated-help golden output, adapter compile, and hardware tests remain deferred.
 
 ## Golden tests
 
