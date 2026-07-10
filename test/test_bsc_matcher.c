@@ -228,7 +228,7 @@ static int test_longest_executable_match_leaves_remaining_arg(const char *test_n
 }
 
 /**
- * @brief Verify extra tokens after a command remain for future argument parsing.
+ * @brief Verify extra tokens after a command remain available for the typed argument parser.
  */
 static int test_extra_token_is_remaining_arg(const char *test_name) {
   bsc_command_t commands[] = {make_match_command(k_status_path, 1u)};

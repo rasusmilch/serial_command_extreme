@@ -66,7 +66,9 @@ typedef enum bsc_status {
   /** Application callback reported a failure. */
   BSC_STATUS_APP_ERROR,
   /** The core detected an invalid internal state or invalid API use. */
-  BSC_STATUS_INTERNAL_ERROR
+  BSC_STATUS_INTERNAL_ERROR,
+  /** A string argument was shorter than its accepted length. */
+  BSC_STATUS_ARGUMENT_TOO_SHORT
 } bsc_status_t;
 
 /**

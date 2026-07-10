@@ -15,11 +15,13 @@ extern "C" {
  * @file bsc_matcher.h
  * @brief Static command path matcher for tokenizer-produced token views.
  *
- * The matcher is the bounded path-selection stage between tokenization and
- * future argument parsing/dispatch. It consumes a caller-owned descriptor table
- * and a caller/workspace-owned array of borrowed token views, then reports the
+ * The matcher is the bounded path-selection stage between tokenization and the
+ * current typed argument parser. It consumes a caller-owned descriptor table and
+ * a caller/workspace-owned array of borrowed token views, then reports the
  * longest matching executable command path or an exact group path that requires
- * a subcommand.
+ * a subcommand. Callers may pass the reported remaining-token slice to
+ * bsc_parse_command_args(); the matcher does not invoke the parser, access
+ * checks, or future dispatch automatically.
  *
  * Command descriptor tables, descriptor path arrays, and descriptor path strings
  * are owned by the application or static descriptor provider. They must remain
@@ -55,8 +57,9 @@ extern "C" {
  * On #BSC_STATUS_OK, `command` and `command_index` identify the executable
  * command, `consumed_token_count` is the matched path length,
  * `remaining_token_index` equals `consumed_token_count`, and
- * `remaining_token_count` is the number of tokens left for future argument
- * parsing. `group` remains NULL for the MVP.
+ * `remaining_token_count` is the number of positional tokens available for a
+ * caller-mediated bsc_parse_command_args() call. `group` remains NULL for the
+ * MVP.
  *
  * On #BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND, `group` and `group_index` identify
  * the exact matched group descriptor, `command` is NULL,
@@ -74,9 +77,9 @@ typedef struct bsc_match_result {
   size_t command_index;
   /** Number of leading input tokens consumed as command path tokens. */
   size_t consumed_token_count;
-  /** Index of the first remaining token for future argument parsing. */
+  /** Index of the first remaining token for caller-mediated typed argument parsing. */
   size_t remaining_token_index;
-  /** Number of remaining tokens for future argument parsing. */
+  /** Number of remaining tokens for caller-mediated typed argument parsing. */
   size_t remaining_token_count;
   /** Borrowed exact matched group descriptor for group-required status, or NULL. */
   const bsc_command_t *group;
@@ -112,7 +115,8 @@ void bsc_match_result_clear(bsc_match_result_t *result);
  *   statuses.
  *
  * @retval BSC_STATUS_OK A longest executable command path matched. Extra input
- *   tokens are reported as remaining tokens for future argument parsing.
+ *   tokens are reported as the remaining slice for caller-mediated typed
+ *   argument parsing.
  * @retval BSC_STATUS_NO_INPUT `token_count` was zero.
  * @retval BSC_STATUS_UNKNOWN_COMMAND No executable path matched and the input
  *   did not exactly match a group descriptor path.

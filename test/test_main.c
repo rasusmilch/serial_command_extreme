@@ -21,6 +21,10 @@ int bsc_run_registry_tests(void);
  * @brief Run matcher tests supplied by the matcher test module.
  */
 int bsc_run_matcher_tests(void);
+/**
+ * @brief Run argument parser tests supplied by the args test module.
+ */
+int bsc_run_args_tests(void);
 
 /**
  * @brief Fail the current host test when a condition is false.
@@ -97,6 +101,7 @@ static int test_status_names(const char *test_name) {
   TEST_ASSERT_STR_EQ("BSC_STATUS_LINE_TOO_LONG", bsc_status_name(BSC_STATUS_LINE_TOO_LONG));
   TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_SYNTAX", bsc_status_name(BSC_STATUS_INVALID_SYNTAX));
   TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_DESCRIPTOR", bsc_status_name(BSC_STATUS_INVALID_DESCRIPTOR));
+  TEST_ASSERT_STR_EQ("BSC_STATUS_ARGUMENT_TOO_SHORT", bsc_status_name(BSC_STATUS_ARGUMENT_TOO_SHORT));
   TEST_ASSERT_STR_EQ("BSC_STATUS_UNKNOWN", bsc_status_name((bsc_status_t)999));
   return 0;
 }
@@ -191,6 +196,7 @@ int main(void) {
   failures += bsc_run_types_tests();
   failures += bsc_run_registry_tests();
   failures += bsc_run_matcher_tests();
+  failures += bsc_run_args_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);

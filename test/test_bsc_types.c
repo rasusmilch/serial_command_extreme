@@ -44,10 +44,6 @@ static const bsc_enum_choice_t k_gain_choices[] = {
     {"high", TEST_GAIN_HIGH, "High gain range"},
 };
 
-static const char *const k_status_path[] = {"status"};
-static const char *const k_settings_path[] = {"settings"};
-static const char *const k_wifi_ssid_path[] = {"settings", "wifi", "set", "ssid"};
-static const char *const k_wifi_password_path[] = {"settings", "wifi", "set", "password"};
 
 static const bsc_arg_def_t k_gain_args[] = {
     {
@@ -66,6 +62,11 @@ static const bsc_arg_def_t k_gain_args[] = {
         "Gain level",
     },
 };
+
+static const char *const k_status_path[] = {"status"};
+static const char *const k_settings_path[] = {"settings"};
+static const char *const k_wifi_ssid_path[] = {"settings", "wifi", "set", "ssid"};
+static const char *const k_wifi_password_path[] = {"settings", "wifi", "set", "password"};
 
 static const bsc_arg_def_t k_representative_args[] = {
     {"offset", BSC_ARG_INT, -100, 100, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Signed offset"},
@@ -213,6 +214,9 @@ static int test_arg_def_initialization(const char *test_name) {
   TYPE_TEST_ASSERT_TRUE(k_representative_args[4].type == BSC_ARG_ENUM);
   TYPE_TEST_ASSERT_TRUE(k_representative_args[4].enum_choices == k_gain_choices);
   TYPE_TEST_ASSERT_TRUE(k_representative_args[4].enum_choice_count == 2u);
+  TYPE_TEST_ASSERT_TRUE(k_gain_args[0].type == BSC_ARG_ENUM);
+  TYPE_TEST_ASSERT_TRUE(k_gain_args[0].enum_choices == k_gain_choices);
+  TYPE_TEST_ASSERT_TRUE(k_gain_args[0].enum_choice_count == 2u);
   return 0;
 }
 

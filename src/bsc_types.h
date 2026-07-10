@@ -18,22 +18,24 @@ extern "C" {
  * @brief Static command descriptor metadata for the Serial Command Extreme core.
  *
  * This header defines public metadata types shared by the current registry
- * validator and matcher plus future argument parser, dispatch, access, and
- * help-rendering modules. It performs no validation, matching, parsing,
- * dispatch, help rendering, I/O, allocation, runtime registration, alias
- * expansion, optional-argument handling, custom parsing, or custom validation.
+ * validator, matcher, and typed argument parser plus future dispatch, access,
+ * help-rendering, and console-integration modules. It performs no validation,
+ * matching, parsing, dispatch, help rendering, I/O, allocation, runtime
+ * registration, alias expansion, optional-argument handling, custom parsing, or
+ * custom validation.
  *
  * Descriptor objects borrow all pointed-to storage. Command descriptor arrays,
  * path arrays, path strings, argument arrays, enum choice arrays, help strings,
  * callback functions, and opaque context pointers are caller-owned and must
- * remain valid while current registry validation, current matching, or future
- * console/dispatch code references them.
+ * remain valid while current registry validation, current matching, current
+ * typed argument parsing, or future console/dispatch/help code references them.
  * The core does not copy or release descriptor metadata.
  *
- * Future parsed string and secret argument values are expected to remain
- * #bsc_string_view_t values borrowed from the active command line buffer. An
- * application that needs such values after command execution must copy them into
- * bounded application-owned storage.
+ * Current parsed string and secret argument values returned by
+ * bsc_parse_command_args() remain #bsc_string_view_t values borrowed from the
+ * active command-line/token storage. An application that needs such values after
+ * active command execution or token-buffer reuse must copy them into bounded
+ * application-owned storage.
  */
 
 struct bsc_command;
@@ -42,9 +44,9 @@ struct bsc_parsed_args;
 /**
  * @brief Static positional argument type declared by a command descriptor.
  *
- * MVP descriptors do not model optional positional arguments. Future parser and
- * validator modules will interpret these values together with #bsc_arg_def_t
- * metadata.
+ * MVP descriptors do not model optional positional arguments. The current
+ * registry validator and typed parser interpret these values together with
+ * #bsc_arg_def_t metadata.
  */
 typedef enum bsc_arg_type {
   /** No argument value is expected. */
@@ -59,9 +61,9 @@ typedef enum bsc_arg_type {
   BSC_ARG_BOOL,
   /** String choice argument matched against a borrowed enum choice table. */
   BSC_ARG_ENUM,
-  /** Bounded string argument borrowed from the active line buffer later. */
+  /** Bounded string argument borrowed from active token storage by the typed parser. */
   BSC_ARG_STRING,
-  /** Bounded secret argument borrowed from the active line buffer later. */
+  /** Bounded secret argument borrowed from active token storage by the typed parser. */
   BSC_ARG_SECRET
 } bsc_arg_type_t;
 
@@ -69,8 +71,9 @@ typedef enum bsc_arg_type {
  * @brief Command descriptor node kind.
  *
  * Groups are namespace nodes used by current registry validation and matcher
- * behavior. Commands are executable descriptor leaves for current matching,
- * while actual argument parsing, access checks, and dispatch remain future work.
+ * behavior. Commands are executable descriptor leaves selected by the current
+ * matcher and then passed by callers to the current typed parser. Access checks
+ * and dispatch remain future work.
  */
 typedef enum bsc_node_type {
   /** Non-executable namespace/group node. */
@@ -116,10 +119,10 @@ typedef uint32_t bsc_command_flags_t;
  *
  * `name` and `help` point to caller/static-owned strings. `help` may be NULL
  * when no choice-specific help text is provided. `value` is the stable semantic
- * value future argument parsing can expose to command handlers.
+ * value current argument parsing exposes in #bsc_arg_value_t enum results.
  */
 typedef struct bsc_enum_choice {
-  /** Borrowed choice name used by future parser/help modules. */
+  /** Borrowed choice name used by current parser diagnostics and future help modules. */
   const char *name;
   /** Stable semantic value associated with the choice name. */
   int32_t value;
@@ -132,8 +135,8 @@ typedef struct bsc_enum_choice {
  *
  * The fields are metadata only. This type performs no parsing or validation.
  * Numeric range fields are checked for descriptor consistency by the current
- * registry validator and will be interpreted by future runtime argument parsing.
- * String and secret length fields use `size_t` to match
+ * registry validator and applied by current runtime argument parsing. String
+ * and secret length fields are byte counts and use `size_t` to match
  * #bsc_string_view_t.length. `enum_choices` points to a caller/static-owned
  * array with `enum_choice_count` entries and is meaningful for #BSC_ARG_ENUM.
  */
@@ -167,11 +170,12 @@ typedef struct bsc_arg_def {
 } bsc_arg_def_t;
 
 /**
- * @brief Future command handler callback signature.
+ * @brief Command handler callback signature reserved for future dispatch.
  *
- * The parsed-argument layout is intentionally incomplete in this task. Static
- * descriptors can store handler pointers now, while future dispatch code will
- * define when and how handlers are invoked.
+ * `struct bsc_parsed_args` is defined by `bsc_args.h` for the current typed
+ * parser. Static descriptors can store handler pointers now, but the parser
+ * does not invoke handlers; future dispatch code will define when and how
+ * callbacks receive parsed arguments.
  */
 typedef bsc_status_t (*bsc_command_handler_t)(void *app_context,
                                               const struct bsc_command *command,
@@ -195,7 +199,8 @@ typedef bool (*bsc_command_access_fn_t)(void *app_context,
  * length. The descriptor does not embed path, argument, enum, parsed-argument,
  * or workspace storage. All pointers remain owned by the application/static
  * descriptor table provider and must outlive current registry validation,
- * current matcher use, and future console/dispatch use.
+ * current matcher use, current typed parsing, and future console/dispatch/help
+ * use.
  */
 typedef struct bsc_command {
   /** Borrowed static array of `path_len` literal command path tokens. */

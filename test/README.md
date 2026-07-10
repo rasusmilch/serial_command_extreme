@@ -6,7 +6,7 @@ An initial self-contained C host test harness exists and runs through CTest. Whe
 
 ## Purpose
 
-The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
+The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; typed positional argument parsing and exact operator diagnostics; compact float enabled/disabled behavior; all legal compact-float fractional precision settings from 1 through 6; compact magnitude endpoint tests; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
 
 - Tokenization.
 - Quoted strings and escapes.
@@ -35,14 +35,13 @@ test/
   test_bsc_tokenizer.c
   test_bsc_registry.c
   test_bsc_matcher.c
+  test_bsc_args.c
 ```
 
-The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. Future parser, argument, dispatch, access, redaction, help, fixture, and golden-output tests may add files such as:
+The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. `test_bsc_args.c` is the current typed-parser suite; additional parser cases should be added there when defects or supported behavior require them. Future dispatch, access, orchestration, broader redaction, help, fixture, integration, and golden-output tests may add files such as:
 
 ```text
 test/
-  test_parser.c
-  test_args.c
   test_dispatch.c
   test_help.c
   test_redaction.c
@@ -62,7 +61,7 @@ test/
     error_invalid_gain.txt
 ```
 
-Exact future names may change as parser, dispatch, access, redaction, and help tests are added.
+Exact future names may change as dispatch, access, orchestration, redaction, help, integration, and additional parser-regression tests are added.
 
 ## Required testing posture
 
@@ -79,7 +78,7 @@ Hardware validation
 Unverified items
 ```
 
-Do not claim hardware validation unless hardware was actually used and evidence is provided. Typed parser, dispatch, generated-help golden output, adapter compile, and hardware tests remain deferred.
+Do not claim hardware validation unless hardware was actually used and evidence is provided. Dispatch, generated-help golden output, adapter compile, and hardware tests remain deferred.
 
 ## Golden tests
 

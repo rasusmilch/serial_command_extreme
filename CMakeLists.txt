@@ -12,10 +12,13 @@ project(
 
 option(SCE_BUILD_TESTS "Build host tests when test/CMakeLists.txt exists" ON)
 option(SCE_BUILD_EXAMPLES "Build host examples when examples/CMakeLists.txt exists" ON)
+option(SCE_ENABLE_FLOAT "Enable compact float argument parsing" ON)
 
 add_library(
   serial_command_extreme
   STATIC
+    src/bsc_args.c
+    src/internal/bsc_float_parse.c
     src/bsc_console.c
     src/bsc_output.c
     src/bsc_status.c
@@ -34,6 +37,12 @@ target_include_directories(
 )
 
 target_compile_features(serial_command_extreme PUBLIC c_std_99)
+
+if(SCE_ENABLE_FLOAT)
+  target_compile_definitions(serial_command_extreme PUBLIC BSC_ENABLE_FLOAT=1)
+else()
+  target_compile_definitions(serial_command_extreme PUBLIC BSC_ENABLE_FLOAT=0)
+endif()
 
 if(SCE_BUILD_TESTS)
   enable_testing()
