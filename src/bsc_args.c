@@ -6,15 +6,15 @@
 #include "internal/bsc_float_parse.h"
 #endif
 
-/** Return whether a byte is an ASCII decimal digit. */
+/** @brief Return whether a byte is an ASCII decimal digit. */
 static int bsc_args_is_digit(char value) { return value >= '0' && value <= '9'; }
 
-/** Return one ASCII-folded byte without consulting locale state. */
+/** @brief Return one ASCII-folded byte without consulting locale state. */
 static char bsc_args_lower(char value) {
   return value >= 'A' && value <= 'Z' ? (char)(value + ('a' - 'A')) : value;
 }
 
-/** Compare a token view to a C string with ASCII case folding. */
+/** @brief Compare a borrowed token view to a null-terminated string with ASCII case folding. */
 static int bsc_args_view_equals_ignore_case(bsc_string_view_t view, const char *text) {
   size_t index;
   if (text == NULL || (view.data == NULL && view.length > 0u)) {
@@ -28,7 +28,7 @@ static int bsc_args_view_equals_ignore_case(bsc_string_view_t view, const char *
   return text[view.length] == '\0';
 }
 
-/** Check whether an explicit-length token contains a NUL byte. */
+/** @brief Check whether an explicit-length token contains a NUL byte and report its offset. */
 static int bsc_args_has_nul(bsc_string_view_t view, size_t *offset) {
   size_t index;
   if (view.data == NULL && view.length > 0u) {
@@ -69,7 +69,7 @@ void bsc_arg_parse_error_clear(bsc_arg_parse_error_t *error) {
   error->token_offset = 0u;
 }
 
-/** Populate parse diagnostics with bounded scalar metadata only. */
+/** @brief Clear any partial result, populate scalar diagnostics, and return the selected status. */
 static bsc_status_t bsc_args_fail(bsc_parsed_args_t *out_args,
                                   bsc_arg_parse_error_t *error,
                                   bsc_arg_parse_error_reason_t reason,
@@ -85,14 +85,14 @@ static bsc_status_t bsc_args_fail(bsc_parsed_args_t *out_args,
   return status;
 }
 
-/** Return whether an argument type belongs to the descriptor enum. */
+/** @brief Return whether an argument type belongs to the active runtime descriptor set. */
 static int bsc_args_type_valid(bsc_arg_type_t type) {
   return type == BSC_ARG_INT || type == BSC_ARG_UINT || type == BSC_ARG_FLOAT ||
          type == BSC_ARG_BOOL || type == BSC_ARG_ENUM || type == BSC_ARG_STRING ||
          type == BSC_ARG_SECRET;
 }
 
-/** Validate descriptor fields the parser must read safely. */
+/** @brief Defensively validate descriptor fields that typed parsing must read safely. */
 static bsc_status_t bsc_args_validate_descriptor(const bsc_command_t *command,
                                                  bsc_arg_parse_error_t *error) {
   size_t index;
@@ -129,8 +129,8 @@ static bsc_status_t bsc_args_validate_descriptor(const bsc_command_t *command,
     case BSC_ARG_FLOAT:
 #if BSC_ENABLE_FLOAT
       if (arg->min_float != arg->min_float || arg->max_float != arg->max_float ||
-          arg->min_float > 3.4028234663852886e38f || arg->min_float < -3.4028234663852886e38f ||
-          arg->max_float > 3.4028234663852886e38f || arg->max_float < -3.4028234663852886e38f ||
+          arg->min_float < -(float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE ||
+          arg->max_float > (float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE ||
           arg->min_float > arg->max_float) {
         return bsc_args_fail(NULL, error, BSC_ARG_PARSE_ERROR_INVALID_DESCRIPTOR, index, 0u,
                              BSC_STATUS_INVALID_DESCRIPTOR);
@@ -164,7 +164,7 @@ static bsc_status_t bsc_args_validate_descriptor(const bsc_command_t *command,
   return BSC_STATUS_OK;
 }
 
-/** Parse int32 with checked unsigned magnitude accumulation. */
+/** @brief Parse a signed decimal int32 token with checked unsigned magnitude accumulation. */
 static bsc_status_t bsc_args_parse_int(bsc_string_view_t token,
                                        const bsc_arg_def_t *arg,
                                        bsc_arg_value_t *value,
@@ -229,7 +229,7 @@ static bsc_status_t bsc_args_parse_int(bsc_string_view_t token,
   return BSC_STATUS_OK;
 }
 
-/** Parse uint32 with checked decimal multiply/add. */
+/** @brief Parse an unsigned decimal uint32 token with checked multiply/add. */
 static bsc_status_t bsc_args_parse_uint(bsc_string_view_t token,
                                         const bsc_arg_def_t *arg,
                                         bsc_arg_value_t *value,
@@ -272,7 +272,7 @@ static bsc_status_t bsc_args_parse_uint(bsc_string_view_t token,
   return BSC_STATUS_OK;
 }
 
-/** Parse approved boolean spellings with ASCII case folding. */
+/** @brief Parse approved boolean spellings with ASCII case folding. */
 static bsc_status_t bsc_args_parse_bool(bsc_string_view_t token,
                                         bsc_arg_value_t *value,
                                         bsc_arg_parse_error_t *error,
@@ -298,7 +298,7 @@ static bsc_status_t bsc_args_parse_bool(bsc_string_view_t token,
                        BSC_STATUS_INVALID_ARGUMENT_TYPE);
 }
 
-/** Parse an enum by ASCII case-insensitive full-token choice matching. */
+/** @brief Parse an enum by ASCII case-insensitive full-token choice matching. */
 static bsc_status_t bsc_args_parse_enum(bsc_string_view_t token,
                                         const bsc_arg_def_t *arg,
                                         bsc_arg_value_t *value,
@@ -322,7 +322,7 @@ static bsc_status_t bsc_args_parse_enum(bsc_string_view_t token,
                        BSC_STATUS_INVALID_ENUM_VALUE);
 }
 
-/** Validate and borrow a string or secret token. */
+/** @brief Validate string/secret byte length and borrow the original token view. */
 static bsc_status_t bsc_args_parse_text(bsc_string_view_t token,
                                         const bsc_arg_def_t *arg,
                                         bsc_arg_value_t *value,
@@ -348,7 +348,7 @@ static bsc_status_t bsc_args_parse_text(bsc_string_view_t token,
 }
 
 #if BSC_ENABLE_FLOAT
-/** Parse compact float and enforce descriptor bounds. */
+/** @brief Parse the compact decimal float grammar and enforce descriptor bounds. */
 static bsc_status_t bsc_args_parse_float(bsc_string_view_t token,
                                          const bsc_arg_def_t *arg,
                                          bsc_arg_value_t *value,
@@ -366,8 +366,12 @@ static bsc_status_t bsc_args_parse_float(bsc_string_view_t token,
     return bsc_args_fail(out_args, error, BSC_ARG_PARSE_ERROR_TOO_MANY_FLOAT_FRACTION_DIGITS,
                          arg_index, offset, BSC_STATUS_INVALID_ARGUMENT_TYPE);
   }
-  if (parse_status == BSC_FLOAT_PARSE_OVERFLOW) {
+  if (parse_status == BSC_FLOAT_PARSE_ABOVE_SUPPORTED_RANGE) {
     return bsc_args_fail(out_args, error, BSC_ARG_PARSE_ERROR_ABOVE_MAXIMUM, arg_index, offset,
+                         BSC_STATUS_ARGUMENT_OUT_OF_RANGE);
+  }
+  if (parse_status == BSC_FLOAT_PARSE_BELOW_SUPPORTED_RANGE) {
+    return bsc_args_fail(out_args, error, BSC_ARG_PARSE_ERROR_BELOW_MINIMUM, arg_index, offset,
                          BSC_STATUS_ARGUMENT_OUT_OF_RANGE);
   }
   if (parse_status != BSC_FLOAT_PARSE_OK) {
@@ -462,12 +466,12 @@ bsc_status_t bsc_parse_command_args(const bsc_command_t *command,
   return BSC_STATUS_OK;
 }
 
-/** Write one string and propagate truncation. */
+/** @brief Write one constant diagnostic fragment and propagate output truncation. */
 static bsc_status_t bsc_args_write(bsc_output_t *output, const char *text) {
   return bsc_out_write(output, text);
 }
 
-/** Write an argument-name prefix when descriptor metadata is available. */
+/** @brief Write an argument-name diagnostic prefix when descriptor metadata is safe. */
 static bsc_status_t bsc_args_write_arg_prefix(const bsc_command_t *command,
                                               const bsc_arg_parse_error_t *error,
                                               bsc_output_t *output) {
@@ -487,7 +491,7 @@ static bsc_status_t bsc_args_write_arg_prefix(const bsc_command_t *command,
   return bsc_args_write(output, "': ");
 }
 
-/** Write a type-specific invalid-value message. */
+/** @brief Write the type-specific invalid-value diagnostic body. */
 static bsc_status_t bsc_args_write_invalid_value(const bsc_command_t *command,
                                                  const bsc_arg_parse_error_t *error,
                                                  bsc_output_t *output) {
@@ -513,7 +517,30 @@ static bsc_status_t bsc_args_write_invalid_value(const bsc_command_t *command,
   }
 }
 
-/** Write all enum choice names in descriptor order. */
+/** @brief Return the configured compact-float fractional digit limit as a one-byte string.
+ *
+ * BSC_MAX_FLOAT_FRACTION_DIGITS is compile-time validated to 1..6. Returning
+ * string literals avoids printf-style formatting, heap allocation, and mutable
+ * scratch while keeping operator diagnostics consistent with configuration.
+ */
+static const char *bsc_args_fraction_digit_limit_text(void) {
+  switch ((size_t)BSC_MAX_FLOAT_FRACTION_DIGITS) {
+  case 1u:
+    return "1";
+  case 2u:
+    return "2";
+  case 3u:
+    return "3";
+  case 4u:
+    return "4";
+  case 5u:
+    return "5";
+  default:
+    return "6";
+  }
+}
+
+/** @brief Write all enum choice names in descriptor order without copying token text. */
 static bsc_status_t bsc_args_write_enum_choices(const bsc_command_t *command,
                                                 const bsc_arg_parse_error_t *error,
                                                 bsc_output_t *output) {
@@ -579,7 +606,15 @@ bsc_status_t bsc_arg_parse_error_write(const bsc_command_t *command,
     if (status != BSC_STATUS_OK) {
       return status;
     }
-    return bsc_args_write(output, "expected at most 6 digits after the decimal point");
+    status = bsc_args_write(output, "expected at most ");
+    if (status != BSC_STATUS_OK) {
+      return status;
+    }
+    status = bsc_args_write(output, bsc_args_fraction_digit_limit_text());
+    if (status != BSC_STATUS_OK) {
+      return status;
+    }
+    return bsc_args_write(output, " digits after the decimal point");
   case BSC_ARG_PARSE_ERROR_INVALID_ENUM_CHOICE:
     return bsc_args_write_enum_choices(command, error, output);
   case BSC_ARG_PARSE_ERROR_BELOW_MINIMUM:

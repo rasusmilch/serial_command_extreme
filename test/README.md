@@ -6,7 +6,7 @@ An initial self-contained C host test harness exists and runs through CTest. Whe
 
 ## Purpose
 
-The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; typed positional argument parsing and operator diagnostics; compact float enabled/disabled behavior; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
+The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; typed positional argument parsing and exact operator diagnostics; compact float enabled/disabled behavior; default and non-default fractional precision validation; compact magnitude endpoint tests; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
 
 - Tokenization.
 - Quoted strings and escapes.

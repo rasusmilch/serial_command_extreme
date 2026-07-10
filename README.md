@@ -100,6 +100,23 @@ License: not finalized in this README
 
 Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, and parse typed positional arguments, but it still lacks access enforcement, dispatch, generated help/manpages, console orchestration, examples, and adapters.
 
+
+## Compact float arguments
+
+When `BSC_ENABLE_FLOAT` is enabled, runtime float arguments use a compact
+operator grammar rather than the C library's general floating-point grammar.
+Accepted input is an optional leading minus, one or more ASCII digits, and an
+optional decimal point followed by one through `BSC_MAX_FLOAT_FRACTION_DIGITS`
+ASCII digits. Scientific notation, leading plus signs, NaN, infinity,
+hexadecimal floats, whitespace, and embedded NUL bytes are not operator inputs.
+
+Compact decimal input is limited to the inclusive domain
+`-1000000000.0` through `1000000000.0`. Registry validation rejects float
+descriptor bounds outside that domain so operator range diagnostics remain
+truthful. Exact decimal accounting, larger domains, or values that need
+scientific notation should be modeled as scaled integer arguments or another
+application-level representation.
+
 ## Documentation anchors
 
 The current source of truth is the documentation in `docs/`:

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -374,8 +375,35 @@ static int test_registry_argument_ranges(const char *test_name) {
 
   arg = make_arg("value", BSC_ARG_FLOAT);
 #if BSC_ENABLE_FLOAT
+  arg.min_float = -(float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE;
+  arg.max_float = (float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE;
+  REG_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_registry_validate(&command, 1u, &error));
   arg.min_float = 2.0f;
   arg.max_float = 1.0f;
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.min_float = -((float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE + 1024.0f);
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.max_float = ((float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE + 1024.0f);
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.min_float = NAN;
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.max_float = NAN;
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.min_float = INFINITY;
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.max_float = INFINITY;
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.min_float = -INFINITY;
+  REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
+  arg = make_arg("value", BSC_ARG_FLOAT);
+  arg.max_float = -INFINITY;
   REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, &error) == 0);
 #else
   REG_TEST_ASSERT_TRUE(expect_invalid(test_name, &command, 1u, BSC_REGISTRY_ERROR_FLOAT_DISABLED, &error) == 0);

@@ -33,6 +33,18 @@ src/bsc_matcher.c
 
 Planned future modules still include command dispatch/access integration, help/manpage rendering, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
 
+
+## Compact float parser boundary
+
+The internal compact float module accepts only the bounded operator grammar used
+by `bsc_args`: optional minus, ASCII digits before an optional decimal point,
+and one through `BSC_MAX_FLOAT_FRACTION_DIGITS` fractional digits when the point
+is present. Scientific notation, NaN, infinity, hexadecimal floats, locale
+syntax, and libc float conversion are intentionally outside the core parser. The
+shared `BSC_COMPACT_FLOAT_MAX_MAGNITUDE` contract limits accepted compact input
+to `-1000000000.0` through `1000000000.0`; registry validation rejects float
+descriptors whose bounds fall outside that domain.
+
 ## Core constraints
 
 The core must remain:

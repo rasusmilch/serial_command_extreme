@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +18,8 @@
   } while (0)
 #define ARG_TEST_ASSERT_STATUS(expected, actual) ARG_TEST_ASSERT_TRUE((expected) == (actual))
 #define ARG_TEST_ASSERT_STR(expected, actual) ARG_TEST_ASSERT_TRUE(strcmp((expected), (actual)) == 0)
+#define BSC_STRINGIFY_VALUE(value) #value
+#define BSC_STRINGIFY(value) BSC_STRINGIFY_VALUE(value)
 #define RUN_ARG_TEST(fn)                                                                           \
   do {                                                                                             \
     int result;                                                                                    \
@@ -230,7 +233,8 @@ static int test_signed_integer_descriptor_ranges_and_slices(const char *test_nam
   arg.max_int = 200;
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK,
                          parse_one(&arg, bsc_string_view_from_parts(text, 3u), &out, &error));
-  ARG_TEST_ASSERT_TRUE(out.values[0].data.int_value == 123 || out.count == 0u);
+  ARG_TEST_ASSERT_TRUE(out.count == 1u);
+  ARG_TEST_ASSERT_TRUE(out.values[0].data.int_value == 123);
   return 0;
 }
 
@@ -344,7 +348,18 @@ static int test_compact_float_enabled_successes(const char *test_name) {
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("0.25"), &out, &error));
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("-0.001"), &out, &error));
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("10.0"), &out, &error));
+#if BSC_MAX_FLOAT_FRACTION_DIGITS >= 6
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1.123456"), &out, &error));
+#endif
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1000000000"), &out, &error));
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1000000000.0"), &out, &error));
+#if BSC_MAX_FLOAT_FRACTION_DIGITS >= 6
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1000000000.000000"), &out, &error));
+#endif
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("-1000000000"), &out, &error));
+#if BSC_MAX_FLOAT_FRACTION_DIGITS >= 6
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("-1000000000.000000"), &out, &error));
+#endif
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("-0.0"), &out, &error));
   ARG_TEST_ASSERT_TRUE(out.values[0].data.float_value == 0.0f);
   return 0;
@@ -369,6 +384,21 @@ static int test_compact_float_enabled_rejections(const char *test_name) {
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE, parse_one(&arg, view("1.1234567"), &out, &error));
   ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_TOO_MANY_FLOAT_FRACTION_DIGITS);
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_ARGUMENT_OUT_OF_RANGE, parse_one(&arg, view("1000000001"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_ABOVE_MAXIMUM);
+  ARG_TEST_ASSERT_TRUE(error.token_offset == 9u);
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_ARGUMENT_OUT_OF_RANGE, parse_one(&arg, view("-1000000001"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_BELOW_MINIMUM);
+  ARG_TEST_ASSERT_TRUE(error.token_offset == 10u);
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_ARGUMENT_OUT_OF_RANGE, parse_one(&arg, view("1000000000.1"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_ABOVE_MAXIMUM);
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_ARGUMENT_OUT_OF_RANGE, parse_one(&arg, view("-1000000000.1"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_BELOW_MINIMUM);
+#if BSC_MAX_FLOAT_FRACTION_DIGITS >= 6
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_ARGUMENT_OUT_OF_RANGE, parse_one(&arg, view("1000000000.000001"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_ABOVE_MAXIMUM);
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_ARGUMENT_OUT_OF_RANGE, parse_one(&arg, view("-1000000000.000001"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_BELOW_MINIMUM);
+#endif
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE,
                          parse_one(&arg, bsc_string_view_from_parts(text, 5u), &out, &error));
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE,
@@ -380,6 +410,10 @@ static int test_compact_float_descriptor_ranges(const char *test_name) {
   bsc_arg_def_t arg = make_arg("ratio", BSC_ARG_FLOAT);
   bsc_parsed_args_t out;
   bsc_arg_parse_error_t error;
+  arg.min_float = -(float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE;
+  arg.max_float = (float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE;
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("-1000000000"), &out, &error));
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1000000000"), &out, &error));
   arg.min_float = -1.0f;
   arg.max_float = 1.0f;
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("-1.0"), &out, &error));
@@ -390,6 +424,28 @@ static int test_compact_float_descriptor_ranges(const char *test_name) {
   ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_ABOVE_MAXIMUM);
   return 0;
 }
+
+static int test_compact_float_configured_fraction_digits(const char *test_name) {
+  bsc_arg_def_t arg = make_arg("ratio", BSC_ARG_FLOAT);
+  bsc_command_t command = make_command(&arg, 1u);
+  bsc_parsed_args_t out;
+  bsc_arg_parse_error_t error;
+  char message[128];
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1.123"), &out, &error));
+#if BSC_MAX_FLOAT_FRACTION_DIGITS >= 6
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, parse_one(&arg, view("1.123456"), &out, &error));
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE, parse_one(&arg, view("1.1234567"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(write_error(test_name, &command, &error, message, sizeof(message)) == 0);
+  ARG_TEST_ASSERT_STR("argument 'ratio': expected at most 6 digits after the decimal point", message);
+#else
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE, parse_one(&arg, view("1.1234"), &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_TOO_MANY_FLOAT_FRACTION_DIGITS);
+  ARG_TEST_ASSERT_TRUE(write_error(test_name, &command, &error, message, sizeof(message)) == 0);
+  ARG_TEST_ASSERT_STR("argument 'ratio': expected at most 3 digits after the decimal point", message);
+  ARG_TEST_ASSERT_TRUE(strstr(message, "6 digits") == NULL);
+#endif
+  return 0;
+}
 #endif
 
 static int test_float_disabled_or_registry_validation(const char *test_name) {
@@ -398,11 +454,11 @@ static int test_float_disabled_or_registry_validation(const char *test_name) {
   bsc_registry_validation_error_t reg_error;
 #if BSC_ENABLE_FLOAT
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_registry_validate(&command, 1u, &reg_error));
-  arg.min_float = 0.0f / 0.0f;
+  arg.min_float = NAN;
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_registry_validate(&command, 1u, &reg_error));
   ARG_TEST_ASSERT_TRUE(reg_error.reason == BSC_REGISTRY_ERROR_INVALID_ARG_RANGE);
   arg.min_float = -1.0f;
-  arg.max_float = 1.0f / 0.0f;
+  arg.max_float = INFINITY;
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_registry_validate(&command, 1u, &reg_error));
 #else
   bsc_parsed_args_t out;
@@ -419,21 +475,98 @@ static int test_float_disabled_or_registry_validation(const char *test_name) {
   return 0;
 }
 
+static int expect_message_for_parse(const char *test_name,
+                                    const bsc_arg_def_t *arg,
+                                    bsc_string_view_t token,
+                                    bsc_status_t expected_status,
+                                    const char *expected_message) {
+  bsc_command_t command = make_command(arg, 1u);
+  bsc_parsed_args_t out;
+  bsc_arg_parse_error_t error;
+  char message[256];
+  ARG_TEST_ASSERT_STATUS(expected_status, bsc_parse_command_args(&command, &token, 1u, &out, &error));
+  ARG_TEST_ASSERT_TRUE(error.reason != BSC_ARG_PARSE_ERROR_NONE);
+  ARG_TEST_ASSERT_TRUE(write_error(test_name, &command, &error, message, sizeof(message)) == 0);
+  ARG_TEST_ASSERT_STR(expected_message, message);
+  ARG_TEST_ASSERT_TRUE(strstr(message, "xSECRETx") == NULL);
+  ARG_TEST_ASSERT_TRUE(strstr(message, "1e-3") == NULL);
+  return 0;
+}
+
 static int test_operator_diagnostics(const char *test_name) {
   bsc_arg_def_t arg = make_arg("value", BSC_ARG_INT);
+  bsc_arg_def_t uint_arg = make_arg("count", BSC_ARG_UINT);
+  bsc_arg_def_t float_arg = make_arg("ratio", BSC_ARG_FLOAT);
+  bsc_arg_def_t bool_arg = make_arg("enabled", BSC_ARG_BOOL);
+  bsc_arg_def_t enum_arg = make_arg("mode", BSC_ARG_ENUM);
+  bsc_arg_def_t text_arg = make_arg("name", BSC_ARG_STRING);
   bsc_command_t command = make_command(&arg, 1u);
   bsc_parsed_args_t out;
   bsc_arg_parse_error_t error;
-  char message[192];
-  bsc_string_view_t token = view("xSECRETx");
+  char message[256];
+  bsc_string_view_t two[2] = {view("1"), view("2")};
+  char nul_text[] = {'b', 'a', 'd', '\0', 'x'};
+
   ARG_TEST_ASSERT_STATUS(BSC_STATUS_MISSING_ARGUMENT, bsc_parse_command_args(&command, NULL, 0u, &out, &error));
   ARG_TEST_ASSERT_TRUE(write_error(test_name, &command, &error, message, sizeof(message)) == 0);
   ARG_TEST_ASSERT_STR("missing required argument 'value'", message);
-  ARG_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE, bsc_parse_command_args(&command, &token, 1u, &out, &error));
+  ARG_TEST_ASSERT_STATUS(BSC_STATUS_EXTRA_ARGUMENT, bsc_parse_command_args(&command, two, 2u, &out, &error));
   ARG_TEST_ASSERT_TRUE(write_error(test_name, &command, &error, message, sizeof(message)) == 0);
-  ARG_TEST_ASSERT_STR("argument 'value': expected a signed decimal integer", message);
-  ARG_TEST_ASSERT_TRUE(strstr(message, "SECRET") == NULL);
+  ARG_TEST_ASSERT_STR("unexpected extra argument", message);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &arg, view("xSECRETx"),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'value': expected a signed decimal integer") == 0);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &uint_arg, view("-1"),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'count': expected an unsigned decimal integer") == 0);
+#if BSC_ENABLE_FLOAT
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &float_arg, view("1e-3"),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'ratio': expected a decimal number such as -12.5") == 0);
+#if BSC_MAX_FLOAT_FRACTION_DIGITS >= 6
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &float_arg, view("1.1234567"),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'ratio': expected at most 6 digits after the decimal point") == 0);
+#else
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &float_arg, view("1.1234"),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'ratio': expected at most 3 digits after the decimal point") == 0);
+#endif
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &float_arg, view("1000000001"),
+                                                BSC_STATUS_ARGUMENT_OUT_OF_RANGE,
+                                                "argument 'ratio': value is above the configured maximum") == 0);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &float_arg, view("-1000000001"),
+                                                BSC_STATUS_ARGUMENT_OUT_OF_RANGE,
+                                                "argument 'ratio': value is below the configured minimum") == 0);
+#endif
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &bool_arg, view("yes"),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'enabled': expected on, off, true, false, 1, or 0") == 0);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &enum_arg, view("other"),
+                                                BSC_STATUS_INVALID_ENUM_VALUE,
+                                                "argument 'mode': expected one of: low, HIGH, auto") == 0);
+  arg.min_int = 10;
+  arg.max_int = 20;
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &arg, view("9"),
+                                                BSC_STATUS_ARGUMENT_OUT_OF_RANGE,
+                                                "argument 'value': value is below the configured minimum") == 0);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &arg, view("21"),
+                                                BSC_STATUS_ARGUMENT_OUT_OF_RANGE,
+                                                "argument 'value': value is above the configured maximum") == 0);
+  text_arg.min_length = 3u;
+  text_arg.max_length = 4u;
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &text_arg, view("ab"),
+                                                BSC_STATUS_ARGUMENT_TOO_SHORT,
+                                                "argument 'name': text is shorter than the configured minimum length") == 0);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &text_arg, view("abcde"),
+                                                BSC_STATUS_ARGUMENT_TOO_LONG,
+                                                "argument 'name': text is longer than the configured maximum length") == 0);
+  ARG_TEST_ASSERT_TRUE(expect_message_for_parse(test_name, &text_arg,
+                                                bsc_string_view_from_parts(nul_text, sizeof(nul_text)),
+                                                BSC_STATUS_INVALID_ARGUMENT_TYPE,
+                                                "argument 'name': embedded NUL byte is not allowed") == 0);
   error.reason = BSC_ARG_PARSE_ERROR_INVALID_API;
+  error.arg_index = 0u;
   ARG_TEST_ASSERT_TRUE(write_error(test_name, &command, &error, message, sizeof(message)) == 0);
   ARG_TEST_ASSERT_STR("command argument parser was called incorrectly", message);
   error.reason = BSC_ARG_PARSE_ERROR_INVALID_DESCRIPTOR;
@@ -477,6 +610,7 @@ int bsc_run_args_tests(void) {
   RUN_ARG_TEST(test_compact_float_enabled_successes);
   RUN_ARG_TEST(test_compact_float_enabled_rejections);
   RUN_ARG_TEST(test_compact_float_descriptor_ranges);
+  RUN_ARG_TEST(test_compact_float_configured_fraction_digits);
 #endif
   RUN_ARG_TEST(test_float_disabled_or_registry_validation);
   RUN_ARG_TEST(test_operator_diagnostics);

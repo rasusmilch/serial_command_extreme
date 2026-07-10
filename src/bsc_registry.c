@@ -2,8 +2,6 @@
 
 #include "bsc_config.h"
 
-#include <float.h>
-
 /**
  * @brief Fold an ASCII uppercase byte to lowercase for descriptor comparisons.
  *
@@ -274,8 +272,8 @@ static bsc_status_t bsc_registry_validate_arg(const bsc_arg_def_t *arg,
   case BSC_ARG_FLOAT:
 #if BSC_ENABLE_FLOAT
     if (arg->min_float != arg->min_float || arg->max_float != arg->max_float ||
-        arg->min_float > FLT_MAX || arg->min_float < -FLT_MAX ||
-        arg->max_float > FLT_MAX || arg->max_float < -FLT_MAX ||
+        arg->min_float < -(float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE ||
+        arg->max_float > (float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE ||
         arg->min_float > arg->max_float) {
       return bsc_registry_fail(error, BSC_REGISTRY_ERROR_INVALID_ARG_RANGE, command_index, 0u,
                                arg_index, 0u, 0u);

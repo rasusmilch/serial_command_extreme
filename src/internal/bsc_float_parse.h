@@ -29,8 +29,10 @@ typedef enum bsc_float_parse_error {
   BSC_FLOAT_PARSE_EMBEDDED_NUL,
   /** More than BSC_MAX_FLOAT_FRACTION_DIGITS appeared after the decimal point. */
   BSC_FLOAT_PARSE_TOO_MANY_FRACTION_DIGITS,
-  /** Checked decimal accumulation exceeded the compact parser's bounded range. */
-  BSC_FLOAT_PARSE_OVERFLOW
+  /** Positive compact decimal text exceeded BSC_COMPACT_FLOAT_MAX_MAGNITUDE. */
+  BSC_FLOAT_PARSE_ABOVE_SUPPORTED_RANGE,
+  /** Negative compact decimal text was below -BSC_COMPACT_FLOAT_MAX_MAGNITUDE. */
+  BSC_FLOAT_PARSE_BELOW_SUPPORTED_RANGE
 } bsc_float_parse_error_t;
 
 #if BSC_ENABLE_FLOAT
@@ -45,7 +47,8 @@ typedef enum bsc_float_parse_error {
  *
  * Accepted grammar is an optional '-' followed by one or more ASCII digits and
  * an optional fractional part containing '.' plus one to
- * BSC_MAX_FLOAT_FRACTION_DIGITS ASCII digits. No exponent, leading plus,
+ * BSC_MAX_FLOAT_FRACTION_DIGITS ASCII digits within the inclusive domain
+ * -1000000000.0 through 1000000000.0. No exponent, leading plus,
  * leading decimal point, trailing decimal point, NaN, infinity, hexadecimal
  * syntax, whitespace, or embedded NUL is accepted. Textual negative zero is
  * normalized to positive 0.0f.

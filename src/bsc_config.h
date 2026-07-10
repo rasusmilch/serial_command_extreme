@@ -55,6 +55,9 @@
 #error "BSC_ENABLE_FLOAT must be 0 or 1"
 #endif
 
+/** Inclusive compact-float input magnitude limit shared by registry and parser. */
+#define BSC_COMPACT_FLOAT_MAX_MAGNITUDE 1000000000u
+
 /** Maximum accepted digits after the decimal point in compact float arguments. */
 #ifndef BSC_MAX_FLOAT_FRACTION_DIGITS
 #define BSC_MAX_FLOAT_FRACTION_DIGITS 6u

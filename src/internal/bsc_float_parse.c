@@ -4,9 +4,6 @@
 
 #include <stdint.h>
 
-/** Maximum whole-part accumulator accepted by the compact parser. */
-#define BSC_FLOAT_WHOLE_LIMIT 1000000000u
-
 /**
  * @brief Return whether a byte is an ASCII decimal digit.
  */
@@ -93,8 +90,10 @@ bsc_float_parse_error_t bsc_float_parse_compact(bsc_string_view_t token,
       frac = (uint32_t)(frac * 10u + digit);
       frac_digits += 1u;
     } else {
-      if (whole > (uint32_t)((BSC_FLOAT_WHOLE_LIMIT - digit) / 10u)) {
-        return bsc_float_fail(BSC_FLOAT_PARSE_OVERFLOW, index, error_offset);
+      if (whole > (uint32_t)(((uint32_t)BSC_COMPACT_FLOAT_MAX_MAGNITUDE - digit) / 10u)) {
+        return bsc_float_fail(negative ? BSC_FLOAT_PARSE_BELOW_SUPPORTED_RANGE
+                                       : BSC_FLOAT_PARSE_ABOVE_SUPPORTED_RANGE,
+                              index, error_offset);
       }
       whole = (uint32_t)(whole * 10u + digit);
       whole_digits += 1u;
@@ -104,6 +103,12 @@ bsc_float_parse_error_t bsc_float_parse_compact(bsc_string_view_t token,
   if (whole_digits == 0u || (saw_dot && frac_digits == 0u)) {
     return bsc_float_fail(BSC_FLOAT_PARSE_INVALID_SYNTAX, token.length == 0u ? 0u : token.length - 1u,
                           error_offset);
+  }
+  if (whole == (uint32_t)BSC_COMPACT_FLOAT_MAX_MAGNITUDE && frac != 0u) {
+    size_t fail_offset = token.length == 0u ? 0u : token.length - 1u;
+    return bsc_float_fail(negative ? BSC_FLOAT_PARSE_BELOW_SUPPORTED_RANGE
+                                   : BSC_FLOAT_PARSE_ABOVE_SUPPORTED_RANGE,
+                          fail_offset, error_offset);
   }
 
   value = (float)whole;

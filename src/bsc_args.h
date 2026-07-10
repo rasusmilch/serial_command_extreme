@@ -24,6 +24,11 @@ extern "C" {
  * It performs no matching, dispatch, access checks, console orchestration, help
  * rendering, or automatic output. Parsed string and secret values are borrowed
  * views into the active mutable line buffer and must not escape that lifetime.
+ * Normal use expects descriptors that passed bsc_registry_validate(); defensive
+ * parser checks cover ordinary malformed metadata but cannot make arbitrary
+ * invalid pointers or unterminated descriptor strings safe. Compact float input
+ * deliberately excludes scientific notation and is limited to the inclusive
+ * domain -1000000000.0 through 1000000000.0.
  */
 
 /** Parsed value for one positional command argument. */
@@ -97,24 +102,45 @@ typedef struct bsc_arg_parse_error {
   size_t token_offset;
 } bsc_arg_parse_error_t;
 
-/** Clear a caller-owned parsed result and remove all borrowed views. */
+/**
+ * @brief Clear a caller-owned parsed result and remove all borrowed views.
+ *
+ * @param args Optional caller-owned parsed-argument object. NULL is accepted.
+ * @post Non-NULL results have count zero and every fixed value slot reset to
+ *   BSC_ARG_NONE with an empty borrowed text view, so no previous secret/string
+ *   pointer remains visible.
+ * @note The function is synchronous, uses no heap or static scratch, retains no
+ *   pointers, performs no I/O, and is reentrant for independent caller storage.
+ */
 void bsc_parsed_args_clear(bsc_parsed_args_t *args);
 
-/** Clear a caller-owned structured parse diagnostic. */
+/**
+ * @brief Clear a caller-owned structured parse diagnostic.
+ *
+ * @param error Optional caller-owned diagnostic object. NULL is accepted.
+ * @post Non-NULL diagnostics report BSC_ARG_PARSE_ERROR_NONE with zero indexes.
+ * @note The function performs no allocation, I/O, blocking work, or pointer
+ *   retention and is reentrant for independent caller storage.
+ */
 void bsc_arg_parse_error_clear(bsc_arg_parse_error_t *error);
 
 /**
  * @brief Parse positional argument tokens for a matched executable command.
  *
- * @param command Borrowed executable descriptor. It must remain valid for the
- *   call. Descriptor metadata is read but never mutated.
+ * @param command Required borrowed executable descriptor. It and nested path,
+ *   argument, enum, and name strings must remain valid for the call. Descriptor
+ *   metadata is read but never mutated or retained.
  * @param arg_tokens Borrowed token slice for positional arguments. May be NULL
- *   only when arg_token_count is zero. Token views are not assumed terminated.
+ *   only when arg_token_count is zero. Token views are explicit-length, are not
+ *   assumed terminated, and may point into mutable command-line storage owned by
+ *   the caller or future workspace.
  * @param arg_token_count Number of entries in arg_tokens.
- * @param out_args Required caller-owned result. It is cleared at entry whenever
- *   safely possible and contains no partial result after failure.
+ * @param out_args Required caller-owned fixed-capacity result with BSC_MAX_ARGS
+ *   slots. It is cleared at entry whenever safely possible and contains no
+ *   partial result after failure.
  * @param error Required caller-owned diagnostic. It is cleared at entry and
- *   receives a non-NONE reason for every rejection.
+ *   receives a non-NONE reason for every rejection. Diagnostics store only
+ *   indexes/offsets and never copy raw token text.
  * @retval BSC_STATUS_OK All arguments parsed and out_args->count is valid.
  * @retval BSC_STATUS_MISSING_ARGUMENT Required input was absent.
  * @retval BSC_STATUS_EXTRA_ARGUMENT Unexpected input remained.
@@ -126,6 +152,11 @@ void bsc_arg_parse_error_clear(bsc_arg_parse_error_t *error);
  * @retval BSC_STATUS_INVALID_DESCRIPTOR Descriptor metadata was malformed or a
  *   float descriptor was used when BSC_ENABLE_FLOAT is disabled.
  * @retval BSC_STATUS_INTERNAL_ERROR Required parser API pointers were invalid.
+ * @note The parser is synchronous, performs no output, owns no storage, uses no
+ *   heap or hidden mutable static scratch, calls no handler/access callback, and
+ *   retains no pointers after return. Thread/task/ISR suitability depends on the
+ *   caller owning and serializing descriptor, token, result, and diagnostic
+ *   storage for the duration of the bounded call.
  */
 bsc_status_t bsc_parse_command_args(const bsc_command_t *command,
                                     const bsc_string_view_t *arg_tokens,
@@ -136,10 +167,20 @@ bsc_status_t bsc_parse_command_args(const bsc_command_t *command,
 /**
  * @brief Write a bounded operator-facing diagnostic for a parse failure.
  *
- * The writer emits no trailing newline, never writes raw input token text, and
- * never echoes string or secret values. It uses the existing output callback
- * helpers and propagates output truncation. Malformed command/error inputs are
- * handled without dereferencing invalid argument indexes.
+ * @param command Borrowed command descriptor used only to read argument and enum
+ *   names for validated diagnostic indexes. May be NULL or malformed; the writer
+ *   falls back to generic safe text rather than dereferencing invalid indexes.
+ * @param error Required borrowed diagnostic to render. NULL is treated as invalid
+ *   parser/API use. The diagnostic is not retained.
+ * @param output Required caller-owned output callback target. Its callback may
+ *   block according to caller policy.
+ * @retval BSC_STATUS_OK The message, if any, was accepted. NONE diagnostics
+ *   intentionally render no bytes.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The output callback accepted a short write.
+ * @retval BSC_STATUS_INTERNAL_ERROR The output target was invalid.
+ * @note The writer emits no trailing newline, never writes raw input token text,
+ *   never echoes string or secret values, allocates no memory, owns no output
+ *   storage, and retains no pointers after return.
  */
 bsc_status_t bsc_arg_parse_error_write(const bsc_command_t *command,
                                        const bsc_arg_parse_error_t *error,
