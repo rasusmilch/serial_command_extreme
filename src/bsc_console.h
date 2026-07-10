@@ -9,12 +9,13 @@ extern "C" {
 
 /**
  * @file bsc_console.h
- * @brief Minimal console context placeholder for the Phase 2A skeleton.
+ * @brief Minimal console context for the current Serial Command Extreme core.
  *
- * This header intentionally does not provide command execution. Tokenization,
- * matching, argument parsing, dispatch, and help rendering are deferred to later
- * phases. The current type only establishes a documented place for caller-owned
- * application context without implying parser behavior exists.
+ * The current console context stores only a borrowed application pointer.
+ * Bounded tokenization, registry validation, and command matching exist as
+ * separate core modules but are not yet orchestrated by this type. Line
+ * acquisition, registry attachment, typed argument parsing, access checks,
+ * dispatch, and help rendering remain future console integration work.
  */
 
 /**
@@ -22,10 +23,11 @@ extern "C" {
  *
  * The context borrows `app_context`; the core does not inspect, allocate, or
  * release it. No thread-safety or ISR-safety guarantee is made beyond ordinary
- * struct access in this skeleton.
+ * struct access. The type does not currently own line buffers, output sinks, or
+ * command registry references.
  */
 typedef struct bsc_console {
-  /** Opaque caller-owned application context for future callbacks. */
+  /** Opaque caller-owned application context for future console integration. */
   void *app_context;
 } bsc_console_t;
 

@@ -136,9 +136,9 @@ The design should selectively borrow:
 
 The implementation should be original and shaped around this project's bounded C-first core, not copied wholesale from any reference implementation.
 
-## Core shape
+## Target core shape
 
-The current foundation and implementation guide use a core shaped around:
+The approved design and implementation guide expect the completed core to evolve toward:
 
 ```text
 bsc_console_t
@@ -206,7 +206,7 @@ The current core source files include tokenizer, registry validation, matcher, d
 
 ## Example command descriptor intent
 
-A future command descriptor should be able to express behavior like this without duplicating parser and help logic:
+The current descriptor metadata is intended to support behavior like this once the remaining parser, access, dispatch, redaction, and help modules are implemented:
 
 ```text
 path:        settings wifi set password

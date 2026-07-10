@@ -9,10 +9,11 @@ extern "C" {
  * @file bsc_status.h
  * @brief Status codes shared by the bounded serial command core.
  *
- * Status values are stable public API. They describe parser, validation,
- * dispatch, output, application, and internal outcomes. Phase 2A only provides
- * the enum and name mapping; later phases will attach these codes to parser and
- * command execution behavior.
+ * Status values are stable public API. Current tokenizer, registry-validation,
+ * matcher, output, console-context, and foundational helper functions return the
+ * applicable values from this enum. Additional parser, argument-validation,
+ * access, dispatch, application, and integrated-console paths will use the
+ * remaining statuses as those modules are implemented.
  */
 
 /**
