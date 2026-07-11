@@ -20,6 +20,7 @@ add_library(
     src/bsc_args.c
     src/internal/bsc_float_parse.c
     src/bsc_console.c
+    src/bsc_dispatch.c
     src/bsc_output.c
     src/bsc_status.c
     src/bsc_matcher.c

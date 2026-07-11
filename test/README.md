@@ -6,7 +6,7 @@ An initial self-contained C host test harness exists and runs through CTest. Whe
 
 ## Purpose
 
-The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; typed positional argument parsing and exact operator diagnostics; compact float enabled/disabled behavior; all legal compact-float fractional precision settings from 1 through 6; compact magnitude endpoint tests; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
+The current host tests cover foundational status, string-view, and output helpers; static descriptor type initialization; bounded tokenizer behavior; registry descriptor validation; longest-path matcher behavior; typed positional argument parsing and exact operator diagnostics; selected-command dispatch/access enforcement; compact float enabled/disabled behavior; all legal compact-float fractional precision settings from 1 through 6; compact magnitude endpoint tests; and the forbidden-pattern source check. Future tests in this directory should continue proving the behavior of the platform-independent core:
 
 - Tokenization.
 - Quoted strings and escapes.
@@ -36,9 +36,10 @@ test/
   test_bsc_registry.c
   test_bsc_matcher.c
   test_bsc_args.c
+  test_bsc_dispatch.c
 ```
 
-The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. `test_bsc_args.c` is the current typed-parser suite; additional parser cases should be added there when defects or supported behavior require them. Future dispatch, access, orchestration, broader redaction, help, fixture, integration, and golden-output tests may add files such as:
+The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. `test_bsc_args.c` is the current typed-parser suite; `test_bsc_dispatch.c` covers selected-command access enforcement, parser integration, handler invocation, output-pointer passing, handler status propagation, and caller-owned dispatch storage. Additional parser cases should be added to the parser suite when defects or supported behavior require them. Future dispatch, access, orchestration, broader redaction, help, fixture, integration, and golden-output tests may add files such as:
 
 ```text
 test/

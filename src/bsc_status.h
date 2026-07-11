@@ -10,10 +10,10 @@ extern "C" {
  * @brief Status codes shared by the bounded serial command core.
  *
  * Status values are stable public API. Current tokenizer, registry-validation,
- * matcher, output, console-context, and foundational helper functions return the
- * applicable values from this enum. Additional parser, argument-validation,
- * access, dispatch, application, and integrated-console paths will use the
- * remaining statuses as those modules are implemented.
+ * matcher, typed parser, selected-command dispatch/access enforcement, output,
+ * console-context, and foundational helper functions return the applicable
+ * values from this enum. Future integrated-console paths will use these statuses
+ * as orchestration modules are implemented.
  */
 
 /**
