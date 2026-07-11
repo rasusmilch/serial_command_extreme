@@ -53,15 +53,36 @@ typedef struct dispatch_sink {
   size_t used;
 } dispatch_sink_t;
 
+/** @brief Caller-owned record for observing NULL app_context callback delivery. */
+typedef struct dispatch_null_context_record {
+  int access_calls;
+  int handler_calls;
+  void *access_app_context;
+  void *handler_app_context;
+  const bsc_command_t *access_command;
+  const bsc_command_t *handler_command;
+  int command_context_was_usable;
+} dispatch_null_context_record_t;
+
+/** Command path used by executable dispatch fixtures. */
 static const char *const k_dispatch_path[] = {"dispatch"};
+/** Command path used by group-descriptor rejection fixtures. */
 static const char *const k_group_path[] = {"group"};
+/** Enum choices used by dispatch parser-integration fixtures. */
 static const bsc_enum_choice_t k_mode_choices[] = {{"low", 11, "Low"}, {"high", 22, "High"}};
+/** Signed-integer descriptor constrained to the dispatch test range. */
 static const bsc_arg_def_t k_int_arg[] = {{"value", BSC_ARG_INT, -5, 5, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "int"}};
+/** Unsigned-integer descriptor constrained to the dispatch test range. */
 static const bsc_arg_def_t k_uint_arg[] = {{"count", BSC_ARG_UINT, 0, 0, 1u, 5u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "uint"}};
+/** Boolean descriptor used to prove dispatch preserves bool parser failures. */
 static const bsc_arg_def_t k_bool_arg[] = {{"enabled", BSC_ARG_BOOL, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "bool"}};
+/** Enum descriptor used to verify semantic choice values survive dispatch. */
 static const bsc_arg_def_t k_enum_arg[] = {{"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, k_mode_choices, 2u, "enum"}};
+/** Bounded string descriptor used to verify borrowed text views. */
 static const bsc_arg_def_t k_string_arg[] = {{"name", BSC_ARG_STRING, 0, 0, 0u, 0u, 0.0f, 0.0f, 2u, 4u, NULL, 0u, "string"}};
+/** Bounded secret descriptor used to verify borrowed secret views. */
 static const bsc_arg_def_t k_secret_arg[] = {{"secret", BSC_ARG_SECRET, 0, 0, 0u, 0u, 0.0f, 0.0f, 3u, 5u, NULL, 0u, "secret"}};
+/** Float descriptor used by enabled/disabled dispatch build tests. */
 static const bsc_arg_def_t k_float_arg[] = {{"ratio", BSC_ARG_FLOAT, 0, 0, 0u, 0u, -2.0f, 2.0f, 0u, 0u, NULL, 0u, "float"}};
 
 /** @brief Create one explicit-length test token from a C string. */
@@ -89,8 +110,7 @@ static size_t dispatch_sink_write(void *user, const char *data, size_t length) {
   return to_copy;
 }
 
-/** @brief Test access callback that records ordering and permits fixture control. */
-static int g_dispatch_parse_phase;
+/** @brief Access callback that records its arguments and permits fixture-controlled denial. */
 static bool dispatch_access_callback(void *app_context,
                                      const struct bsc_command *command,
                                      bsc_access_level_t required_access) {
@@ -103,7 +123,6 @@ static bool dispatch_access_callback(void *app_context,
       fixture->allow_access = 0;
     }
   }
-  g_dispatch_parse_phase = 0;
   return fixture != NULL && fixture->allow_access != 0;
 }
 
@@ -113,7 +132,6 @@ static bsc_status_t dispatch_recording_handler(void *app_context,
                                                const struct bsc_parsed_args *args,
                                                bsc_output_t *output) {
   dispatch_fixture_t *fixture = (dispatch_fixture_t *)app_context;
-  g_dispatch_parse_phase = 1;
   if (fixture != NULL) {
     fixture->handler_calls += 1;
     fixture->handler_command = command;
@@ -141,6 +159,42 @@ static bsc_status_t dispatch_output_handler(void *app_context,
     fixture->wrote_output = 1;
   }
   return bsc_out_write(output, "overflow");
+}
+
+/** @brief Access callback that records a NULL app_context through command_context. */
+static bool dispatch_null_context_access(void *app_context,
+                                         const struct bsc_command *command,
+                                         bsc_access_level_t required_access) {
+  dispatch_null_context_record_t *record;
+  (void)required_access;
+  if (command == NULL || command->command_context == NULL) {
+    return false;
+  }
+  record = (dispatch_null_context_record_t *)command->command_context;
+  record->access_calls += 1;
+  record->access_app_context = app_context;
+  record->access_command = command;
+  record->command_context_was_usable = 1;
+  return true;
+}
+
+/** @brief Handler that records a NULL app_context through command_context. */
+static bsc_status_t dispatch_null_context_handler(void *app_context,
+                                                  const struct bsc_command *command,
+                                                  const struct bsc_parsed_args *args,
+                                                  bsc_output_t *output) {
+  dispatch_null_context_record_t *record;
+  (void)args;
+  (void)output;
+  if (command == NULL || command->command_context == NULL) {
+    return BSC_STATUS_APP_ERROR;
+  }
+  record = (dispatch_null_context_record_t *)command->command_context;
+  record->handler_calls += 1;
+  record->handler_app_context = app_context;
+  record->handler_command = command;
+  record->command_context_was_usable = 1;
+  return BSC_STATUS_OK;
 }
 
 /** @brief Reset one dispatch fixture to default allowing/success behavior. */
@@ -188,6 +242,7 @@ static int parsed_is_cleared(const bsc_parsed_args_t *parsed) {
          parsed->values[0].data.text_value.data == NULL && parsed->values[0].data.text_value.length == 0u;
 }
 
+/** @brief Verify the no-callback default access matrix for every access level. */
 static int test_dispatch_access_defaults_without_callback(const char *test_name) {
   bsc_access_level_t levels[] = {BSC_ACCESS_NORMAL, BSC_ACCESS_ADVANCED, BSC_ACCESS_FACTORY, BSC_ACCESS_LOCKED};
   bsc_status_t expected[] = {BSC_STATUS_OK, BSC_STATUS_OK, BSC_STATUS_ACCESS_DENIED, BSC_STATUS_ACCESS_DENIED};
@@ -207,6 +262,7 @@ static int test_dispatch_access_defaults_without_callback(const char *test_name)
   return 0;
 }
 
+/** @brief Verify an allowing access callback authorizes every access level. */
 static int test_dispatch_access_callback_allows_all_levels(const char *test_name) {
   bsc_access_level_t levels[] = {BSC_ACCESS_NORMAL, BSC_ACCESS_ADVANCED, BSC_ACCESS_FACTORY, BSC_ACCESS_LOCKED};
   size_t index;
@@ -226,6 +282,7 @@ static int test_dispatch_access_callback_allows_all_levels(const char *test_name
   return 0;
 }
 
+/** @brief Verify a denying access callback blocks every access level before parsing. */
 static int test_dispatch_access_callback_denies_all_levels(const char *test_name) {
   bsc_access_level_t levels[] = {BSC_ACCESS_NORMAL, BSC_ACCESS_ADVANCED, BSC_ACCESS_FACTORY, BSC_ACCESS_LOCKED};
   size_t index;
@@ -249,6 +306,7 @@ static int test_dispatch_access_callback_denies_all_levels(const char *test_name
   return 0;
 }
 
+/** @brief Verify hidden commands follow access policy without extra denial. */
 static int test_dispatch_hidden_flag_follows_access_policy(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -281,6 +339,7 @@ static int test_dispatch_hidden_flag_follows_access_policy(const char *test_name
   return 0;
 }
 
+/** @brief Verify dispatch API validation clears usable caller-owned diagnostics. */
 static int test_dispatch_api_validation_and_clearing(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -321,6 +380,7 @@ static int test_dispatch_api_validation_and_clearing(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify shallow descriptor failures occur before access callbacks. */
 static int test_dispatch_descriptor_validation_before_access(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -384,6 +444,7 @@ static int expect_parse_failure(const char *test_name,
   return 0;
 }
 
+/** @brief Verify parser failures propagate status and structured diagnostics. */
 static int test_dispatch_parser_failures_preserve_diagnostics(const char *test_name) {
   bsc_string_view_t int_bad = token_from_cstr("x");
   bsc_string_view_t int_low = token_from_cstr("-6");
@@ -442,6 +503,7 @@ static int test_dispatch_parser_failures_preserve_diagnostics(const char *test_n
   return 0;
 }
 
+/** @brief Verify successful dispatch passes context, output, and parsed values. */
 static int test_dispatch_success_passes_context_output_and_values(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -498,6 +560,7 @@ static int test_dispatch_success_passes_context_output_and_values(const char *te
   return 0;
 }
 
+/** @brief Verify valid handler statuses propagate and invalid statuses map to app error. */
 static int test_dispatch_handler_status_policy(const char *test_name) {
   bsc_status_t valid_statuses[] = {
       BSC_STATUS_OK,
@@ -565,6 +628,7 @@ static int test_dispatch_handler_status_policy(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify output truncation returned by a handler propagates unchanged. */
 static int test_dispatch_output_truncation_propagates_from_handler(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -583,6 +647,7 @@ static int test_dispatch_output_truncation_propagates_from_handler(const char *t
   return 0;
 }
 
+/** @brief Verify failure clearing and handler-failure parsed-result retention. */
 static int test_dispatch_state_clearing_and_handler_failure_keeps_parsed(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -618,6 +683,7 @@ static int test_dispatch_state_clearing_and_handler_failure_keeps_parsed(const c
   return 0;
 }
 
+/** @brief Verify independent dispatch calls do not share mutable state. */
 static int test_dispatch_reentrant_independent_storage(const char *test_name) {
   dispatch_fixture_t fixture_a;
   dispatch_fixture_t fixture_b;
@@ -648,6 +714,41 @@ static int test_dispatch_reentrant_independent_storage(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify NULL app_context is passed unchanged to access and handler callbacks. */
+static int test_dispatch_null_app_context_reaches_callbacks(const char *test_name) {
+  dispatch_null_context_record_t record;
+  bsc_parsed_args_t parsed;
+  bsc_arg_parse_error_t error;
+  bsc_command_t command;
+
+  memset(&record, 0, sizeof(record));
+  command.path = k_dispatch_path;
+  command.path_len = 1u;
+  command.node_type = BSC_NODE_COMMAND;
+  command.args = NULL;
+  command.arg_count = 0u;
+  command.handler = dispatch_null_context_handler;
+  command.command_context = &record;
+  command.access = BSC_ACCESS_FACTORY;
+  command.flags = BSC_COMMAND_FLAG_NONE;
+  command.access_fn = dispatch_null_context_access;
+  command.summary = "NULL context";
+  command.description = "Verify NULL application context propagation.";
+
+  DISPATCH_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_dispatch_command(NULL, &command, NULL, 0u, &parsed, &error, NULL));
+  DISPATCH_TEST_ASSERT_TRUE(record.access_calls == 1);
+  DISPATCH_TEST_ASSERT_TRUE(record.handler_calls == 1);
+  DISPATCH_TEST_ASSERT_TRUE(record.access_app_context == NULL);
+  DISPATCH_TEST_ASSERT_TRUE(record.handler_app_context == NULL);
+  DISPATCH_TEST_ASSERT_TRUE(record.access_command == &command);
+  DISPATCH_TEST_ASSERT_TRUE(record.handler_command == &command);
+  DISPATCH_TEST_ASSERT_TRUE(record.command_context_was_usable == 1);
+  DISPATCH_TEST_ASSERT_TRUE(parsed.count == 0u);
+  DISPATCH_TEST_ASSERT_TRUE(error.reason == BSC_ARG_PARSE_ERROR_NONE);
+  return 0;
+}
+
+/** @brief Verify dispatch behavior in float-enabled and float-disabled builds. */
 static int test_dispatch_float_configuration_behavior(const char *test_name) {
   dispatch_fixture_t fixture;
   bsc_parsed_args_t parsed;
@@ -693,6 +794,7 @@ int bsc_run_dispatch_tests(void) {
   RUN_DISPATCH_TEST(test_dispatch_output_truncation_propagates_from_handler);
   RUN_DISPATCH_TEST(test_dispatch_state_clearing_and_handler_failure_keeps_parsed);
   RUN_DISPATCH_TEST(test_dispatch_reentrant_independent_storage);
+  RUN_DISPATCH_TEST(test_dispatch_null_app_context_reaches_callbacks);
   RUN_DISPATCH_TEST(test_dispatch_float_configuration_behavior);
   return failures;
 }

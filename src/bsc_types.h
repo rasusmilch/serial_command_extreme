@@ -94,7 +94,7 @@ typedef enum bsc_node_type {
 typedef enum bsc_access_level {
   /** Normal operator command. */
   BSC_ACCESS_NORMAL = 0,
-  /** Advanced command that may require elevated policy later. */
+  /** Advanced command allowed by default; an access callback may allow or deny it. */
   BSC_ACCESS_ADVANCED,
   /** Factory/service command denied by default unless current dispatch policy explicitly allows it. */
   BSC_ACCESS_FACTORY,
@@ -217,7 +217,7 @@ typedef struct bsc_command {
   const bsc_arg_def_t *args;
   /** Number of entries in `args`. */
   size_t arg_count;
-  /** Optional handler for executable commands invoked by current dispatch. */
+  /** Required handler for executable commands; NULL for group descriptors. */
   bsc_command_handler_t handler;
   /** Opaque caller-owned per-command context pointer. */
   void *command_context;
