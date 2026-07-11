@@ -18,9 +18,10 @@ extern "C" {
  * @brief Static command descriptor metadata for the Serial Command Extreme core.
  *
  * This header defines public metadata types shared by the current registry
- * validator, matcher, and typed argument parser plus future dispatch, access,
- * help-rendering, and console-integration modules. It performs no validation,
- * matching, parsing, dispatch, help rendering, I/O, allocation, runtime
+ * validator, matcher, typed argument parser, and current selected-command
+ * dispatcher plus future help-rendering and console-integration modules. It
+ * performs no validation, matching, parsing, dispatch, help rendering, I/O,
+ * allocation, runtime
  * registration, alias expansion, optional-argument handling, custom parsing, or
  * custom validation.
  *
@@ -28,7 +29,8 @@ extern "C" {
  * path arrays, path strings, argument arrays, enum choice arrays, help strings,
  * callback functions, and opaque context pointers are caller-owned and must
  * remain valid while current registry validation, current matching, current
- * typed argument parsing, or future console/dispatch/help code references them.
+ * typed argument parsing, current selected-command dispatch, or future
+ * console/help code references them.
  * The core does not copy or release descriptor metadata.
  *
  * Current parsed string and secret argument values returned by
@@ -72,8 +74,8 @@ typedef enum bsc_arg_type {
  *
  * Groups are namespace nodes used by current registry validation and matcher
  * behavior. Commands are executable descriptor leaves selected by the current
- * matcher and then passed by callers to the current typed parser. Access checks
- * and dispatch remain future work.
+ * matcher and then passed by callers to the current typed parser or selected-
+ * command dispatcher.
  */
 typedef enum bsc_node_type {
   /** Non-executable namespace/group node. */
@@ -92,11 +94,11 @@ typedef enum bsc_node_type {
 typedef enum bsc_access_level {
   /** Normal operator command. */
   BSC_ACCESS_NORMAL = 0,
-  /** Advanced command that may require elevated policy later. */
+  /** Advanced command allowed by default; an access callback may allow or deny it. */
   BSC_ACCESS_ADVANCED,
-  /** Factory/service command that may require factory policy later. */
+  /** Factory/service command denied by default unless current dispatch policy explicitly allows it. */
   BSC_ACCESS_FACTORY,
-  /** Locked command that future access policy must explicitly allow. */
+  /** Locked command denied by default unless current dispatch policy explicitly allows it. */
   BSC_ACCESS_LOCKED
 } bsc_access_level_t;
 
@@ -170,12 +172,12 @@ typedef struct bsc_arg_def {
 } bsc_arg_def_t;
 
 /**
- * @brief Command handler callback signature reserved for future dispatch.
+ * @brief Command handler callback signature used by selected-command dispatch.
  *
  * `struct bsc_parsed_args` is defined by `bsc_args.h` for the current typed
- * parser. Static descriptors can store handler pointers now, but the parser
- * does not invoke handlers; future dispatch code will define when and how
- * callbacks receive parsed arguments.
+ * parser. The parser does not invoke handlers; current selected-command
+ * dispatch invokes handlers exactly after access approval and successful typed
+ * argument parsing.
  */
 typedef bsc_status_t (*bsc_command_handler_t)(void *app_context,
                                               const struct bsc_command *command,
@@ -183,10 +185,12 @@ typedef bsc_status_t (*bsc_command_handler_t)(void *app_context,
                                               bsc_output_t *output);
 
 /**
- * @brief Future access-policy callback signature.
+ * @brief Access-policy callback signature used by selected-command dispatch.
  *
- * This typedef only lets descriptors hold an optional policy hook. No access
- * behavior is implemented by this header.
+ * Current dispatch invokes this optional policy hook before argument parsing.
+ * The callback receives application context, the exact command descriptor, and
+ * the required access level; command_context remains available through the
+ * descriptor.
  */
 typedef bool (*bsc_command_access_fn_t)(void *app_context,
                                         const struct bsc_command *command,
@@ -199,8 +203,8 @@ typedef bool (*bsc_command_access_fn_t)(void *app_context,
  * length. The descriptor does not embed path, argument, enum, parsed-argument,
  * or workspace storage. All pointers remain owned by the application/static
  * descriptor table provider and must outlive current registry validation,
- * current matcher use, current typed parsing, and future console/dispatch/help
- * use.
+ * current matcher use, current typed parsing, current selected-command dispatch,
+ * and future console/help use.
  */
 typedef struct bsc_command {
   /** Borrowed static array of `path_len` literal command path tokens. */
@@ -213,15 +217,15 @@ typedef struct bsc_command {
   const bsc_arg_def_t *args;
   /** Number of entries in `args`. */
   size_t arg_count;
-  /** Optional future handler for executable commands. */
+  /** Required handler for executable commands; NULL for group descriptors. */
   bsc_command_handler_t handler;
   /** Opaque caller-owned per-command context pointer. */
   void *command_context;
-  /** Execution/access metadata for future dispatch/access policy. */
+  /** Execution/access metadata enforced by current selected-command dispatch. */
   bsc_access_level_t access;
   /** Visibility/metadata flags such as #BSC_COMMAND_FLAG_HIDDEN. */
   bsc_command_flags_t flags;
-  /** Optional future access-policy hook. */
+  /** Optional access-policy hook evaluated by current selected-command dispatch. */
   bsc_command_access_fn_t access_fn;
   /** Optional borrowed one-line help summary. */
   const char *summary;

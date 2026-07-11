@@ -2,7 +2,7 @@
 
 This directory is reserved for the platform-independent core library.
 
-Current platform-independent C99 core source exists here for configuration, status diagnostics, borrowed string views, output callbacks, minimal console context initialization, static descriptor types, bounded tokenization, registry descriptor validation, longest-path command matching, typed positional argument parsing, and internal compact float parsing. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
+Current platform-independent C99 core source exists here for configuration, status diagnostics, borrowed string views, output callbacks, minimal console context initialization, static descriptor types, bounded tokenization, registry descriptor validation, longest-path command matching, typed positional argument parsing, selected-command dispatch/access enforcement, and internal compact float parsing. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
 
 ## Intended core modules
 
@@ -22,6 +22,8 @@ src/bsc_output.h
 src/bsc_output.c
 src/bsc_console.h
 src/bsc_console.c
+src/bsc_dispatch.h
+src/bsc_dispatch.c
 src/bsc_types.h
 src/bsc_tokenizer.h
 src/bsc_tokenizer.c
@@ -31,7 +33,7 @@ src/bsc_matcher.h
 src/bsc_matcher.c
 ```
 
-Planned future modules still include command dispatch/access integration, help/manpage rendering, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
+Planned future modules still include full console orchestration, help/manpage rendering, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
 
 
 ## Compact float parser boundary
@@ -61,7 +63,7 @@ The core must remain:
 
 ## Expected responsibilities
 
-Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, typed positional argument parsing with structured diagnostics, output helpers, and status diagnostics. Planned responsibilities still include dispatch/access integration, help/manpage rendering, and redaction:
+Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, typed positional argument parsing with structured diagnostics, selected-command dispatch/access enforcement, output helpers, and status diagnostics. Planned responsibilities still include full console orchestration, help/manpage rendering, and broader redaction:
 
 - Bounded line/token handling.
 - Bounded tokenizer with quotes and escapes.
@@ -69,7 +71,7 @@ Core source should implement only the reusable command subsystem. Current respon
 - Command registry validation.
 - Longest-path command matching.
 - Typed argument validation.
-- Callback dispatch.
+- Selected-command callback dispatch with access enforcement.
 - Output callback helpers.
 - Generated help/manpage rendering.
 - Error/status code mapping.
@@ -92,4 +94,4 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser and compact-float diagnostics are implemented; access enforcement, dispatch, console orchestration, help rendering, adapters, and examples remain future work.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, and dispatch are implemented; full console orchestration, help rendering, adapters, and examples remain future work.
