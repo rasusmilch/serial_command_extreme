@@ -18,16 +18,16 @@ Current repository status during this policy pass:
 Repository: rasusmilch/serial_command_extreme
 Branch: main
 Current pre-change head inspected: dc75a9f0f5111376b628a3bd9e0a9fc36e8265a2
-Stage: anchor/planning
-Implementation source: not added yet
-Build system: not added yet
-Tests: not added yet
+Stage: bounded core implementation through output-neutral complete-line console orchestration
+Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, and complete-line console orchestration
+Build system: CMake builds the core library and host tests
+Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, and complete-line console orchestration
 Examples: not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 ```
 
-Because implementation code does not exist yet, this file defines the required future test architecture. It does not claim that any tests currently pass.
+Implementation code and host tests now exist. This file remains the testing-policy anchor and distinguishes current host coverage from future help, adapter, golden-output, and hardware validation.
 
 ## Source and anchor context inspected
 
@@ -144,14 +144,17 @@ Do not require Arduino IDE, PlatformIO, ESP-IDF, USB serial devices, or real boa
 
 ## Layer 2 — Host integration tests
 
-Host integration tests should use real descriptor tables and fake application contexts. They should execute complete command lines through the same public entry point that adapters will call.
+Host integration tests should use real descriptor tables and fake application contexts. They execute complete command lines through the public bsc_execute_line() entry point that adapters can call after accumulating a line and stripping line endings.
 
 Example test shape:
 
 ```c
 bsc_status_t status = bsc_execute_line(
     &console,
-    "settings wifi set password \"example password\"");
+    &workspace,
+    "settings wifi set password \"example password\",
+    strlen("settings wifi set password \"example password\"),
+    &result);
 ```
 
 Then assert:

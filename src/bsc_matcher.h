@@ -19,8 +19,8 @@ extern "C" {
  * current typed argument parser. It consumes a caller-owned descriptor table and
  * a caller/workspace-owned array of borrowed token views, then reports the
  * longest matching executable command path or an exact group path that requires
- * a subcommand. Callers may pass the reported remaining-token slice to
- * bsc_parse_command_args() or bsc_dispatch_command(); the matcher does not
+ * a subcommand. Callers, including the high-level console orchestrator, may pass the
+ * reported remaining-token slice to bsc_parse_command_args() or bsc_dispatch_command(); the matcher does not
  * invoke the parser, access checks, or dispatch automatically.
  *
  * Command descriptor tables, descriptor path arrays, and descriptor path strings

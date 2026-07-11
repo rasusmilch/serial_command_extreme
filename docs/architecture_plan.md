@@ -356,8 +356,8 @@ Notes:
 - `bsc_status.h` is separated from `bsc_types.h` so status codes are easy to include in all modules.
 - `bsc_string_view.*` is separated because string views are foundational to tokenizer, matcher, args, and tests.
 - `bsc_matcher.*` is separated from `bsc_registry.*` to keep command-table validation distinct from runtime path matching.
-- `bsc_dispatch.*` should coordinate matcher + args + handler, but not own line buffering.
-- `bsc_console.*` should be the high-level public entry point that owns or receives the bounded command-execution workspace, normalizes input in that workspace, and calls tokenizer/matcher/dispatch/help without creating a second command text buffer.
+- `bsc_dispatch.*` starts from an already selected executable command and coordinates access enforcement, typed argument parsing, and handler invocation; it does not own matching or line buffering.
+- `bsc_console.*` is the high-level public entry point that receives caller-owned bounded command-execution workspace, copies an explicit input span into that workspace, and calls tokenizer, matcher, and dispatch without creating a second command text buffer. Help remains future work.
 - `adapters/` can be created later; do not add adapter code before the host-tested core exists.
 
 ## Module responsibilities
@@ -623,31 +623,31 @@ Sections with no content may be omitted if output policy says so, but golden tes
 
 High-level public entry point.
 
-Responsibilities:
+Current responsibilities:
 
-- Own or receive console runtime context.
-- Copy a complete line into `line_buffer` with bounds checking.
-- Call tokenizer.
-- Route built-ins such as `help` and `commands`.
-- Match command paths.
-- Dispatch executable commands.
-- Provide deterministic status/error output when configured.
+- Store lightweight validated console configuration.
+- Receive caller-owned execution workspace per call.
+- Reject overlength input and embedded NUL bytes at the complete-line boundary.
+- Copy an explicit byte span into the workspace line buffer with bounds checking.
+- Call the tokenizer, matcher, and selected-command dispatcher in order.
+- Return the primary status plus optional non-secret result metadata.
+- Pass configured output to handlers without automatic console echo, errors, OK/ERR text, help, or status text.
 
-Recommended public API sketch:
+Current public API shape:
 
 ```c
 bsc_status_t bsc_console_init(bsc_console_t *console,
-                              const bsc_command_t *commands,
-                              uint8_t command_count,
-                              void *app_ctx,
-                              bsc_output_t output);
+                              const bsc_console_config_t *config,
+                              bsc_registry_validation_error_t *validation_error);
 
-bsc_status_t bsc_execute_line(bsc_console_t *console, const char *line);
-
-const char *bsc_status_name(bsc_status_t status);
+bsc_status_t bsc_execute_line(const bsc_console_t *console,
+                              bsc_console_workspace_t *workspace,
+                              const char *line,
+                              size_t line_length,
+                              bsc_console_result_t *result);
 ```
 
-Exact API may change during implementation, but the high-level `bsc_execute_line()` concept should remain.
+Generated built-ins such as `help` and `commands`, deterministic diagnostic rendering, and adapter-facing convenience wrappers remain future work.
 
 ## Lifetime, ownership, and command-execution workspace rules
 
@@ -655,14 +655,14 @@ These rules must be documented in headers and enforced by tests or review checks
 
 ### Single workspace model
 
-The core uses one bounded command-execution workspace for one active command execution. `bsc_console_t`, or a future `bsc_console_workspace_t`, owns or receives that workspace and serializes access to it. The workspace is expected to contain, directly or through caller-owned members:
+The core uses one caller-owned `bsc_console_workspace_t` for one active command execution. `bsc_console_t` does not own the large workspace; `bsc_execute_line()` receives it per call. The workspace-level active guard rejects ordinary recursive reuse of the same workspace but is not a mutex or task-synchronization primitive. The workspace contains:
 
 - One mutable line buffer for the active command line.
 - One token-view array.
 - Later, one parsed-argument array.
 - Later, optional small bounded output-format scratch only if bounded formatting is explicitly approved.
 
-The reusable core must avoid serial/input-buffer -> console-buffer -> tokenizer-buffer -> parser-string-buffer copy chains. Future adapters should fill the console/workspace line buffer directly where practical. If an adapter must use an RX staging buffer, the adapter must document that buffer's owner, capacity, lifetime, serialization assumptions, and exact copy boundary.
+The reusable core must avoid serial/input-buffer -> console-buffer -> tokenizer-buffer -> parser-string-buffer copy chains. Future adapters may stage input and then submit explicit byte spans to the console; any future zero-copy path would require separate approval. If an adapter must use an RX staging buffer, the adapter must document that buffer's owner, capacity, lifetime, serialization assumptions, and exact copy boundary.
 
 ### Tokenizer and parser storage
 
@@ -1049,3 +1049,8 @@ These should be accepted, changed, or explicitly deferred before full MVP implem
 The core must be boring, bounded, and heavily host-tested.
 
 A source task is not acceptable merely because firmware might compile later. It must prove host behavior for the parser/registry/validator/dispatcher/help surface and explicitly state what was not verified on adapters or hardware.
+
+
+## Task 10A active correction: complete-line console orchestration
+
+The current implementation boundary is tokenizer -> matcher -> selected-command dispatcher. `bsc_dispatch.*` starts from an already selected executable command and intentionally does not perform command matching. Complete-line coordination now belongs to `bsc_console.*`. The public console API uses `bsc_console_config_t`, a lightweight initialized `bsc_console_t`, caller-owned `bsc_console_workspace_t` supplied per execution, and `bsc_execute_line()` with an explicit byte length. The high-level console rejects embedded NUL bytes, performs one bounded copy into the workspace line buffer, invokes the existing tokenizer, matcher, and dispatcher, returns the primary status with optional non-secret `bsc_console_result_t` metadata, and writes no automatic echo, error, help, OK, or ERR output. Generated help/manpages, adapters, and automatic diagnostic rendering remain future work.

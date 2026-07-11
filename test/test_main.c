@@ -29,6 +29,10 @@ int bsc_run_args_tests(void);
  * @brief Run selected-command dispatch tests supplied by the dispatch module.
  */
 int bsc_run_dispatch_tests(void);
+/**
+ * @brief Run complete-line console orchestration tests supplied by the console module.
+ */
+int bsc_run_console_tests(void);
 
 /**
  * @brief Fail the current host test when a condition is false.
@@ -202,6 +206,7 @@ int main(void) {
   failures += bsc_run_matcher_tests();
   failures += bsc_run_args_tests();
   failures += bsc_run_dispatch_tests();
+  failures += bsc_run_console_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);
