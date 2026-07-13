@@ -53,9 +53,9 @@ Acceptance:
 - Clear GO/NO-GO recommendations for MVP scope.
 - Identifies ambiguous decisions needing user approval.
 
-## Phase 2 — Core MVP parser and registry
+## Phase 2 — Core MVP parser, registry, dispatch, and console orchestration
 
-Goal: implement the platform-independent core.
+Goal: implement the platform-independent core stages before generated help.
 
 Core files:
 
@@ -66,32 +66,34 @@ src/bsc_tokenizer.h
 src/bsc_tokenizer.c
 src/bsc_registry.h
 src/bsc_registry.c
-src/bsc_parser.h
-src/bsc_parser.c
+src/bsc_args.h
+src/bsc_args.c
+src/bsc_matcher.h
+src/bsc_matcher.c
 src/bsc_dispatch.h
 src/bsc_dispatch.c
-src/bsc_help.h
-src/bsc_help.c
 src/bsc_console.h
 src/bsc_console.c
 ```
 
 Minimum functionality:
 
-- Caller-provided console context.
+- Lightweight console configuration plus caller-owned execution workspace supplied per complete-line execution.
 - Static command descriptor tables.
 - Optional bounded runtime registry if approved.
 - Tokenization with quotes and escaping.
 - Longest-path command matching.
-- Positional argument schema validation.
+- Positional argument schema validation and selected-command dispatch.
 - Types: none, int, uint, float, bool, enum, string, secret.
 - Numeric bounds.
 - String length bounds.
 - Enum choice lists.
 - Handler callbacks.
-- Output callback.
-- `help`, `help <path>`, and `commands` built-ins.
+- Output callback passed to handlers without automatic console output.
+- Explicit-length complete-line execution through tokenizer, matcher, and selected-command dispatch.
 - Deterministic status codes.
+
+Generated `help`, `help <path>`, and `commands` built-ins move to Phase 3 with the help/manpage system.
 
 Acceptance:
 

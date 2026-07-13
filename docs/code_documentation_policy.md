@@ -182,7 +182,7 @@ C documentation must explicitly cover these where applicable:
 - Error codes: which status values can be returned and what they mean.
 - Blocking behavior: non-blocking polling, synchronous dispatch, handler responsibility, and output callback behavior.
 - ISR/thread safety: whether the function can be called from an ISR, task, single-threaded loop, or host test.
-- Lifetime rules: especially when string views point into a console line buffer and are valid only during callback dispatch.
+- Lifetime rules: especially when string views point into workspace-owned line storage and are valid only during callback dispatch.
 - Redaction and secrets: whether values may be printed, echoed, logged, or displayed in help examples.
 
 ### Serial Command Extreme buffer/workspace documentation requirements
@@ -208,30 +208,37 @@ Public header example:
 
 ```c
 /**
- * @brief Execute one complete console input line.
+ * @brief Execute one complete console input byte span.
  *
- * Tokenizes the input line, matches the longest registered command path,
- * validates typed positional arguments, and dispatches the matched handler.
+ * Copies the explicit input span into caller-owned workspace storage, tokenizes
+ * it in place, matches the longest registered command path, and dispatches the
+ * already selected command through access enforcement and typed parsing.
  *
- * @param console Console context with command registry, app context, output
- *        callback, and bounded line buffer. Must not be NULL.
- * @param line Null-terminated input line. The line is copied into the
- *        console-owned bounded line buffer before tokenization.
+ * @param console Initialized read-only console configuration. Must not be NULL.
+ * @param workspace Caller-owned execution storage. Must not be NULL.
+ * @param line Explicit input byte span. May be NULL only when line_length is 0.
+ * @param line_length Number of submitted bytes, excluding any C-string terminator.
+ * @param result Optional non-secret result metadata cleared on entry.
  *
  * @retval BSC_STATUS_OK The command matched, arguments validated, and the
  *         handler completed successfully.
- * @retval BSC_STATUS_LINE_TOO_LONG The input line exceeded BSC_MAX_LINE_LEN.
+ * @retval BSC_STATUS_LINE_TOO_LONG The input span exceeded BSC_MAX_LINE_LEN.
+ * @retval BSC_STATUS_INVALID_SYNTAX The high-level span contained an embedded NUL.
  * @retval BSC_STATUS_UNKNOWN_COMMAND No registered command path matched.
  * @retval BSC_STATUS_INVALID_ARGUMENT_TYPE An argument did not match its
  *         declared schema.
  *
- * @pre console->commands points to a valid descriptor array with
- *      console->command_count entries.
- * @note Parsed string arguments are views into console storage and are valid
- *       only until the next console execution or line-buffer mutation.
- * @warning Secret arguments must be redacted by echo/status/log helpers.
+ * @pre console references a registry that passed validation during initialization.
+ * @pre workspace was initialized before first use and is not active on another task.
+ * @note Parsed string/secret arguments are views into workspace storage and are
+ *       valid only during synchronous handler execution.
+ * @warning Secret values must be redacted by future echo/status/log helpers.
  */
-bsc_status_t bsc_execute_line(bsc_console_t *console, const char *line);
+bsc_status_t bsc_execute_line(const bsc_console_t *console,
+                              bsc_console_workspace_t *workspace,
+                              const char *line,
+                              size_t line_length,
+                              bsc_console_result_t *result);
 ```
 
 Enum example:

@@ -202,7 +202,7 @@ Every executable command must have enough metadata to produce a useful manpage. 
 
 ## 10. Output policy
 
-The library should provide output helpers but not impose a project-specific style. Recommended conventions:
+The library should provide output helpers but not impose a project-specific style. Current complete-line console orchestration is output-neutral: it returns statuses and optional non-secret result metadata and forwards configured output to handlers, but it does not emit echo, help, error, `OK`, `ERR`, or final-result text itself. Future presentation layers may choose conventions such as:
 
 ```text
 > gain 2048
@@ -221,7 +221,7 @@ Sensitive values should be redacted in echo, status, and logs:
 OK: settings wifi password set
 ```
 
-The library should separate command echo policy from dispatch. Applications may enable echo, disable echo, or redact sensitive tokens.
+The library separates command echo and presentation policy from dispatch. Applications or future adapters may enable echo, disable echo, or redact sensitive tokens outside the current output-neutral core execution path.
 
 ## 11. Memory model
 
@@ -238,7 +238,7 @@ The core must use caller-provided storage. Default caps should be configurable:
 #define BSC_MAX_ENUM_CHOICES   16
 ```
 
-No handler should receive pointers into temporary stack data after dispatch returns. Parsed token views may point into the console's line buffer and are valid only during the callback. If a command needs to persist data, the application must copy it into its own bounded storage.
+No handler should receive pointers into temporary stack data after dispatch returns. In the implemented complete-line console path, token views and parsed string/secret views borrow the caller-owned workspace line buffer and are valid only during synchronous dispatch/handler execution. If a command needs to persist data, the application must copy it into its own bounded storage.
 
 ## 12. Parser policy
 
@@ -257,11 +257,10 @@ The parser should not modify command metadata. It may tokenize by modifying the 
 
 A handler receives:
 
-- console pointer or handle
 - application context pointer
 - matched command descriptor pointer
 - parsed argument view
-- output callback
+- optional output callback wrapper
 
 A handler returns an explicit status code, not just boolean. Example:
 
@@ -281,7 +280,7 @@ typedef enum {
 } bsc_status_t;
 ```
 
-The console may print the final `OK:`/`ERR:` automatically or let the application do it. The recommended default is library-generated errors for parser/validation failures and application-generated final result for application failures.
+The current console does not print final `OK:`/`ERR:` lines or automatic parser/validation errors. Applications and future presentation helpers own that policy.
 
 ## 14. Access/security levels
 
@@ -356,6 +355,6 @@ From SerialUI:
 
 ## 18. Initial recommendation
 
-Build the reusable library as its own repository, not inside AS7331. Start with a host-tested C core and an Arduino adapter. Use AS7331 as the first integration pilot only after the standalone parser/registry/help system works.
+Build the reusable library as its own repository, not inside AS7331. Continue with a host-tested C core before adapters. Use AS7331 as the first integration pilot only after the standalone parser/registry/help system works.
 
-The MVP should implement command registration, nested path matching, typed positional arguments, validation, generated help/manpages, and deterministic dispatch. Defer completion, history, authentication, persistent settings, and interactive prompts.
+The current core implements static descriptor validation, nested path matching, typed positional arguments, selected-command dispatch, and output-neutral complete-line console orchestration with caller-owned workspace storage. Generated help/manpages remain the next core phase. Defer completion, history, authentication, persistent settings, interactive prompts, examples, and adapters until the core behavior is validated.

@@ -259,21 +259,19 @@ Open approval item: exact default visibility for `ADVANCED`, `FACTORY`, and `HID
 
 Core owns no platform output.
 
-Use a callback abstraction:
+Use the current callback abstraction:
 
 ```c
-typedef void (*bsc_write_fn_t)(void *user, const char *text);
+typedef size_t (*bsc_write_fn_t)(void *user, const char *data, size_t length);
 ```
 
-The core may provide bounded helper functions for writing strings, lines, status, and formatted chunks. Any formatted output helper must use a bounded buffer with a compile-time capacity.
+The core provides bounded helpers for writing strings and lines through `bsc_output_t`. Any future formatted output helper must use a bounded buffer with a compile-time capacity and must remain separate from automatic console execution output.
 
-### Final result output baseline
+### Console output boundary
 
-Recommend that handlers return `bsc_status_t`, and the console may optionally emit auto-result output when `auto_result_enabled` is true.
+Handlers return `bsc_status_t`. The implemented complete-line console is output-neutral: it does not emit command echo, help, parser errors, matcher errors, access errors, `OK`, `ERR`, or final-result text. When configured, the console copies the small `bsc_output_t` wrapper by value during initialization and forwards a call-local copy to handlers through selected-command dispatch.
 
-MVP should not force every command to print `OK:` or `ERR:` itself. Provide helpers, but keep policy explicit.
-
-Open approval item: whether auto-result output is enabled by default in examples.
+Future diagnostic rendering, generated help/manpages, command echo, redacted echo, and automatic final-result output remain explicit product decisions outside the current console orchestration boundary.
 
 ## Repository layout plan
 
@@ -659,8 +657,10 @@ The core uses one caller-owned `bsc_console_workspace_t` for one active command 
 
 - One mutable line buffer for the active command line.
 - One token-view array.
-- Later, one parsed-argument array.
-- Later, optional small bounded output-format scratch only if bounded formatting is explicitly approved.
+- One parsed-argument array.
+- One parser-diagnostic object.
+- One matcher-result object.
+- No output-format scratch in current console orchestration; optional bounded formatting scratch requires separate approval.
 
 The reusable core must avoid serial/input-buffer -> console-buffer -> tokenizer-buffer -> parser-string-buffer copy chains. Future adapters may stage input and then submit explicit byte spans to the console; any future zero-copy path would require separate approval. If an adapter must use an RX staging buffer, the adapter must document that buffer's owner, capacity, lifetime, serialization assumptions, and exact copy boundary.
 
@@ -669,19 +669,19 @@ The reusable core must avoid serial/input-buffer -> console-buffer -> tokenizer-
 - The tokenizer operates on the active mutable line buffer in place.
 - The tokenizer may compact quote escapes in that same line buffer.
 - Token views point into that same mutable line buffer.
-- Token arrays are caller-owned or console/workspace-owned; tokenizer functions must not place large token arrays on the stack.
+- Token arrays are caller-owned or workspace-owned; tokenizer functions must not place large token arrays on the stack.
 - There is no separate tokenizer-owned text buffer.
 - There are no per-token string copies in the core tokenizer.
 - The matcher consumes token views and does not copy command text.
 - The argument parser consumes token views. Numeric, boolean, and enum arguments become small parsed values. String and secret arguments remain borrowed views into the same line buffer.
-- Parsed-argument arrays are caller-owned or console/workspace-owned; parser functions must not place large parsed-argument arrays on the stack.
+- Parsed-argument arrays are caller-owned or workspace-owned; parser functions must not place large parsed-argument arrays on the stack.
 
 ### Lifetime and pointer escape rules
 
 - Command descriptor arrays are caller-owned and must outlive the console context.
 - Descriptor strings are caller-owned/static and must outlive the console context.
 - `bsc_console_t` is caller-owned unless a future adapter clearly documents another owner.
-- Borrowed token and parsed string/secret views are valid only for the active command execution: until the next line-buffer mutation or end of dispatch, whichever stricter policy is later formalized by console/dispatch.
+- Borrowed token and parsed string/secret views are valid only during the active synchronous command execution. In the complete-line console path, parsed string/secret views are for handler use only and must not be retained after `bsc_execute_line()` returns.
 - Application handlers must explicitly copy string or secret values into bounded application-owned storage if they need persistence beyond the handler call.
 - Output callback user pointer is caller-owned and opaque to the core.
 - Core tokenizer/parser/matcher/dispatch code must not retain pointers into the workspace after the active execution completes.
@@ -1039,7 +1039,7 @@ These should be accepted, changed, or explicitly deferred before full MVP implem
 6. Confirm no optional positional arguments in MVP.
 7. Confirm case-insensitive command and enum matching by default.
 8. Confirm exact visibility defaults for `ADVANCED`, `FACTORY`, `HIDDEN`, and `LOCKED` commands.
-9. Confirm whether auto-result output is enabled by default in examples.
+9. Confirm any future automatic diagnostic, echo, or final-result output policy for examples.
 10. Confirm whether `bsc_out_printf()` is included in MVP or deferred in favor of write/write-line helpers only.
 11. Confirm whether `BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND` should be added beyond the existing implementation-guide status list.
 12. Confirm license before copying any reference code or accepting code that appears derived from a third-party implementation.
@@ -1049,8 +1049,3 @@ These should be accepted, changed, or explicitly deferred before full MVP implem
 The core must be boring, bounded, and heavily host-tested.
 
 A source task is not acceptable merely because firmware might compile later. It must prove host behavior for the parser/registry/validator/dispatcher/help surface and explicitly state what was not verified on adapters or hardware.
-
-
-## Task 10A active correction: complete-line console orchestration
-
-The current implementation boundary is tokenizer -> matcher -> selected-command dispatcher. `bsc_dispatch.*` starts from an already selected executable command and intentionally does not perform command matching. Complete-line coordination now belongs to `bsc_console.*`. The public console API uses `bsc_console_config_t`, a lightweight initialized `bsc_console_t`, caller-owned `bsc_console_workspace_t` supplied per execution, and `bsc_execute_line()` with an explicit byte length. The high-level console rejects embedded NUL bytes, performs one bounded copy into the workspace line buffer, invokes the existing tokenizer, matcher, and dispatcher, returns the primary status with optional non-secret `bsc_console_result_t` metadata, and writes no automatic echo, error, help, OK, or ERR output. Generated help/manpages, adapters, and automatic diagnostic rendering remain future work.
