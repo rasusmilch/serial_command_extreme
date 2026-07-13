@@ -15,4 +15,4 @@ This file records notable repository changes.
 
 ### Changed
 
-- Active architecture, implementation, test, source overview, and workflow documentation now describes the implemented console/workspace boundary directly.
+- Active architecture, implementation, test, source-overview, and workflow documents now describe the implemented console/workspace boundary, current repository state, and the distinction between settled, deferred, and unresolved decisions.
