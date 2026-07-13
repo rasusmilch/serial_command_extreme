@@ -1,1051 +1,304 @@
-# Architecture Plan
+# Serial Command Extreme Architecture Contract
 
 ## Purpose
 
-This file is the read-only architecture plan for `serial_command_extreme` before implementation begins.
-
-It converts the existing design anchors, prior-art review, test strategy, README, and current repository scaffold into an implementation contract for the first code tasks. It does not add source code and does not claim that any implementation exists yet.
-
-The planned product is a reusable bounded embedded serial command library: a C-first core that tokenizes complete command lines, matches nested literal command paths, validates typed arguments, dispatches handlers, and generates operator-facing help/manpages from the same command metadata used by parsing.
-
-## Current inspection context
-
-Last updated: 2026-07-07.
-
-Repository inspected:
-
-```text
-Repository: rasusmilch/serial_command_extreme
-Branch: main
-Current head inspected before this file: ce2ae8566f8dbde8af14f6e574f571bc64dc53cc
-Code-search indexing: unavailable through the connector during inspection
-Inspection mode: direct path-based file reads and known commit/file inspection
-```
-
-Current repository status:
-
-```text
-Stage: anchor/planning/scaffold
-Implementation source: not added yet
-Build scaffold: CMakeLists.txt exists
-Core source directory: src/README.md only
-Test directory: test/README.md only
-Examples directory: examples/README.md only
-Arduino adapter: not added yet
-ESP-IDF adapter: not added yet
-CI: not added yet
-License: not finalized
-```
+This document is the current architecture and implementation contract for `serial_command_extreme`. It describes the platform-independent C core that exists in this repository, the boundaries between implemented modules, and the decisions that remain deferred or unresolved for future work.
 
-Files inspected from GitHub before creating this plan:
+Historical planning context lives in Git history, PR history, receipts, and explicitly historical handoff material. This document is intended to stand on its own as current architectural truth for maintainers and future implementation tasks.
 
-```text
-README.md
-CMakeLists.txt
-src/README.md
-test/README.md
-examples/README.md
-docs/00_serial_console_library_design_intent.md
-docs/01_serial_console_library_roadmap.md
-docs/02_serial_console_library_implementation_guide.md
-docs/03_serial_console_library_handoff.md
-docs/code_documentation_policy.md
-docs/prior_art_review.md
-docs/test_strategy.md
-```
+Last reconciled: 2026-07-13.
 
-Expected file before this change:
+## Current implementation state
 
-```text
-docs/architecture_plan.md
-```
+Current implemented repository state:
 
-Status before this change:
+- C99 core: implemented as the `serial_command_extreme` static library built from `src/`.
+- Build system: CMake is implemented at the repository root and builds the library plus host tests.
+- Test runner: CTest is implemented through `test/CMakeLists.txt`; the self-contained C executable is `sce_host_tests`.
+- Forbidden-pattern tooling: `tools/check_forbidden_patterns.py` is implemented and registered with CTest when Python3 is available.
+- Foundational helpers: status names, string views, and output callback helpers are implemented.
+- Tokenizer: bounded in-place tokenization is implemented in `src/bsc_tokenizer.*`.
+- Descriptor model: static command, argument, access, flag, and callback descriptor types are implemented in `src/bsc_types.h`.
+- Registry validation: complete static descriptor-table validation is implemented in `src/bsc_registry.*`.
+- Matcher: longest-path command matching is implemented in `src/bsc_matcher.*`.
+- Typed parser: positional argument parsing with structured diagnostics is implemented in `src/bsc_args.*`.
+- Compact float parser: internal compact decimal float support is implemented in `src/internal/bsc_float_parse.*` and controlled by `SCE_ENABLE_FLOAT`.
+- Selected-command dispatch: access enforcement, typed parsing handoff, handler invocation, and handler-status normalization are implemented in `src/bsc_dispatch.*`.
+- Complete-line console orchestration: output-neutral orchestration is implemented in `src/bsc_console.*` using lightweight console configuration plus caller-owned execution workspace.
+- Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, and complete-line console orchestration.
+- Generated help/manpages: not implemented; this is the next planned core phase.
+- Examples: not implemented.
+- Arduino adapter: not implemented.
+- ESP-IDF adapter: not implemented.
+- CI workflows: not implemented in this repository.
+- License: not finalized.
 
-```text
-missing
-```
+## Current module boundaries
 
-Reference implementation context:
+### `src/bsc_config.h`
 
-The prior-art review records inspection of the uploaded archive and reference implementations including AdvancedCLI, StaticSerialCommands, SimpleSerialShell, SerialUI, SerialCommandCoordinator, SerialCommand variants, ParseCommands, SerialConfigCommand, CommandCatcher, tinyCommand, cmdArduino, and PT100 Mesh console code. This plan relies on that review for prior-art conclusions and does not approve copying reference code wholesale.
+Defines conservative compile-time capacities and feature toggles. Current defaults include command count, enum choices, line length, token count, token length, path depth, argument count, compact-float enablement, compact-float fractional precision, and future output chunk size.
 
-Unverified items:
+### `src/bsc_status.h/.c`
 
-- No current implementation source exists to compile or test.
-- No CI exists yet.
-- No host test runner exists yet.
-- No hardware, Arduino, ESP-IDF, AS7331, or PT100 integration has been validated in this standalone repository.
-- License compatibility for copying reference code has not been reviewed; treat reference code as design inspiration only.
+Defines stable public status values and `bsc_status_name()`. Existing numeric values must not be reordered. New statuses require explicit append-only approval.
 
-## Architectural conclusion
+### `src/bsc_string_view.h/.c`
 
-Proceed with an original C-first bounded core.
+Defines borrowed explicit-length string views and deterministic exact / ASCII case-insensitive comparisons. Views do not own storage and do not require NUL termination.
 
-Do not adopt any reviewed command library as the direct base. The core should selectively borrow concepts:
+### `src/bsc_output.h/.c`
 
-- AdvancedCLI: typed argument seriousness, validators, capacity diagnostics, help generated from metadata, host tests.
-- StaticSerialCommands: static embedded registration, typed/ranged argument constraints, quoted strings, PROGMEM awareness as a later adapter concern.
-- SimpleSerialShell: direct `execute(line)` ergonomics and simple host-callable behavior.
-- SerialUI: discoverability through help/group browsing, not stateful menu navigation.
-- PT100 Mesh: registry-driven command metadata and operator-facing manpage-style help.
+Defines the platform-independent output callback wrapper and bounded write helpers. The callback accepts explicit byte counts and reports short writes through `BSC_STATUS_OUTPUT_TRUNCATED`. The core owns no UART, Serial object, stdout handle, RTOS object, or sink buffer.
 
-The core should stay deliberately narrow:
+### `src/bsc_types.h`
 
-```text
-tokenizer
-command descriptor model
-registry validation
-longest-path matcher
-typed argument validator
-dispatcher
-output callback layer
-generated help/manpage renderer
-host test harness
-forbidden-pattern checks
-```
+Defines static descriptor metadata and callback types. Descriptor objects borrow all pointed-to storage. Command descriptor arrays, path arrays, path strings, argument arrays, enum choices, help strings, callbacks, and command contexts remain owned by the application or static descriptor provider.
 
-Defer shell-like and UI-like features:
+Access level and hidden/listing state are separate concepts:
 
-```text
-history
-line editing
-completion
-aliases
-named options/flags
-runtime command discovery
-authentication workflows
-persistent settings storage
-JSON output
-scripting
-pipes/redirection
-stateful menus
-```
+- `bsc_access_level_t` represents execution access policy: normal, advanced, factory, or locked.
+- `BSC_COMMAND_FLAG_HIDDEN` is a metadata flag for future listing/help behavior.
+- The hidden flag is not an access level and does not by itself deny dispatch.
 
-## GO / NO-GO decision
+### `src/bsc_tokenizer.h/.c`
 
-### GO
+Tokenizes a caller-owned mutable byte span using an explicit length. The tokenizer:
 
-Start implementation after this plan is reviewed and accepted.
+- rejects inputs longer than `BSC_MAX_LINE_LEN`;
+- rejects CR and LF;
+- supports spaces and tabs as separators;
+- supports quoted strings and `\"` / `\\` escapes;
+- compacts quoted escape content in place;
+- writes token views into caller-owned token storage;
+- returns `BSC_STATUS_NO_INPUT` for empty or whitespace-only input;
+- performs no command matching, argument parsing, access enforcement, dispatch, output, heap allocation, or hidden scratch allocation.
 
-Recommended first implementation task: create the minimal C core skeleton and host test harness without implementing the full parser yet. That task should establish file layout, build/test commands, status enum, string-view type, output capture test helper, and one smoke test.
+The low-level tokenizer treats embedded NUL as ordinary byte data because it operates on explicit lengths. The high-level console rejects embedded NUL before tokenization.
 
-### NO-GO
+### `src/bsc_registry.h/.c`
 
-Do not start by adding Arduino examples, ESP-IDF adapters, AS7331 integration, command history, line editing, aliases, JSON, or persistent settings.
+Validates complete static descriptor tables before normal runtime use. It validates command/group shape, path metadata, duplicate paths, argument schemas, enum metadata, string/secret length ranges, float enablement, access levels, and flags. It performs no tokenization, matching, parsing, access callback invocation, dispatch, output, help rendering, or runtime registration.
 
-Do not start by copying AdvancedCLI, StaticSerialCommands, SimpleSerialShell, SerialUI, or PT100 code into this repo.
+### `src/bsc_matcher.h/.c`
 
-Do not implement a menu system that changes the meaning of later input based on hidden state.
+Matches tokenizer-produced token views against a static descriptor table. It selects the longest executable command path, returns the remaining positional-token slice, and reports exact group matches with `BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND`. It does not parse arguments, enforce access, invoke handlers, render output, or own workspace storage.
 
-Do not allow parser behavior and help text to drift into separate hand-maintained systems.
+### `src/bsc_args.h/.c`
 
-## Selected implementation baseline
+Parses the remaining positional tokens for one matched executable command. It writes caller-owned parsed results and structured parse diagnostics, clears those outputs on entry/failure, and leaves string/secret values as borrowed views into active token storage. It does not match commands, enforce access, invoke handlers, or own execution workspace.
 
-### Language baseline
+### `src/bsc_dispatch.h/.c`
 
-Use C99 for the platform-independent core.
+Dispatch begins with an already selected executable command. It does not call the matcher. Current dispatch behavior is:
 
-Rationale:
+1. clear caller-owned parsed-argument and parse-error storage;
+2. validate shallow executable-command fields needed before dispatch;
+3. apply access before parsing;
+4. parse typed positional arguments through `bsc_parse_command_args()`;
+5. invoke the handler exactly once after successful access and parse;
+6. normalize invalid handler status values to `BSC_STATUS_APP_ERROR`.
 
-- The existing CMake scaffold already declares a C project and exposes C99 features.
-- C99 is sufficient for fixed-width types, `stdbool.h`, static descriptors, and host tests.
-- C99 keeps the core portable to Arduino-adjacent and ESP-IDF-adjacent environments while avoiding C++ runtime expectations.
+Default access behavior when `command->access_fn` is NULL:
 
-C++ is allowed only for adapters, examples, or optional test/helper code when useful.
+- `BSC_ACCESS_NORMAL`: allowed;
+- `BSC_ACCESS_ADVANCED`: allowed;
+- `BSC_ACCESS_FACTORY`: denied;
+- `BSC_ACCESS_LOCKED`: denied.
 
-### Build baseline
+When `command->access_fn` is non-NULL, the callback receives application context, the command descriptor, and the required access level; its boolean return decides allow or deny. Dispatch accepts `NULL` application context and `NULL` output. A configured hidden flag remains a metadata/listing flag and is not itself an execution denial.
 
-Use CMake + CTest as the primary host build/test path.
+### `src/bsc_console.h/.c`
 
-The existing root `CMakeLists.txt` should remain host-oriented. Firmware-specific build files belong in adapter or integration directories later.
+The high-level console is output-neutral complete-line orchestration. It binds validated configuration and coordinates existing stages without duplicating their behavior.
 
-Target future commands:
+`bsc_console_t` is lightweight configuration after successful initialization. It stores:
 
-```text
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
-```
+- borrowed command descriptor table pointer;
+- command count;
+- borrowed application context;
+- by-value copy of the optional `bsc_output_t` wrapper;
+- `has_output`;
+- `initialized`.
 
-The first implementation task should make those commands meaningful for host tests.
+`bsc_console_t` owns no line buffer, token array, matcher result, parsed-argument array, parser diagnostic storage, execution-active state, mutex, lock, heap storage, or hidden scratch.
 
-### Test baseline
+`bsc_console_workspace_t` is caller-owned and supplied per execution. It owns:
 
-Use a small self-contained C test harness initially.
+- `line_buffer[BSC_MAX_LINE_LEN + 1u]`;
+- `tokens[BSC_MAX_TOKENS]`;
+- token count;
+- matcher result;
+- parsed arguments;
+- parse diagnostic;
+- non-atomic workspace-local active guard.
 
-Do not introduce an external test framework unless there is a strong reason. The early test harness can be plain C with assertions and a small runner. This keeps Codex/CI friction low and avoids dependency issues.
+`bsc_execute_line()` accepts a const console, caller workspace, explicit input byte span, byte length, and optional non-secret result. It:
 
-A later task may replace or supplement it with Unity/CMocka/etc. if justified.
+1. validates console, workspace, initialized state, input pointer, and input length;
+2. rejects overlength input;
+3. rejects active reuse of the same workspace before modifying it;
+4. rejects embedded NUL bytes before tokenization;
+5. marks the workspace active and clears transient metadata;
+6. copies exactly the submitted bytes into `workspace->line_buffer` with `memmove()`;
+7. appends a trailing NUL outside the tokenizer span;
+8. calls `bsc_tokenize_line()`;
+9. calls `bsc_match_command()`;
+10. derives the remaining argument-token slice;
+11. calls `bsc_dispatch_command()`;
+12. copies command/group metadata and parser diagnostic metadata into `bsc_console_result_t` when applicable;
+13. clears line, token, match, parsed-argument, and parser-diagnostic workspace state before returning.
 
-### Registration baseline
+The console emits no command echo, help, parser error, matcher error, access error, `OK`, `ERR`, or final-result output. When output is configured, it is forwarded to the selected handler through dispatch. The result type intentionally does not include raw line text, token views, parsed arguments, parsed string views, parsed secret views, or a duplicate status field.
 
-MVP uses static `const bsc_command_t[]` descriptor tables.
+Token views and parsed string/secret views borrow workspace line storage only during synchronous execution. Handlers must copy persistent values into their own bounded storage.
 
-Do not implement runtime registration in the MVP. Runtime registration can be added later using caller-provided bounded storage if a real use case appears.
+The workspace active guard detects ordinary same-workspace recursive misuse. It is not atomic, not a mutex, and not cross-task synchronization. Applications and adapters must serialize shared workspaces, mutable application contexts, command contexts, output sinks, and handler/access state.
 
-### Descriptor ergonomics baseline
+## Current implementation sequence
 
-Start with raw C structs and small helper macros only where they remove error-prone boilerplate without hiding behavior.
+### Phase 2A — Core skeleton and host-test harness: implemented
 
-Do not build a macro-heavy DSL in the MVP. The descriptor model must remain inspectable by reviewers and Codex.
+Implemented files include the root CMake build, core library target, initial source modules, `test/CMakeLists.txt`, `test/test_main.c`, foundational host tests, and the forbidden-pattern checker. The host build uses C99 and CTest.
 
-### Command matching baseline
+### Phase 2B — Bounded tokenizer: implemented
 
-Use linear scan over a bounded command array.
+Implemented in `src/bsc_tokenizer.*` with host coverage in `test/test_bsc_tokenizer.c`.
 
-Rationale:
+### Phase 2C — Descriptor types, registry validation, and longest-path matcher: implemented
 
-- Command counts are bounded and initially small.
-- Linear scan is easy to test and reason about.
-- Faster lookup can be deferred until there is evidence it is needed.
+Implemented through `src/bsc_types.h`, `src/bsc_registry.*`, and `src/bsc_matcher.*`, with host coverage in `test/test_bsc_types.c`, `test/test_bsc_registry.c`, and `test/test_bsc_matcher.c`.
 
-### Case sensitivity baseline
+### Phase 2D — Typed argument parser: implemented
 
-Recommend case-insensitive command path and enum matching by default.
+Implemented in `src/bsc_args.*` plus the internal compact-float parser. Host coverage is in `test/test_bsc_args.c` and includes float-enabled and float-disabled behavior.
 
-Rationale:
+### Phase 2E — Selected-command dispatch and access enforcement: implemented
 
-- Operators frequently type commands manually.
-- Prior art supports case-sensitivity options.
-- Help and examples can still display canonical lowercase command names.
+Implemented in `src/bsc_dispatch.*`, with host coverage in `test/test_bsc_dispatch.c`.
 
-Open approval item: whether to expose compile-time options for case-sensitive matching in MVP or defer that configurability.
+### Phase 2F — Output-neutral complete-line console orchestration: implemented
 
-### Optional positional arguments baseline
+Implemented in `src/bsc_console.*`, with host coverage in `test/test_bsc_console.c`.
 
-Do not support optional positional arguments in MVP.
+The implemented boundary is lightweight validated console configuration plus caller-owned workspace. The API accepts an explicit input span and length, rejects embedded NUL, performs one bounded copy into workspace storage, calls tokenizer -> matcher -> selected-command dispatch, exposes optional non-secret result metadata, cleans up transient workspace state, and emits no automatic console output.
 
-Rationale:
+### Phase 3A — Generated help/manpage foundation: next planned core phase
 
-- They create ambiguity in path matching and help output.
-- They increase test complexity.
-- Required positional arguments plus explicit alternate commands are easier to validate.
+The next planned core phase is generated help/manpage support from the same descriptor metadata. This phase must decide built-in routing, command-collision policy, visibility filtering, output format, and golden-output tests before implementation.
 
-### Aliases baseline
+### Phase 4A — Host examples: future
 
-Do not support aliases in MVP.
+Host examples remain future work after the core help/manpage direction is approved.
 
-Rationale:
+### Phase 5A — Arduino adapter: future
 
-- Canonical command paths must be stable first.
-- Aliases complicate help, command listing, duplicate detection, and tests.
-- They can be added later as explicit metadata after path matching is proven.
+Arduino adapter work remains future and must stay outside the platform-independent C core.
 
-### Access baseline
+### ESP-IDF adapter: future
 
-Include an access enum and optional access-check callback in the descriptor model, but keep behavior minimal.
+ESP-IDF adapter work remains future and must stay outside the platform-independent C core.
 
-MVP should support:
+### AS7331 integration pilot: future
 
-```text
-BSC_ACCESS_NORMAL
-BSC_ACCESS_ADVANCED
-BSC_ACCESS_FACTORY
-BSC_ACCESS_HIDDEN
-BSC_ACCESS_LOCKED
-```
+AS7331 integration remains future after the standalone library is proven.
 
-MVP behavior recommendation:
+## Approved and implemented decisions
 
-- `NORMAL` and `ADVANCED`: visible in help and executable unless application access callback denies them.
-- `FACTORY`: visible only when help policy/access allows; executable only when access callback allows.
-- `HIDDEN`: not listed in broad help; can still be resolved by exact path if access allows.
-- `LOCKED`: always returns access denied unless the application access callback explicitly allows it.
+The following decisions are settled in the current repository state:
 
-Open approval item: exact default visibility for `ADVANCED`, `FACTORY`, and `HIDDEN`.
+- C99 is the core language standard.
+- CMake and CTest are the primary host build/test path.
+- The repository uses a self-contained C host-test runner.
+- Static command descriptor tables are the MVP registry model.
+- Runtime registration is not part of the current MVP.
+- Aliases are not part of the current MVP.
+- Optional positional arguments are not part of the current MVP.
+- Command path matching uses the implemented ASCII case-insensitive comparison behavior in the matcher.
+- Enum matching uses the implemented ASCII case-insensitive comparison behavior in the parser.
+- `BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND` is implemented current behavior.
+- Complete-line console orchestration is output-neutral.
+- Large execution storage is caller-owned through `bsc_console_workspace_t`.
+- The current console API uses explicit input byte spans and lengths.
+- The high-level console rejects embedded NUL bytes before tokenization.
+- The high-level console performs one intentional command-text copy into workspace storage.
+- The workspace-local active guard rejects ordinary same-workspace recursion but is not synchronization.
+- The current default dispatch access matrix allows normal and advanced commands and denies factory and locked commands when no access callback is present.
+- A command access callback, when present, decides allow/deny for the command's required access level.
+- `BSC_COMMAND_FLAG_HIDDEN` is a metadata flag distinct from access level and does not by itself deny dispatch.
 
-### Output ownership baseline
+## Deferred beyond the current MVP or current phase
 
-Core owns no platform output.
+The following features are deferred and are not blockers for the current implemented MVP:
 
-Use a callback abstraction:
+- runtime command registration;
+- aliases;
+- optional positional arguments;
+- examples;
+- Arduino adapter;
+- ESP-IDF adapter;
+- AS7331 integration;
+- completion and hints;
+- history and line editing;
+- authentication/unlock workflows beyond the existing access callback boundary;
+- persistent settings;
+- interactive prompts.
 
-```c
-typedef void (*bsc_write_fn_t)(void *user, const char *text);
-```
+## Future decisions requiring approval before implementation
 
-The core may provide bounded helper functions for writing strings, lines, status, and formatted chunks. Any formatted output helper must use a bounded buffer with a compile-time capacity.
+The following unresolved decisions belong to future features and require approval before those features begin:
 
-### Final result output baseline
+- generated-help built-in routing and command-collision policy;
+- help visibility/filtering for advanced, factory, hidden, and locked commands;
+- automatic diagnostic, echo, redacted-echo, and final-result output policy;
+- whether to add a bounded formatted-output helper such as `bsc_out_printf()`;
+- runtime-registration design, if runtime registration is later approved;
+- license selection and third-party code compatibility.
 
-Recommend that handlers return `bsc_status_t`, and the console may optionally emit auto-result output when `auto_result_enabled` is true.
+## Memory and ownership rules
 
-MVP should not force every command to print `OK:` or `ERR:` itself. Provide helpers, but keep policy explicit.
+Core source must remain bounded and deterministic:
 
-Open approval item: whether auto-result output is enabled by default in examples.
+- no heap allocation in the platform-independent core;
+- no Arduino `String` or STL containers in the C core;
+- no hidden mutable static workspace;
+- no large local line, token, parsed-argument, or matcher arrays in core execution paths;
+- no platform mutex or RTOS dependency in the C core;
+- all major execution storage is compile-time bounded and caller-owned or caller-provided.
 
-## Repository layout plan
+Descriptor metadata is borrowed and must outlive validation, matching, parsing, dispatch, console execution, and any result fields that point back to descriptors.
 
-Final target layout for the first implementation wave:
+Workspace line bytes are ordinary-cleared by console cleanup as best-effort privacy hardening. This is not a cryptographic secure-erasure guarantee.
 
-```text
-README.md
-LICENSE                       # still pending license decision
-CMakeLists.txt
-.clang-format
-.editorconfig
-.gitignore
-docs/
-  00_serial_console_library_design_intent.md
-  01_serial_console_library_roadmap.md
-  02_serial_console_library_implementation_guide.md
-  03_serial_console_library_handoff.md
-  architecture_plan.md
-  code_documentation_policy.md
-  prior_art_review.md
-  test_strategy.md
-src/
-  README.md
-  bsc_config.h
-  bsc_status.h
-  bsc_string_view.h
-  bsc_string_view.c
-  bsc_output.h
-  bsc_output.c
-  bsc_types.h
-  bsc_tokenizer.h
-  bsc_tokenizer.c
-  bsc_args.h
-  bsc_args.c
-  bsc_registry.h
-  bsc_registry.c
-  bsc_matcher.h
-  bsc_matcher.c
-  bsc_dispatch.h
-  bsc_dispatch.c
-  bsc_help.h
-  bsc_help.c
-  bsc_console.h
-  bsc_console.c
-test/
-  README.md
-  CMakeLists.txt
-  test_main.c
-  test_bsc_string_view.c
-  test_bsc_output.c
-  test_bsc_tokenizer.c
-  test_bsc_args.c
-  test_bsc_registry.c
-  test_bsc_matcher.c
-  test_bsc_dispatch.c
-  test_bsc_help.c
-  test_bsc_console.c
-  fixtures/
-    bsc_test_commands.h
-    bsc_test_commands.c
-  golden/
-    help_index.txt
-    help_gain.txt
-    help_settings_wifi.txt
-    help_settings_wifi_set_password.txt
-    commands.txt
-examples/
-  README.md
-  host_basic/
-  host_sensor_settings/
-adapters/
-  arduino/
-  esp_idf/
-tools/
-  check_forbidden_patterns.py
-```
+## Output and presentation rules
 
-Notes:
+The current core has output helpers and forwards configured output to handlers. It does not implement a console presentation policy.
 
-- `bsc_status.h` is separated from `bsc_types.h` so status codes are easy to include in all modules.
-- `bsc_string_view.*` is separated because string views are foundational to tokenizer, matcher, args, and tests.
-- `bsc_matcher.*` is separated from `bsc_registry.*` to keep command-table validation distinct from runtime path matching.
-- `bsc_dispatch.*` should coordinate matcher + args + handler, but not own line buffering.
-- `bsc_console.*` should be the high-level public entry point that owns or receives the bounded command-execution workspace, normalizes input in that workspace, and calls tokenizer/matcher/dispatch/help without creating a second command text buffer.
-- `adapters/` can be created later; do not add adapter code before the host-tested core exists.
+Deferred presentation features include:
 
-## Module responsibilities
+- generated help/manpage rendering;
+- command echo;
+- redacted echo;
+- automatic parser/matcher/access diagnostics;
+- automatic `OK` / `ERR` / final-result output;
+- golden-output policy for operator-facing text.
 
-### `bsc_config.h`
+## Testing contract
 
-Defines conservative compile-time defaults and allows project overrides.
+Current host tests are built into `sce_host_tests` and registered with CTest. The test runner includes:
 
-Recommended initial values:
+- `test_bsc_tokenizer.c`;
+- `test_bsc_types.c`;
+- `test_bsc_registry.c`;
+- `test_bsc_matcher.c`;
+- `test_bsc_args.c`;
+- `test_bsc_dispatch.c`;
+- `test_bsc_console.c`.
 
-```c
-#ifndef BSC_MAX_COMMANDS
-#define BSC_MAX_COMMANDS 64u
-#endif
+CTest also registers `sce_forbidden_patterns` when Python3 is available. Core validation must continue to run without Arduino, ESP-IDF, UART hardware, or target boards.
 
-#ifndef BSC_MAX_PATH_TOKENS
-#define BSC_MAX_PATH_TOKENS 6u
-#endif
+Future generated-help work must add golden-output tests once exact output is approved.
 
-#ifndef BSC_MAX_ARGS
-#define BSC_MAX_ARGS 8u
-#endif
+## Current non-goals
 
-#ifndef BSC_MAX_TOKENS
-#define BSC_MAX_TOKENS 24u
-#endif
-
-#ifndef BSC_MAX_LINE_LEN
-#define BSC_MAX_LINE_LEN 160u
-#endif
-
-#ifndef BSC_MAX_TOKEN_LEN
-#define BSC_MAX_TOKEN_LEN 64u
-#endif
-
-#ifndef BSC_MAX_ENUM_CHOICES
-#define BSC_MAX_ENUM_CHOICES 16u
-#endif
-
-#ifndef BSC_OUTPUT_CHUNK_LEN
-#define BSC_OUTPUT_CHUNK_LEN 160u
-#endif
-```
-
-Feature flags:
-
-```c
-BSC_ENABLE_FLOAT
-BSC_ENABLE_QUOTED_STRINGS
-BSC_ENABLE_BUILTIN_HELP
-BSC_CASE_INSENSITIVE_COMMANDS
-BSC_CASE_INSENSITIVE_ENUMS
-```
-
-### `bsc_status.h`
-
-Defines explicit status codes. Do not collapse parser failures into generic false.
-
-Recommended MVP status set:
-
-```c
-typedef enum {
-  BSC_STATUS_OK = 0,
-  BSC_STATUS_NO_INPUT,
-  BSC_STATUS_LINE_TOO_LONG,
-  BSC_STATUS_TOKEN_TOO_LONG,
-  BSC_STATUS_TOO_MANY_TOKENS,
-  BSC_STATUS_UNTERMINATED_QUOTE,
-  BSC_STATUS_UNKNOWN_COMMAND,
-  BSC_STATUS_AMBIGUOUS_COMMAND,
-  BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND,
-  BSC_STATUS_MISSING_ARGUMENT,
-  BSC_STATUS_EXTRA_ARGUMENT,
-  BSC_STATUS_INVALID_ARGUMENT_TYPE,
-  BSC_STATUS_ARGUMENT_OUT_OF_RANGE,
-  BSC_STATUS_ARGUMENT_TOO_LONG,
-  BSC_STATUS_INVALID_ENUM_VALUE,
-  BSC_STATUS_ACCESS_DENIED,
-  BSC_STATUS_OUTPUT_TRUNCATED,
-  BSC_STATUS_APP_ERROR,
-  BSC_STATUS_INTERNAL_ERROR
-} bsc_status_t;
-```
-
-`BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND` is added to distinguish a known group prefix from an unknown command.
-
-### `bsc_string_view.h/.c`
-
-Defines immutable string views and comparison helpers.
-
-Responsibilities:
-
-- Store pointer + length without copying.
-- Compare view-to-cstr exactly.
-- Compare view-to-cstr case-insensitively.
-- Check length and empty state.
-- Copy view into bounded destination when application persistence is needed.
-- Avoid assuming tokens are null-terminated.
-
-### `bsc_output.h/.c`
-
-Defines output callback abstraction and bounded output helpers.
-
-Responsibilities:
-
-- Write string chunks through callback.
-- Write newline helpers.
-- Optionally write bounded formatted output.
-- Return explicit status on truncation if formatting exceeds `BSC_OUTPUT_CHUNK_LEN`.
-- Never own UART, Serial, stdout, file descriptors, or RTOS objects.
-
-### `bsc_types.h`
-
-Defines public descriptor and parsed argument types:
-
-- `bsc_arg_type_t`
-- `bsc_enum_choice_t`
-- `bsc_arg_def_t`
-- `bsc_arg_value_t`
-- `bsc_parsed_args_t`
-- `bsc_node_type_t`
-- `bsc_access_level_t`
-- `bsc_command_t`
-- callback typedefs
-- maybe `bsc_console_options_t`
-
-Keep this header public and Doxygen-documented.
-
-### `bsc_tokenizer.h/.c`
-
-Turns a bounded mutable line buffer into token views.
-
-Responsibilities:
-
-- Trim leading/trailing whitespace.
-- Split on spaces and tabs outside quotes.
-- Support quoted strings when enabled.
-- Support `\"` and `\\` inside quotes.
-- Reject unterminated quotes.
-- Reject too many tokens.
-- Reject token too long.
-- Return empty input as `BSC_STATUS_NO_INPUT`.
-- Avoid heap allocation.
-- Avoid unbounded recursion.
-- Do not allocate or own a second tokenizer text buffer.
-- Do not create per-token string buffers or large local token/text arrays.
-
-Implementation recommendation:
-
-Use an in-place state machine over the active workspace `char line_buffer[]`. Store tokens as `bsc_string_view_t` values in caller-owned or console/workspace-owned token storage. For quoted/unescaped strings, it is acceptable to compact escapes in-place inside `line_buffer` so the token view points to the unescaped content. Tokenizer code must not copy token text into another tokenizer-owned buffer.
-
-Tokenizer states:
-
-```text
-idle
-bare_token
-quoted_token
-quoted_escape
-```
-
-### `bsc_args.h/.c`
-
-Parses remaining tokens according to a command's argument schema.
-
-Responsibilities:
-
-- Validate exact required argument count for MVP.
-- Reject missing and extra arguments.
-- Parse signed int with full-token consumption.
-- Parse unsigned int with full-token consumption and no sign.
-- Parse float with full-token consumption and NaN/inf rejection when possible.
-- Parse bool accepted forms: `on/off`, `true/false`, `yes/no`, `1/0`.
-- Parse enum choices, case-insensitively by default.
-- Validate string and secret byte lengths.
-- Store string/secret as views into the same active line buffer used by the tokenizer.
-- Store enum as index into the descriptor's choice array.
-
-Do not use `atoi()` or `atof()` without end-pointer validation. Prefer `strtol`, `strtoul`, and `strtof`/`strtod` with end-pointer and range checks.
-
-### `bsc_registry.h/.c`
-
-Validates static descriptor tables.
-
-Responsibilities:
-
-- Check command count within limits.
-- Check every path has `path_len > 0` and `path_len <= BSC_MAX_PATH_TOKENS`.
-- Check no null path token in the active path range.
-- Check node type validity.
-- Check executable commands have handlers unless they are recognized built-ins.
-- Check argument count within limits.
-- Check enum choice count within limits.
-- Check required help fields for public commands if validation mode asks for strict help.
-- Detect exact duplicate paths.
-- Detect duplicate built-ins if core built-ins and app descriptors collide.
-
-This module should not execute commands.
-
-### `bsc_matcher.h/.c`
-
-Finds the best matching command path from token views.
-
-Responsibilities:
-
-- Linear scan over bounded descriptor array.
-- Compare path tokens against input tokens.
-- Prefer longest exact path match.
-- Distinguish unknown command from known group requiring a subcommand.
-- Detect ambiguous duplicate/compatible matches if registry validation did not prevent them.
-- Return matched command pointer and count of consumed path tokens.
-- Avoid recursive descent.
-
-Important behavior:
-
-`settings wifi set ssid Shop_AP` must match path `settings wifi set ssid` with remaining arg `Shop_AP`, not a shorter `settings wifi` command with extra strings.
-
-### `bsc_dispatch.h/.c`
-
-Coordinates access checks, argument parsing, and handler invocation for a matched executable command.
-
-Responsibilities:
-
-- Reject group-only commands unless a group handler policy is explicitly supported.
-- Check access level and optional access callback.
-- Parse remaining tokens into `bsc_parsed_args_t`.
-- Call handler exactly once on valid command.
-- Do not call handler on parse, validation, matching, or access failure.
-- Propagate handler return status.
-- Support optional auto-result output policy.
-
-### `bsc_help.h/.c`
-
-Renders generated help/manpage output from command descriptors.
-
-Responsibilities:
-
-- Render `help` top-level command/group index.
-- Render `commands` canonical command list.
-- Render `help <group>` child listing.
-- Render `help <leaf>` manpage.
-- Render nested path help.
-- Display argument names, types, ranges, enum values, notes, examples, and related commands.
-- Redact secret examples in any helper-generated echo/status paths.
-- Respect access/visibility policy.
-- Use bounded output helpers only.
-
-Minimum manpage sections:
-
-```text
-NAME
-SYNOPSIS
-DESCRIPTION
-ARGUMENTS
-VALID VALUES
-NOTES
-EXAMPLES
-RELATED
-```
-
-Sections with no content may be omitted if output policy says so, but golden tests must lock the chosen behavior.
-
-### `bsc_console.h/.c`
-
-High-level public entry point.
-
-Responsibilities:
-
-- Own or receive console runtime context.
-- Copy a complete line into `line_buffer` with bounds checking.
-- Call tokenizer.
-- Route built-ins such as `help` and `commands`.
-- Match command paths.
-- Dispatch executable commands.
-- Provide deterministic status/error output when configured.
-
-Recommended public API sketch:
-
-```c
-bsc_status_t bsc_console_init(bsc_console_t *console,
-                              const bsc_command_t *commands,
-                              uint8_t command_count,
-                              void *app_ctx,
-                              bsc_output_t output);
-
-bsc_status_t bsc_execute_line(bsc_console_t *console, const char *line);
-
-const char *bsc_status_name(bsc_status_t status);
-```
-
-Exact API may change during implementation, but the high-level `bsc_execute_line()` concept should remain.
-
-## Lifetime, ownership, and command-execution workspace rules
-
-These rules must be documented in headers and enforced by tests or review checks where practical. Any task that deviates from this model must document and justify the deviation in its receipt.
-
-### Single workspace model
-
-The core uses one bounded command-execution workspace for one active command execution. `bsc_console_t`, or a future `bsc_console_workspace_t`, owns or receives that workspace and serializes access to it. The workspace is expected to contain, directly or through caller-owned members:
-
-- One mutable line buffer for the active command line.
-- One token-view array.
-- Later, one parsed-argument array.
-- Later, optional small bounded output-format scratch only if bounded formatting is explicitly approved.
-
-The reusable core must avoid serial/input-buffer -> console-buffer -> tokenizer-buffer -> parser-string-buffer copy chains. Future adapters should fill the console/workspace line buffer directly where practical. If an adapter must use an RX staging buffer, the adapter must document that buffer's owner, capacity, lifetime, serialization assumptions, and exact copy boundary.
-
-### Tokenizer and parser storage
-
-- The tokenizer operates on the active mutable line buffer in place.
-- The tokenizer may compact quote escapes in that same line buffer.
-- Token views point into that same mutable line buffer.
-- Token arrays are caller-owned or console/workspace-owned; tokenizer functions must not place large token arrays on the stack.
-- There is no separate tokenizer-owned text buffer.
-- There are no per-token string copies in the core tokenizer.
-- The matcher consumes token views and does not copy command text.
-- The argument parser consumes token views. Numeric, boolean, and enum arguments become small parsed values. String and secret arguments remain borrowed views into the same line buffer.
-- Parsed-argument arrays are caller-owned or console/workspace-owned; parser functions must not place large parsed-argument arrays on the stack.
-
-### Lifetime and pointer escape rules
-
-- Command descriptor arrays are caller-owned and must outlive the console context.
-- Descriptor strings are caller-owned/static and must outlive the console context.
-- `bsc_console_t` is caller-owned unless a future adapter clearly documents another owner.
-- Borrowed token and parsed string/secret views are valid only for the active command execution: until the next line-buffer mutation or end of dispatch, whichever stricter policy is later formalized by console/dispatch.
-- Application handlers must explicitly copy string or secret values into bounded application-owned storage if they need persistence beyond the handler call.
-- Output callback user pointer is caller-owned and opaque to the core.
-- Core tokenizer/parser/matcher/dispatch code must not retain pointers into the workspace after the active execution completes.
-
-### Allocation and scratch storage rules
-
-- No core function may allocate heap memory.
-- Reusable core modules must not use hidden file-scope static scratch buffers.
-- Tokenizer, parser, matcher, and dispatch functions must not use large local arrays for command text, token text, token arrays, parsed arguments, or output chunks. Workspace/caller-owned storage is the default placement for bounded arrays.
-- A future task that proposes service-owned or file-scope static storage must first anchor the owner, capacity, lifetime, reentrancy, serialization, and pointer-escape rules.
-
-## Built-in command policy
-
-MVP built-ins:
-
-```text
-help
-commands
-```
-
-Implementation recommendation:
-
-- Treat `help` and `commands` as normal descriptors where possible.
-- `help` may require special dispatch because it accepts a variable number of path tokens.
-- Built-ins must be testable through `bsc_execute_line()` like any other command.
-- App command names should not be allowed to collide with core built-ins unless there is an explicit override policy.
-
-Deferred built-ins:
-
-```text
-version
-about
-```
-
-Do not add them in MVP unless needed by examples.
-
-## Error and status output policy
-
-Parser/validation errors should be concise and deterministic.
-
-Recommended examples:
-
-```text
-ERR: unknown command
-ERR: missing argument: value
-ERR: invalid argument type: hz expects float
-ERR: argument out of range: hz must be 0.100..50.000
-ERR: invalid value: output must be raw|scaled|both
-ERR: string too long: ssid max 32
-ERR: access denied
-```
-
-Secret echo/status example:
-
-```text
-> settings wifi set password ********
-OK: settings wifi password set
-```
-
-Golden tests should lock representative output after the initial format is approved.
-
-## Host test plan
-
-The first implementation wave must create the host test foundation before adding many features.
-
-Recommended initial test layout:
-
-```text
-test/CMakeLists.txt
-test/test_main.c
-test/test_bsc_string_view.c
-test/test_bsc_output.c
-test/test_bsc_tokenizer.c
-test/test_bsc_args.c
-test/test_bsc_registry.c
-test/test_bsc_matcher.c
-test/test_bsc_dispatch.c
-test/test_bsc_help.c
-test/test_bsc_console.c
-test/fixtures/bsc_test_commands.h
-test/fixtures/bsc_test_commands.c
-test/golden/
-```
-
-Recommended first test milestone:
-
-```text
-cmake -S . -B build
-cmake --build build
-ctest --test-dir build --output-on-failure
-```
-
-Initial smoke test should prove:
-
-- CMake configures.
-- Host tests build.
-- Test runner executes.
-- A known passing test reports success.
-- A command fixture can be linked without platform dependencies.
-
-Core coverage required before MVP can be considered complete:
-
-- Empty/whitespace input.
-- Basic tokens.
-- Quoted strings.
-- Escapes.
-- Unterminated quote rejection.
-- Line too long rejection.
-- Token too long rejection.
-- Too many tokens rejection.
-- Unknown command.
-- Group-only command.
-- Nested leaf command.
-- Longest-path matching.
-- Missing argument.
-- Extra argument.
-- Each typed argument parse success/failure.
-- Numeric range validation.
-- Enum validation.
-- String length validation.
-- Secret redaction.
-- Access denied path.
-- Handler not called on validation failure.
-- Handler return status.
-- Help index output.
-- Help group output.
-- Help leaf/manpage output.
-
-## Static checks plan
-
-Add a forbidden-pattern checker early, preferably:
-
-```text
-tools/check_forbidden_patterns.py
-```
-
-The checker must distinguish core source from adapters.
-
-Core forbidden patterns:
-
-```text
-malloc
-calloc
-realloc
-free
-new
-delete
-Arduino String
-#include <Arduino.h>
-#include "Arduino.h"
-ESP-IDF includes in src/
-std:: containers in src/
-unbounded sprintf
-strcpy/strcat without size enforcement
-atoi/atof without end-pointer validation
-```
-
-This check is a guard, not proof of correctness. It must run alongside host tests.
-
-## Example plan
-
-Add host examples after the core can execute commands in tests.
-
-Initial host example set:
-
-```text
-examples/host_basic/
-  status
-  reset_stats
-  help
-  help status
-
-examples/host_sensor_settings/
-  gain <enum>
-  time <enum>
-  rate <float>
-  output <enum>
-  status
-
-examples/host_wifi_settings/
-  settings wifi status
-  settings wifi set ssid <string[1..32]>
-  settings wifi set password <secret[8..64]>
-  settings wifi clear
-```
-
-Arduino examples should wait until the Arduino adapter exists and the core is stable.
-
-## Adapter plan
-
-Adapters are not part of MVP core task 1.
-
-### Arduino adapter
-
-Future location:
-
-```text
-adapters/arduino/BscArduinoConsole.h
-adapters/arduino/BscArduinoConsole.cpp
-```
-
-Responsibilities:
-
-- Borrow an Arduino `Stream` or compatible object.
-- Accumulate input lines in bounded storage.
-- Call `bsc_execute_line()` for complete lines.
-- Write output through the core output callback.
-- Avoid Arduino `String` internally unless a later explicit decision approves it.
-- Document lifetime: borrowed `Stream` and `bsc_console_t` must outlive adapter.
-
-### ESP-IDF adapter
-
-Future location:
-
-```text
-adapters/esp_idf/bsc_esp_idf_adapter.h
-adapters/esp_idf/bsc_esp_idf_adapter.c
-```
-
-Responsibilities:
-
-- Bridge ESP-IDF UART/console input to complete command lines.
-- Keep RTOS/blocking behavior explicit.
-- Keep ESP-IDF includes out of `src/`.
-- Document task/ISR/thread assumptions.
-
-### Host adapter
-
-A host stdio adapter may be useful for examples and manual testing, but it should not be required by core unit tests.
-
-## Documentation policy integration
-
-Implementation tasks must follow `docs/code_documentation_policy.md`.
-
-Public C headers must document:
-
-- Ownership.
-- Buffer sizes.
-- Units and ranges.
-- Status codes.
-- Blocking behavior.
-- Thread/ISR safety.
-- Lifetime rules.
-- Redaction rules.
-
-Inline comments should explain non-obvious parser, memory, redaction, or regression-protection behavior. Do not comment trivial syntax.
-
-## Golden help/manpage policy
-
-Help output is a public product surface.
-
-Before Phase 3 is complete:
-
-- Representative help/manpage output must be stored under `test/golden/`.
-- Golden diffs must be visible in failing tests.
-- Public commands missing required help metadata should fail descriptor validation tests.
-- Secret values must not appear in generated status/echo/helper output.
-
-## First implementation task recommendation
-
-The next Codex execute task should be narrow and infrastructure-first.
-
-Recommended task title:
-
-```text
-Phase 2A — Core Skeleton and Host Test Harness
-```
-
-Scope:
-
-```text
-Add C99 core skeleton files.
-Add test/CMakeLists.txt and a minimal self-contained C test runner.
-Add bsc_config.h, bsc_status.h, bsc_string_view.h/.c, bsc_output.h/.c, and minimal bsc_console.h/.c stubs sufficient for host smoke tests.
-Add tools/check_forbidden_patterns.py if practical.
-Make cmake/build/ctest run successfully.
-Do not implement full tokenizer, parser, help, Arduino adapter, ESP-IDF adapter, or examples yet.
-```
-
-Acceptance:
-
-```text
-- CMake configures from a clean build directory.
-- Host tests build and run through CTest.
-- At least one smoke test validates bsc_status_name() or equivalent.
-- At least one string-view helper test exists if string-view code is added.
-- Forbidden-pattern check exists or is explicitly deferred with reason.
-- No heap allocation in core.
-- No Arduino String or Arduino/ESP-IDF includes in core.
-- Public headers have Doxygen-compatible comments per docs/code_documentation_policy.md.
-- Final receipt separates Host tests, Static checks, Adapter compile checks, Hardware validation, and Unverified items.
-```
-
-## Suggested implementation sequence
-
-### Phase 2A — Core skeleton and host test harness
-
-Goal: make host build/test infrastructure real.
-
-Files likely added:
-
-```text
-src/bsc_config.h
-src/bsc_status.h
-src/bsc_string_view.h
-src/bsc_string_view.c
-src/bsc_output.h
-src/bsc_output.c
-src/bsc_console.h
-src/bsc_console.c
-test/CMakeLists.txt
-test/test_main.c
-test/test_bsc_string_view.c
-test/test_bsc_output.c
-tools/check_forbidden_patterns.py
-```
-
-### Phase 2B — Tokenizer
-
-Goal: bounded tokenizer with quotes/escapes and rejection tests.
-
-### Phase 2C — Descriptor types, registry validation, and matcher
-
-Goal: static command descriptor model, table validation, and longest-path matching.
-
-### Phase 2D — Typed argument parser
-
-Goal: int/uint/float/bool/enum/string/secret validation with full-token parsing and negative tests.
-
-### Phase 2E — Dispatch and access checks
-
-Goal: handler callback dispatch, access denial, app context propagation, and handler return status.
-
-### Phase 3A — Help renderer foundation
-
-Goal: `help`, `help <path>`, and `commands` output with golden tests.
-
-### Phase 4A — Host examples
-
-Goal: `host_basic`, `host_sensor_settings`, and `host_wifi_settings` examples.
-
-### Phase 5A — Arduino adapter plan/implementation
-
-Goal: add bounded Arduino `Stream` adapter after core behavior is stable.
-
-## Open decisions requiring approval
-
-These should be accepted, changed, or explicitly deferred before full MVP implementation.
-
-1. Confirm C99 as the core language standard.
-2. Confirm CMake + CTest as the primary host build/test path.
-3. Confirm self-contained C test runner for initial tests.
-4. Confirm static descriptor tables only for MVP; defer runtime registration.
-5. Confirm no aliases in MVP.
-6. Confirm no optional positional arguments in MVP.
-7. Confirm case-insensitive command and enum matching by default.
-8. Confirm exact visibility defaults for `ADVANCED`, `FACTORY`, `HIDDEN`, and `LOCKED` commands.
-9. Confirm whether auto-result output is enabled by default in examples.
-10. Confirm whether `bsc_out_printf()` is included in MVP or deferred in favor of write/write-line helpers only.
-11. Confirm whether `BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND` should be added beyond the existing implementation-guide status list.
-12. Confirm license before copying any reference code or accepting code that appears derived from a third-party implementation.
-
-## Final rule
-
-The core must be boring, bounded, and heavily host-tested.
-
-A source task is not acceptable merely because firmware might compile later. It must prove host behavior for the parser/registry/validator/dispatcher/help surface and explicitly state what was not verified on adapters or hardware.
+The current MVP does not implement generated help/manpages, built-in `help` or `commands`, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.

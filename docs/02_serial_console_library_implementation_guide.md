@@ -143,44 +143,33 @@ typedef enum {
 
 ## 5. Output abstraction
 
-The core should not know about `Serial`, UART, or stdout.
+The core does not know about `Serial`, UART, stdout, files, RTOS objects, or platform locks. Output is represented by a small callback wrapper:
 
 ```c
-typedef void (*bsc_write_fn_t)(void* user, const char* text);
+typedef size_t (*bsc_write_fn_t)(void *user, const char *data, size_t length);
 
-typedef struct {
+typedef struct bsc_output {
   bsc_write_fn_t write;
-  void* user;
+  void *user;
 } bsc_output_t;
 ```
 
-Optionally add helper functions:
+The current helpers write C strings and C strings followed by `\n` through this callback and report short writes as `BSC_STATUS_OUTPUT_TRUNCATED`. The complete-line console copies the wrapper by value during initialization when one is provided, but the callback and user pointer remain borrowed.
 
-```c
-void bsc_out_write(bsc_output_t* out, const char* text);
-void bsc_out_writeln(bsc_output_t* out, const char* text);
-void bsc_out_printf(bsc_output_t* out, const char* fmt, ...);
-```
-
-`bsc_out_printf()` must use a fixed local or caller-provided bounded buffer. Its maximum output chunk size must be configurable.
+The console orchestration layer is output-neutral. It does not automatically write command echo, help, parser errors, matcher errors, access errors, `OK`, `ERR`, or final-result text. It only forwards the configured output wrapper to handlers through selected-command dispatch. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
 
 ## 6. Token representation
 
-The tokenizer should produce token views. Tokens may point into the console line buffer.
+The tokenizer produces explicit-length `bsc_string_view_t` token views into caller-owned mutable line storage. In the high-level console path, those token views point into `bsc_console_workspace_t.line_buffer`, not into `bsc_console_t`.
+
+The workspace owns the bounded token array used by complete-line execution:
 
 ```c
-typedef struct {
-  const char* ptr;
-  uint16_t len;
-} bsc_string_view_t;
-
-typedef struct {
-  bsc_string_view_t tokens[BSC_MAX_TOKENS];
-  uint8_t count;
-} bsc_token_list_t;
+bsc_string_view_t tokens[BSC_MAX_TOKENS];
+size_t token_count;
 ```
 
-String comparison helpers should support case-insensitive command matching without copying.
+Token views are valid only during the active synchronous execution and are cleared before `bsc_execute_line()` returns. String comparison helpers support exact and ASCII case-insensitive matching without copying token text.
 
 ## 7. Argument type definitions
 
@@ -253,7 +242,7 @@ typedef struct {
 } bsc_parsed_args_t;
 ```
 
-String and secret arguments should be views into the line buffer. If the application needs to persist a value, it must copy it into a bounded destination.
+String and secret arguments are borrowed views into the active token storage. In the complete-line console path they point into `bsc_console_workspace_t.line_buffer`. They are valid only during synchronous dispatch/handler execution; applications that need persistent values must copy them into bounded application-owned storage.
 
 ## 9. Command descriptor
 
@@ -307,56 +296,72 @@ typedef struct bsc_command_s {
 
 Path tokens should be literals. For example, `settings wifi set ssid` is a path, and the actual SSID is an argument.
 
-## 10. Console context
+## 10. Console configuration and execution workspace
+
+The implemented console model separates lightweight configuration from execution storage. `bsc_console_t` is initialized from `bsc_console_config_t`, validates the static descriptor table once, then remains read-only during execution:
 
 ```c
-typedef struct {
-  const bsc_command_t* commands;
-  uint8_t command_count;
-  void* app_ctx;
-  bsc_output_t out;
-  bool echo_enabled;
-  bool auto_result_enabled;
-  char line_buffer[BSC_MAX_LINE_LEN + 1u];
+typedef struct bsc_console_config {
+  const bsc_command_t *commands;
+  size_t command_count;
+  void *app_context;
+  const bsc_output_t *output;
+} bsc_console_config_t;
+
+typedef struct bsc_console {
+  const bsc_command_t *commands;
+  size_t command_count;
+  void *app_context;
+  bsc_output_t output;
+  bool has_output;
+  bool initialized;
 } bsc_console_t;
 ```
 
-For static registration MVP, `commands` points to a const array. Runtime registration can be added later using a caller-provided array of pointers or descriptors.
+`bsc_console_t` owns no line buffer, token array, parsed-argument array, matcher result, diagnostic storage, mutex, or execution-active state. It borrows descriptor metadata and application context for its lifetime. When configured, it stores a by-value copy of the output wrapper while the callback and user pointer remain borrowed.
 
-## 11. Parser algorithm
+Complete-line execution receives caller-owned workspace per call:
 
-1. Receive a complete line.
-2. Trim leading/trailing whitespace.
-3. If empty, return `BSC_STATUS_NO_INPUT`.
-4. Tokenize into bounded token list.
-5. Find the best matching command:
-   - Compare path tokens against input tokens.
-   - Prefer the longest exact path match.
-   - If multiple commands have the same path match, return ambiguous or choose the leaf with compatible argument count only if unambiguous.
-6. Validate access level.
-7. Parse remaining tokens according to argument schema.
-8. Call handler.
-9. Print final result if auto-result is enabled.
+```c
+typedef struct bsc_console_workspace {
+  char line_buffer[BSC_MAX_LINE_LEN + 1u];
+  bsc_string_view_t tokens[BSC_MAX_TOKENS];
+  size_t token_count;
+  bsc_match_result_t match_result;
+  bsc_parsed_args_t parsed_args;
+  bsc_arg_parse_error_t parse_error;
+  bool execution_active;
+} bsc_console_workspace_t;
+```
 
-The matching algorithm should not require recursive descent. A simple linear scan over a bounded command array is acceptable for MVP. Faster lookup can be deferred.
+The workspace may be static, global, embedded in an adapter/application object, or otherwise explicitly placed by the caller. Its non-atomic active guard rejects ordinary same-workspace recursion, but it is not a mutex and does not provide cross-task synchronization. Runtime registration can be added later using a separately approved bounded model.
+
+## 11. Complete-line execution algorithm
+
+`bsc_execute_line()` accepts an explicit byte span and length. A normal C string is submitted with a length that excludes its terminating NUL. The current high-level sequence is:
+
+1. Clear optional non-secret result metadata.
+2. Validate the console, workspace, initialized state, input pointer, and input length.
+3. Reject overlength input.
+4. Reject active reuse of the same workspace before modifying workspace contents.
+5. Reject embedded NUL bytes before tokenization.
+6. Mark the workspace active and clear transient metadata.
+7. Return `BSC_STATUS_NO_INPUT` for zero-length input.
+8. Copy exactly the submitted bytes into `workspace->line_buffer` with `memmove()` and place a trailing NUL outside the tokenizer span.
+9. Call `bsc_tokenize_line()` on the workspace line buffer.
+10. Call `bsc_match_command()` over the initialized descriptor table.
+11. Derive the remaining-token argument slice from `bsc_match_result_t`.
+12. Call `bsc_dispatch_command()` with the already selected executable command.
+13. Copy parser diagnostics into `bsc_console_result_t` only when dispatch populated them.
+14. Clear line, token, match, parsed-argument, and parser-diagnostic workspace state before returning.
+
+The tokenizer, matcher, typed parser, access enforcement, dispatch, and handler invocation remain separate stages. Dispatch begins with an already selected executable command and does not perform matching. The console does not automatically print final results.
 
 ## 12. Built-in commands
 
-Built-ins should be normal command descriptors added by the library or application:
+Generated help/manpages and built-in commands remain future work. The current complete-line console executes only the configured application descriptor table and contains no hard-coded `help`, `commands`, `version`, or `about` behavior.
 
-```text
-help
-commands
-```
-
-Optional later:
-
-```text
-version
-about
-```
-
-`help` should be able to accept zero or more path tokens. This can be implemented as a special built-in because it needs variable-length path matching.
+Future built-ins may be represented as descriptors supplied by the library/application or as a clearly documented pre-dispatch route after tokenization. Collision policy, visibility filtering, variable path-token handling, and access behavior must be approved with that future feature.
 
 ## 13. Example: sensor gain command
 
@@ -647,7 +652,7 @@ Input:
 settings wifi set
 ```
 
-If no executable command exists at `settings wifi set`, return usage/help for children, not an unknown-command failure.
+If input exactly matches a group descriptor, the current matcher reports `BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND`. Future help integration may render child usage for that status.
 
 Input:
 
@@ -657,9 +662,9 @@ settings bluetooth status
 
 Return unknown command and, if possible, list nearby children under `settings`.
 
-## 19. Error output recommendations
+## 19. Diagnostic and presentation recommendations
 
-Parser/validation errors should be clear but concise:
+The current console orchestration layer is output-neutral. It returns a primary status and optional non-secret result metadata; it does not render these example messages itself:
 
 ```text
 ERR: unknown command
@@ -671,19 +676,7 @@ ERR: string too long: ssid max 32
 ERR: access denied
 ```
 
-If command echo is enabled:
-
-```text
-> gain 3
-ERR: invalid value: value must be 1|2|4|8|16|32|64|128|256|512|1024|2048
-```
-
-For secret values:
-
-```text
-> settings wifi set password ********
-OK: settings wifi password set
-```
+Future adapter or diagnostic-rendering work may choose stable wording and golden tests for operator messages. Command echo, redacted echo, automatic errors, and automatic success/failure result lines are presentation policy, not current console execution behavior.
 
 ## 20. Test plan
 
@@ -709,9 +702,11 @@ Host unit tests must cover:
 - Enum validation.
 - String length validation.
 - Secret redaction.
-- Help index output.
-- Help group output.
-- Help leaf/manpage output.
+- Complete-line console initialization and execution.
+- Workspace cleanup and same-workspace recursion rejection.
+- Help index output once generated help is implemented.
+- Help group output once generated help is implemented.
+- Help leaf/manpage output once generated help is implemented.
 - Access-denied path.
 - Handler return status.
 
@@ -735,11 +730,11 @@ Do not use:
 
 Before merging any implementation:
 
-- Does every public command have a useful manpage?
+- When generated help is implemented, does every public command have a useful manpage?
 - Does every argument have a type, bounds, and help text?
 - Are all capacities compile-time bounded?
 - Are too-long inputs rejected safely?
-- Are secret values redacted?
+- Are secret values avoided in core-generated diagnostics, and are future presentation layers responsible for redaction?
 - Can the parser run in host tests?
 - Is the Arduino adapter separate from the core?
 - Are platform-specific dependencies isolated?

@@ -22,7 +22,7 @@
 #define BSC_MAX_ENUM_CHOICES 16u
 #endif
 
-/** Maximum bytes accepted by tokenizer input validation; future console input may share it. */
+/** Maximum bytes accepted by tokenizer input validation and complete-line console input. */
 #ifndef BSC_MAX_LINE_LEN
 #define BSC_MAX_LINE_LEN 160u
 #endif

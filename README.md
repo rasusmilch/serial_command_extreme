@@ -4,7 +4,7 @@ Serial Command Extreme is a reusable bounded embedded serial command library und
 
 The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to define commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, host tests, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: full console orchestration, generated help/manpages, examples, and platform adapters remain future work.
+This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, output-neutral complete-line console orchestration with caller-owned execution workspace, host tests, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: generated help/manpages, examples, and platform adapters remain future work.
 
 ## Intended use
 
@@ -85,12 +85,13 @@ Discovery can be menu-like through namespaces and help output, but normal operat
 Current status:
 
 ```text
-Stage: Foundational core, bounded tokenizer, static registry validation, longest-path matcher, typed positional argument parser, and selected-command dispatch/access enforcement implemented
-Implementation source: C99 core modules for config, status, string views, output, console context, descriptors, tokenizer, registry validation, matcher, typed argument parsing, selected-command dispatch/access enforcement, and internal compact float parsing
+Stage: Foundational core, bounded tokenizer, static registry validation, longest-path matcher, typed positional argument parser, selected-command dispatch/access enforcement, and output-neutral complete-line console orchestration implemented
+Implementation source: C99 core modules for config, status, string views, output, console configuration/workspace/result orchestration, descriptors, tokenizer, registry validation, matcher, typed argument parsing, selected-command dispatch/access enforcement, and internal compact float parsing
 Build system: CMake builds the core library and host tests
-Tests: Host coverage for foundational helpers, descriptor types, tokenizer, registry validation, matcher, typed argument parsing, operator diagnostics, selected-command dispatch/access enforcement, compact float enabled/disabled behavior, and forbidden-pattern checks
+Tests: Host coverage for foundational helpers, descriptor types, tokenizer, registry validation, matcher, typed argument parsing, operator diagnostics, selected-command dispatch/access enforcement, complete-line console orchestration, compact float enabled/disabled behavior, and forbidden-pattern checks
 Typed argument parser: implemented for signed integer, unsigned integer, compact decimal float when enabled, boolean, enum, bounded string, and bounded secret
 Selected-command dispatch and access enforcement: implemented
+Output-neutral complete-line console orchestration: implemented
 Generated help/manpages: not added yet
 Examples: not added yet
 Arduino adapter: not added yet
@@ -98,7 +99,7 @@ ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, and dispatch handlers, but it still lacks complete tokenizer/matcher/dispatch console orchestration, generated help/manpages, examples, and adapters.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, and dispatch handlers, but it still lacks generated help/manpages, examples, and adapters.
 
 
 ## Compact float arguments
@@ -159,9 +160,13 @@ The approved design and implementation guide expect the completed core to evolve
 
 ```text
 bsc_console_t
-  references the command registry
-  stores bounded line/input state
-  carries application context and output callback
+  references the validated command registry
+  carries application context and a by-value output callback wrapper
+  remains read-only during execution
+
+bsc_console_workspace_t
+  stores bounded line/input, token, match, parsed-argument, and diagnostic state
+  is caller-owned and supplied per complete-line execution
 
 bsc_command_t
   literal path tokens
@@ -187,13 +192,15 @@ bsc_arg_def_t
 Expected execution flow:
 
 ```text
-trim input
+adapter strips line endings
+copy explicit byte span into caller-owned workspace
+reject embedded NUL
 bounded tokenize
 match longest command path
 validate access
 parse and validate arguments
 dispatch callback
-render deterministic result or error
+return primary status plus optional non-secret result
 ```
 
 Some future orchestration, dispatch, help, adapter, and example names may still change, but the approved constraints should not be weakened without explicit approval.
@@ -219,11 +226,11 @@ test/
   golden/
 ```
 
-The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, internal compact-float parser, descriptor, status, string-view, output, and console-context modules. Planned future modules still include full matcher/parser/dispatch console orchestration, help/manpage rendering, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add console orchestration, generated-help, broader redaction, integration, adapter, and golden-output coverage.
+The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, internal compact-float parser, descriptor, status, string-view, and output modules. Planned future modules still include help/manpage rendering, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add generated-help, broader redaction, adapter, and golden-output coverage.
 
 ## Example command descriptor intent
 
-The current descriptor metadata supports command matching, typed argument parsing, selected-command access enforcement, and handler dispatch when applications call the tokenizer, matcher, parser, and dispatcher stages directly. It is also intended to support future broader redaction and help modules:
+The current descriptor metadata supports command matching, typed argument parsing, selected-command access enforcement, handler dispatch, and complete-line console orchestration. It is also intended to support future broader redaction and help modules:
 
 ```text
 path:        settings wifi set password
@@ -235,16 +242,14 @@ access:      normal
 
 From that metadata, the current reusable core can already:
 
-- Match the `settings wifi set password` path when the application supplies tokenizer output to the matcher.
-- Parse and length-check the secret argument when the application passes the matcher remaining-token slice to the typed parser.
-- Enforce selected-command access policy before parsing when the application calls the dispatcher.
-- Dispatch the handler with caller-owned typed parsed arguments after access and parse success.
-- Preserve the secret as a typed borrowed string view in caller-owned parsed storage.
-- Return structured parse diagnostics without echoing the secret value.
+- Match the `settings wifi set password` path through the complete-line console pipeline.
+- Parse and length-check the secret argument through the selected-command dispatcher after access approval.
+- Dispatch the handler with caller-owned workspace parsed arguments during synchronous execution.
+- Preserve the secret as a typed borrowed string view only during active handler execution.
+- Return primary statuses and optional non-secret structured result metadata without echoing the secret value.
 
 Still-future integration must:
 
-- Orchestrate complete console execution from line input through parser output.
 - Redact secrets in echo, status, logs, history, or other presentation layers outside the parser.
 - Generate `help settings wifi set password`.
 
@@ -256,7 +261,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-The read-only architecture planning milestone has already established the implementation direction. Future implementation should continue from the approved architecture and current tokenizer, registry-validation, matcher, typed-argument-parser, and selected-command dispatch/access foundation; do not skip ahead to adapters or examples before the remaining core orchestration and help behavior is defined and tested.
+The read-only architecture planning milestone has already established the implementation direction. Future implementation should continue from the approved architecture and current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, and complete-line console orchestration foundation; do not skip ahead to adapters or examples before the remaining core help behavior is defined and tested.
 
 Future Codex tasks should:
 
@@ -282,7 +287,7 @@ In short:
 
 ## Next recommended task
 
-After selected-command dispatch/access enforcement, the next useful implementation task should be selected from the remaining approved roadmap areas, such as full tokenizer/matcher/parser/dispatch console orchestration, generated help/manpage rendering, or broader redaction integration, each with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
+After output-neutral complete-line console orchestration, the next useful implementation task should be selected from the remaining approved roadmap areas, such as generated help/manpage rendering or broader redaction integration, each with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
 
 ## License
 
