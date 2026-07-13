@@ -173,42 +173,33 @@ Token views are valid only during the active synchronous execution and are clear
 
 ## 7. Argument type definitions
 
-```c
-typedef enum {
-  BSC_ARG_NONE = 0,
-  BSC_ARG_INT,
-  BSC_ARG_UINT,
-  BSC_ARG_FLOAT,
-  BSC_ARG_BOOL,
-  BSC_ARG_ENUM,
-  BSC_ARG_STRING,
-  BSC_ARG_SECRET
-} bsc_arg_type_t;
+The current public argument schema is defined in `src/bsc_types.h`. Argument descriptors use these active field names:
 
-typedef struct {
-  const char* value;
-  const char* help;
+```c
+typedef struct bsc_enum_choice {
+  const char *name;
+  int32_t value;
+  const char *help;
 } bsc_enum_choice_t;
 
-typedef struct {
-  const char* name;
+typedef struct bsc_arg_def {
+  const char *name;
   bsc_arg_type_t type;
-  bool required;
-  int32_t min_i;
-  int32_t max_i;
-  uint32_t min_u;
-  uint32_t max_u;
-  float min_f;
-  float max_f;
-  uint16_t min_len;
-  uint16_t max_len;
-  const bsc_enum_choice_t* enum_choices;
-  uint8_t enum_choice_count;
-  const char* help;
+  int32_t min_int;
+  int32_t max_int;
+  uint32_t min_uint;
+  uint32_t max_uint;
+  float min_float;
+  float max_float;
+  size_t min_length;
+  size_t max_length;
+  const bsc_enum_choice_t *enum_choices;
+  size_t enum_choice_count;
+  const char *help;
 } bsc_arg_def_t;
 ```
 
-For MVP, avoid optional positional arguments unless there is a specific accepted use case. Optional positional arguments create ambiguity and complicate help/testing.
+All current positional arguments are required by position. Optional positional arguments are not part of the implemented core. `BSC_ARG_NONE` exists as an enum value but registry validation rejects it as an active argument descriptor.
 
 ## 8. Parsed argument representation
 
@@ -408,7 +399,7 @@ Design notes:
 - SSID and password string lengths are explicit `min_length` and `max_length` byte bounds.
 - Generated help uses `summary`, `description`, argument `help`, and enum-choice `help`; it does not use stored synopsis, notes, examples, or related fields.
 
-Representative current-style descriptors should use borrowed path arrays and current field names from `src/bsc_types.h`; older sketches with `.brief`, `.synopsis`, `.required`, `.min_len`, `.max_len`, `.notes`, `.examples`, or `.related` are historical only and must not be copied into new code.
+Representative current-style descriptors use borrowed path arrays and current field names from `src/bsc_types.h`. The active schema has `summary` and `description`; generated help creates synopsis and valid-value output from descriptor metadata rather than stored synopsis text.
 
 ## 15. Example help output
 

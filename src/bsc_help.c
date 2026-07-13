@@ -4,6 +4,9 @@
 
 #include <stdint.h>
 
+/** @brief Compile-time length for internal string literals only. */
+#define BSC_HELP_LITERAL_LEN(value) (sizeof(value) - 1u)
+
 /** @brief Return options with documented default static visibility. */
 static bsc_help_options_t bsc_help_default_options(void) {
   bsc_help_options_t options;
@@ -26,6 +29,7 @@ void bsc_help_validation_error_clear(bsc_help_validation_error_t *error) {
   }
   error->reason = BSC_HELP_ERROR_NONE;
   error->command_index = 0u;
+  error->path_token_index = 0u;
   error->arg_index = 0u;
   error->enum_choice_index = 0u;
   error->required_parent_depth = 0u;
@@ -43,12 +47,14 @@ void bsc_help_lookup_result_clear(bsc_help_lookup_result_t *result) {
 static bsc_status_t bsc_help_fail(bsc_help_validation_error_t *error,
                                   bsc_help_error_reason_t reason,
                                   size_t command_index,
+                                  size_t path_token_index,
                                   size_t arg_index,
                                   size_t enum_choice_index,
                                   size_t required_parent_depth) {
   if (error != NULL) {
     error->reason = reason;
     error->command_index = command_index;
+    error->path_token_index = path_token_index;
     error->arg_index = arg_index;
     error->enum_choice_index = enum_choice_index;
     error->required_parent_depth = required_parent_depth;
@@ -95,23 +101,53 @@ static bsc_status_t bsc_help_validate_text(const char *text,
   size_t index;
 
   if (text == NULL) {
-    return required ? bsc_help_fail(error, missing_reason, command_index, arg_index, enum_choice_index, 0u)
+    return required ? bsc_help_fail(error, missing_reason, command_index, 0u, arg_index, enum_choice_index, 0u)
                     : BSC_STATUS_OK;
   }
   for (index = 0u; index <= (size_t)BSC_MAX_HELP_TEXT_LEN; ++index) {
     unsigned char byte = (unsigned char)text[index];
     if (byte == '\0') {
       if (index == 0u) {
-        return bsc_help_fail(error, empty_reason, command_index, arg_index, enum_choice_index, 0u);
+        return bsc_help_fail(error, empty_reason, command_index, 0u, arg_index, enum_choice_index, 0u);
       }
       return BSC_STATUS_OK;
     }
     if (byte < 0x20u || byte == 0x7fu) {
-      return bsc_help_fail(error, BSC_HELP_ERROR_INVALID_HELP_TEXT_CONTROL_BYTE, command_index,
+      return bsc_help_fail(error, BSC_HELP_ERROR_INVALID_HELP_TEXT_CONTROL_BYTE, command_index, 0u,
                            arg_index, enum_choice_index, 0u);
     }
   }
-  return bsc_help_fail(error, too_long_reason, command_index, arg_index, enum_choice_index, 0u);
+  return bsc_help_fail(error, too_long_reason, command_index, 0u, arg_index, enum_choice_index, 0u);
+}
+
+
+/**
+ * @brief Validate one emitted identifier string against presentation control bytes.
+ *
+ * Registry validation has already bounded identifiers by BSC_MAX_TOKEN_LEN and
+ * guaranteed termination. Help adds a stricter presentation-layer control-byte
+ * rule for every path token, argument name, and enum choice name that rendering
+ * may emit. The scan never uses the prose limit and never truncates a valid
+ * identifier.
+ */
+static bsc_status_t bsc_help_validate_identifier(const char *text,
+                                                 bsc_help_error_reason_t reason,
+                                                 size_t command_index,
+                                                 size_t path_token_index,
+                                                 size_t arg_index,
+                                                 size_t enum_choice_index,
+                                                 bsc_help_validation_error_t *error) {
+  size_t index;
+  for (index = 0u; index <= (size_t)BSC_MAX_TOKEN_LEN; ++index) {
+    unsigned char byte = (unsigned char)text[index];
+    if (byte == '\0') {
+      return BSC_STATUS_OK;
+    }
+    if (byte < 0x20u || byte == 0x7fu) {
+      return bsc_help_fail(error, reason, command_index, path_token_index, arg_index, enum_choice_index, 0u);
+    }
+  }
+  return bsc_help_fail(error, reason, command_index, path_token_index, arg_index, enum_choice_index, 0u);
 }
 
 /** @brief Return whether candidate is an explicit visible group for a prefix depth. */
@@ -154,7 +190,7 @@ static bsc_status_t bsc_help_validate_parent_groups(const bsc_command_t *command
         }
       }
       if (!found) {
-        return bsc_help_fail(error, BSC_HELP_ERROR_MISSING_VISIBLE_PARENT_GROUP, command_index, 0u, 0u, depth);
+        return bsc_help_fail(error, BSC_HELP_ERROR_MISSING_VISIBLE_PARENT_GROUP, command_index, 0u, 0u, 0u, depth);
       }
     }
   }
@@ -185,6 +221,32 @@ bsc_status_t bsc_help_validate(const bsc_command_t *commands,
     size_t arg_index;
     if (!bsc_help_is_visible(command, options)) {
       continue;
+    }
+    for (arg_index = 0u; arg_index < command->path_len; ++arg_index) {
+      status = bsc_help_validate_identifier(command->path[arg_index], BSC_HELP_ERROR_INVALID_PATH_TOKEN_CONTROL_BYTE,
+                                            command_index, arg_index, 0u, 0u, error);
+      if (status != BSC_STATUS_OK) {
+        return status;
+      }
+    }
+    for (arg_index = 0u; arg_index < command->arg_count; ++arg_index) {
+      const bsc_arg_def_t *arg = &command->args[arg_index];
+      size_t choice_index;
+      status = bsc_help_validate_identifier(arg->name, BSC_HELP_ERROR_INVALID_ARGUMENT_NAME_CONTROL_BYTE,
+                                            command_index, 0u, arg_index, 0u, error);
+      if (status != BSC_STATUS_OK) {
+        return status;
+      }
+      if (arg->type == BSC_ARG_ENUM) {
+        for (choice_index = 0u; choice_index < arg->enum_choice_count; ++choice_index) {
+          status = bsc_help_validate_identifier(arg->enum_choices[choice_index].name,
+                                                BSC_HELP_ERROR_INVALID_ENUM_CHOICE_NAME_CONTROL_BYTE,
+                                                command_index, 0u, arg_index, choice_index, error);
+          if (status != BSC_STATUS_OK) {
+            return status;
+          }
+        }
+      }
     }
     status = bsc_help_validate_text(command->summary, 1, BSC_HELP_ERROR_MISSING_SUMMARY,
                                     BSC_HELP_ERROR_EMPTY_SUMMARY, BSC_HELP_ERROR_SUMMARY_TOO_LONG,
@@ -287,10 +349,32 @@ static bsc_status_t bsc_help_write(bsc_output_t *output, const char *data, size_
   return bsc_out_write_bytes(output, data, length);
 }
 
-/** @brief Measure a previously help-validated C string within the configured bound. */
-static size_t bsc_help_text_len(const char *text) {
+/**
+ * @brief Return the length of previously validated help prose.
+ *
+ * Precondition: bsc_help_validate_text() has already accepted the prose under
+ * BSC_MAX_HELP_TEXT_LEN. The helper therefore scans only within that prose
+ * bound and is never used for identifiers or internal literals.
+ */
+static size_t bsc_help_prose_length(const char *text) {
   size_t length = 0u;
   while (length <= (size_t)BSC_MAX_HELP_TEXT_LEN && text[length] != '\0') {
+    length += 1u;
+  }
+  return length;
+}
+
+/**
+ * @brief Return the length of a registry-validated emitted identifier.
+ *
+ * Precondition: ordinary registry validation has accepted the identifier under
+ * BSC_MAX_TOKEN_LEN and help validation has rejected presentation control bytes.
+ * The helper never uses BSC_MAX_HELP_TEXT_LEN, so small prose limits cannot
+ * truncate path tokens, argument names, or enum choice names.
+ */
+static size_t bsc_help_identifier_length(const char *text) {
+  size_t length = 0u;
+  while (length <= (size_t)BSC_MAX_TOKEN_LEN && text[length] != '\0') {
     length += 1u;
   }
   return length;
@@ -307,7 +391,7 @@ static bsc_status_t bsc_help_write_path(bsc_output_t *output, const bsc_command_
         return status;
       }
     }
-    status = bsc_help_write(output, command->path[index], bsc_help_text_len(command->path[index]));
+    status = bsc_help_write(output, command->path[index], bsc_help_identifier_length(command->path[index]));
     if (status != BSC_STATUS_OK) {
       return status;
     }
@@ -325,7 +409,11 @@ static bsc_status_t bsc_help_section(bsc_output_t *output, const char *heading, 
     }
   }
   *section_started = 1;
-  status = bsc_help_write(output, heading, bsc_help_text_len(heading));
+  status = bsc_help_write(output, heading, heading[0] == 'V' ? BSC_HELP_LITERAL_LEN("VALID VALUES") :
+                          heading[0] == 'D' ? BSC_HELP_LITERAL_LEN("DESCRIPTION") :
+                          heading[0] == 'S' ? BSC_HELP_LITERAL_LEN("SYNOPSIS") :
+                          heading[0] == 'A' ? BSC_HELP_LITERAL_LEN("ARGUMENTS") :
+                          heading[0] == 'C' ? BSC_HELP_LITERAL_LEN("COMMANDS") : BSC_HELP_LITERAL_LEN("NAME"));
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -347,7 +435,7 @@ static bsc_status_t bsc_help_entry(bsc_output_t *output, const bsc_command_t *co
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, command->summary, bsc_help_text_len(command->summary));
+  status = bsc_help_write(output, command->summary, bsc_help_prose_length(command->summary));
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -388,7 +476,7 @@ static bsc_status_t bsc_help_render_name(bsc_output_t *output, const bsc_command
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, command->summary, bsc_help_text_len(command->summary));
+  status = bsc_help_write(output, command->summary, bsc_help_prose_length(command->summary));
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -507,7 +595,7 @@ static bsc_status_t bsc_help_render_synopsis(bsc_output_t *output, const bsc_com
     if (status != BSC_STATUS_OK) {
       return status;
     }
-    status = bsc_help_write(output, command->args[index].name, bsc_help_text_len(command->args[index].name));
+    status = bsc_help_write(output, command->args[index].name, bsc_help_identifier_length(command->args[index].name));
     if (status != BSC_STATUS_OK) {
       return status;
     }
@@ -533,7 +621,7 @@ static bsc_status_t bsc_help_render_description(bsc_output_t *output, const char
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, description, bsc_help_text_len(description));
+  status = bsc_help_write(output, description, bsc_help_prose_length(description));
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -557,7 +645,7 @@ static bsc_status_t bsc_help_render_arguments(bsc_output_t *output, const bsc_co
     if (status != BSC_STATUS_OK) {
       return status;
     }
-    status = bsc_help_write(output, arg->name, bsc_help_text_len(arg->name));
+    status = bsc_help_write(output, arg->name, bsc_help_identifier_length(arg->name));
     if (status != BSC_STATUS_OK) {
       return status;
     }
@@ -566,7 +654,7 @@ static bsc_status_t bsc_help_render_arguments(bsc_output_t *output, const bsc_co
       if (status != BSC_STATUS_OK) {
         return status;
       }
-      status = bsc_help_write(output, arg->help, bsc_help_text_len(arg->help));
+      status = bsc_help_write(output, arg->help, bsc_help_prose_length(arg->help));
       if (status != BSC_STATUS_OK) {
         return status;
       }
@@ -585,7 +673,7 @@ static bsc_status_t bsc_help_arg_prefix(bsc_output_t *output, const bsc_arg_def_
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, arg->name, bsc_help_text_len(arg->name));
+  status = bsc_help_write(output, arg->name, bsc_help_identifier_length(arg->name));
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -639,7 +727,7 @@ static bsc_status_t bsc_help_render_valid_values(bsc_output_t *output, const bsc
           if (status != BSC_STATUS_OK) return status;
         }
         status = bsc_help_write(output, arg->enum_choices[choice_index].name,
-                                bsc_help_text_len(arg->enum_choices[choice_index].name));
+                                bsc_help_identifier_length(arg->enum_choices[choice_index].name));
         if (status != BSC_STATUS_OK) return status;
       }
       break;
@@ -674,12 +762,12 @@ static bsc_status_t bsc_help_render_valid_values(bsc_output_t *output, const bsc
           status = bsc_help_write(output, "    ", 4u);
           if (status != BSC_STATUS_OK) return status;
           status = bsc_help_write(output, arg->enum_choices[choice_index].name,
-                                  bsc_help_text_len(arg->enum_choices[choice_index].name));
+                                  bsc_help_identifier_length(arg->enum_choices[choice_index].name));
           if (status != BSC_STATUS_OK) return status;
           status = bsc_help_write(output, " - ", 3u);
           if (status != BSC_STATUS_OK) return status;
           status = bsc_help_write(output, arg->enum_choices[choice_index].help,
-                                  bsc_help_text_len(arg->enum_choices[choice_index].help));
+                                  bsc_help_prose_length(arg->enum_choices[choice_index].help));
           if (status != BSC_STATUS_OK) return status;
           status = bsc_help_write(output, "\n", 1u);
           if (status != BSC_STATUS_OK) return status;

@@ -120,7 +120,7 @@ Implemented capabilities:
 - executable-command pages;
 - generated NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, VALID VALUES, and COMMANDS sections;
 - descriptor-order LF-only output through `bsc_output_t`;
-- byte-exact golden fixtures;
+- byte-exact golden fixtures plus short-write, maximum-capacity, small-prose-limit, control-byte, and exact float-precision tests;
 - no heap allocation and no public help workspace.
 
 ### Task 11B2 — Optional console built-ins: future

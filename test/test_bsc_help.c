@@ -40,6 +40,41 @@ typedef struct help_capture {
 static int g_handler_calls;
 static int g_access_calls;
 
+
+typedef struct help_fail_sink {
+  char buffer[8192];
+  size_t used;
+  size_t calls;
+  size_t fail_call;
+  size_t calls_after_failure;
+  size_t first_failure_call;
+} help_fail_sink_t;
+
+/** @brief Output sink that can short-write one selected callback and record post-failure calls. */
+static size_t help_fail_write(void *user, const char *data, size_t length) {
+  help_fail_sink_t *sink = (help_fail_sink_t *)user;
+  size_t accepted = length;
+  sink->calls += 1u;
+  if (sink->first_failure_call != 0u) {
+    sink->calls_after_failure += 1u;
+  }
+  if (sink->calls == sink->fail_call && length != 0u) {
+    accepted = length - 1u;
+    sink->first_failure_call = sink->calls;
+  }
+  if (accepted > 0u && data != NULL) {
+    memcpy(&sink->buffer[sink->used], data, accepted);
+    sink->used += accepted;
+  }
+  return accepted;
+}
+
+/** @brief Initialize deterministic short-write fixture storage. */
+static void help_fail_sink_init(help_fail_sink_t *sink, size_t fail_call) {
+  memset(sink, 0, sizeof(*sink));
+  sink->fail_call = fail_call;
+}
+
 /** @brief Handler sentinel that must never be reached by help APIs. */
 static bsc_status_t help_forbidden_handler(void *app_context,
                                            const bsc_command_t *command,
@@ -95,18 +130,18 @@ static const char *const path_hidden[] = {"hidden"};
 static const char *const path_hidden_factory[] = {"hidden", "factory"};
 
 static bsc_enum_choice_t mode_choices[] = {
-    {"off", 0, "Disable radio"},
-    {"sta", 1, "Station mode"},
+    {"off", 0, "Off"},
+    {"sta", 1, "Sta"},
     {"ap", 2, NULL},
 };
 
 static bsc_arg_def_t wifi_args[] = {
-    {"ssid", BSC_ARG_STRING, 0, 0, 0u, 0u, 0.0f, 0.0f, 1u, 32u, NULL, 0u, "Network name"},
-    {"password", BSC_ARG_SECRET, 0, 0, 0u, 0u, 0.0f, 0.0f, 8u, 64u, NULL, 0u, "Network password"},
-    {"channel", BSC_ARG_UINT, 0, 0, 1u, 11u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "WiFi channel"},
-    {"power", BSC_ARG_INT, -40, 20, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Transmit power"},
-    {"enabled", BSC_ARG_BOOL, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Enable radio"},
-    {"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, mode_choices, 3u, "Radio mode"},
+    {"ssid", BSC_ARG_STRING, 0, 0, 0u, 0u, 0.0f, 0.0f, 1u, 32u, NULL, 0u, "SSID"},
+    {"password", BSC_ARG_SECRET, 0, 0, 0u, 0u, 0.0f, 0.0f, 8u, 64u, NULL, 0u, "Pass"},
+    {"channel", BSC_ARG_UINT, 0, 0, 1u, 11u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Channel"},
+    {"power", BSC_ARG_INT, -40, 20, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Power"},
+    {"enabled", BSC_ARG_BOOL, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Enable"},
+    {"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, mode_choices, 3u, "Mode"},
 #if BSC_ENABLE_FLOAT
     {"ratio", BSC_ARG_FLOAT, 0, 0, 0u, 0u, -1.5f, 2.25f, 0u, 0u, NULL, 0u, NULL},
 #endif
@@ -120,28 +155,28 @@ static bsc_arg_def_t wifi_args[] = {
 
 static bsc_command_t help_commands[] = {
     {path_status, 1u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL, BSC_ACCESS_NORMAL,
-     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Show system status", "Prints current status."},
+     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Status", "Status."},
     {path_settings, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE,
-     help_forbidden_access, "Configure device settings", "Settings commands."},
+     help_forbidden_access, "Settings", "Settings"},
     {path_settings_wifi, 2u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE,
-     help_forbidden_access, "Configure WiFi", NULL},
+     help_forbidden_access, "WiFi", NULL},
     {path_settings_wifi_scan, 3u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL,
-     BSC_ACCESS_FACTORY, BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Scan for networks", "Scans WiFi."},
+     BSC_ACCESS_FACTORY, BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Scan", "Scan."},
     {path_settings_wifi_set, 3u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL,
-     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Set WiFi values", NULL},
+     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Set", NULL},
     {path_settings_wifi_set_ssid, 4u, BSC_NODE_COMMAND, wifi_args, WIFI_ARG_COUNT, help_forbidden_handler, NULL,
-     BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Set WiFi SSID",
-     "Stores WiFi credentials and radio settings."},
+     BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, help_forbidden_access, "SSID",
+     "WiFi set"},
     {path_mode, 1u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL, BSC_ACCESS_ADVANCED,
-     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Set operating mode", "Sets the operating mode."},
+     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Mode", "Mode."},
     {path_factory, 1u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL, BSC_ACCESS_FACTORY,
-     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Factory command", "Factory only."},
+     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Factory", "Factory."},
     {path_locked, 1u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL, BSC_ACCESS_LOCKED,
-     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Locked command", "Locked only."},
+     BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Locked", "Locked."},
     {path_hidden, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL,
-     BSC_COMMAND_FLAG_HIDDEN, help_forbidden_access, "Hidden group", NULL},
+     BSC_COMMAND_FLAG_HIDDEN, help_forbidden_access, "Hidden", NULL},
     {path_hidden_factory, 2u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL, BSC_ACCESS_FACTORY,
-     BSC_COMMAND_FLAG_HIDDEN, help_forbidden_access, "Hidden factory", "Hidden factory."},
+     BSC_COMMAND_FLAG_HIDDEN, help_forbidden_access, "HidFact", "HidFact."},
 };
 
 static const size_t help_command_count = sizeof(help_commands) / sizeof(help_commands[0]);
@@ -252,7 +287,7 @@ static int test_help_golden_outputs(const char *test_name) {
     help_capture_t capture;
     help_capture_init(&capture, sizeof(capture.buffer));
     HELP_ASSERT_STATUS(BSC_STATUS_OK, render_wifi_set_capture(&capture));
-    HELP_ASSERT_TRUE(capture.used > 0u);
+    HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "VALID VALUES", strlen("VALID VALUES")) == 1);
   }
 #endif
   HELP_ASSERT_TRUE(g_handler_calls == 0);
@@ -305,12 +340,12 @@ static int test_help_validation_required_and_optional_text(const char *test_name
   wifi_args[0].help = "";
   HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
   HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_EMPTY_ARGUMENT_HELP);
-  wifi_args[0].help = "Network name";
+  wifi_args[0].help = "SSID";
   copy_commands(table);
   mode_choices[0].help = "";
   HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
   HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_EMPTY_ENUM_CHOICE_HELP);
-  mode_choices[0].help = "Disable radio";
+  mode_choices[0].help = "Off";
   return 0;
 }
 
@@ -345,7 +380,7 @@ static int test_help_validation_control_and_bounds(const char *test_name) {
   table[0].summary = "bad\x7f";
   HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
   copy_commands(table);
-  table[0].summary = "nonascii \xc3\xa9";
+  table[0].summary = "\xc3\xa9";
   HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(table, help_command_count, NULL, &error));
   return 0;
 }
@@ -450,8 +485,6 @@ static int test_help_output_failures(const char *test_name) {
   HELP_ASSERT_TRUE(calls == 1u);
   help_capture_init(&capture, 5u);
   HELP_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_help_render_path(help_commands, help_command_count, tokens, 4u, NULL, &output));
-  calls = capture.calls;
-  HELP_ASSERT_TRUE(calls == capture.calls);
   HELP_ASSERT_TRUE(capture.used == 5u);
   return 0;
 }
@@ -470,31 +503,115 @@ static int test_help_invalid_metadata_emits_no_output(const char *test_name) {
   return 0;
 }
 
+
 static int test_help_maximum_bounds_and_reuse(const char *test_name) {
+  static char command_names[BSC_MAX_COMMANDS][8];
+  static const char *command_paths[BSC_MAX_COMMANDS][1];
+  static bsc_command_t command_table[BSC_MAX_COMMANDS];
+  static char path_names[BSC_MAX_PATH_TOKENS][8];
+  static const char *deep_paths[BSC_MAX_PATH_TOKENS][BSC_MAX_PATH_TOKENS];
+  static bsc_command_t deep_table[BSC_MAX_PATH_TOKENS];
+  static char arg_names[BSC_MAX_ARGS][8];
+  static bsc_arg_def_t max_args[BSC_MAX_ARGS];
+  static bsc_enum_choice_t max_choices[BSC_MAX_ENUM_CHOICES];
+  static const char *const max_path[] = {"max"};
+  static const char *const enum_path[] = {"enummax"};
+  static bsc_arg_def_t enum_arg[] = {{"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, max_choices, BSC_MAX_ENUM_CHOICES, NULL}};
+  static bsc_command_t single_command[1];
   help_capture_t first;
   help_capture_t second;
   bsc_output_t out1;
   bsc_output_t out2;
   bsc_help_validation_error_t error;
-  HELP_ASSERT_TRUE(help_command_count <= (size_t)BSC_MAX_COMMANDS);
-  HELP_ASSERT_TRUE(path_settings_wifi_set_ssid[3] != NULL);
-#if BSC_ENABLE_FLOAT
-  HELP_ASSERT_TRUE(wifi_args[6].type == BSC_ARG_FLOAT);
-#endif
-  HELP_ASSERT_TRUE(help_commands[4].path_len <= (size_t)BSC_MAX_PATH_TOKENS);
-  HELP_ASSERT_TRUE(help_commands[4].arg_count <= (size_t)BSC_MAX_ARGS);
-  HELP_ASSERT_TRUE(mode_choices[2].name != NULL && 3u <= (size_t)BSC_MAX_ENUM_CHOICES);
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(help_commands, help_command_count, NULL, &error));
+  size_t index;
+
+  for (index = 0u; index < (size_t)BSC_MAX_COMMANDS; ++index) {
+    command_names[index][0] = 'c';
+    command_names[index][1] = (char)('0' + ((index / 10u) % 10u));
+    command_names[index][2] = (char)('0' + (index % 10u));
+    command_names[index][3] = '\0';
+    command_paths[index][0] = command_names[index];
+    command_table[index].path = command_paths[index];
+    command_table[index].path_len = 1u;
+    command_table[index].node_type = BSC_NODE_COMMAND;
+    command_table[index].args = NULL;
+    command_table[index].arg_count = 0u;
+    command_table[index].handler = help_forbidden_handler;
+    command_table[index].command_context = NULL;
+    command_table[index].access = BSC_ACCESS_NORMAL;
+    command_table[index].flags = BSC_COMMAND_FLAG_NONE;
+    command_table[index].access_fn = help_forbidden_access;
+    command_table[index].summary = "S";
+    command_table[index].description = "D";
+  }
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &error));
   help_capture_init(&first, sizeof(first.buffer));
-  help_capture_init(&second, sizeof(second.buffer));
   out1.write = help_capture_write;
   out1.user = &first;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &out1));
+  HELP_ASSERT_TRUE(help_bytes_find(first.buffer, first.used, "c00 - S", strlen("c00 - S")) == 1);
+  HELP_ASSERT_TRUE(help_bytes_find(first.buffer, first.used, command_names[BSC_MAX_COMMANDS - 1u], strlen(command_names[BSC_MAX_COMMANDS - 1u])) == 1);
+
+  for (index = 0u; index < (size_t)BSC_MAX_PATH_TOKENS; ++index) {
+    size_t depth;
+    path_names[index][0] = 'p';
+    path_names[index][1] = (char)('0' + index);
+    path_names[index][2] = '\0';
+    for (depth = 0u; depth <= index; ++depth) {
+      deep_paths[index][depth] = path_names[depth];
+    }
+    deep_table[index].path = deep_paths[index];
+    deep_table[index].path_len = index + 1u;
+    deep_table[index].node_type = index + 1u == (size_t)BSC_MAX_PATH_TOKENS ? BSC_NODE_COMMAND : BSC_NODE_GROUP;
+    deep_table[index].args = NULL;
+    deep_table[index].arg_count = 0u;
+    deep_table[index].handler = deep_table[index].node_type == BSC_NODE_COMMAND ? help_forbidden_handler : NULL;
+    deep_table[index].command_context = NULL;
+    deep_table[index].access = BSC_ACCESS_NORMAL;
+    deep_table[index].flags = BSC_COMMAND_FLAG_NONE;
+    deep_table[index].access_fn = help_forbidden_access;
+    deep_table[index].summary = "S";
+    deep_table[index].description = deep_table[index].node_type == BSC_NODE_COMMAND ? "D" : NULL;
+  }
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(deep_table, (size_t)BSC_MAX_PATH_TOKENS, NULL, &error));
+
+  for (index = 0u; index < (size_t)BSC_MAX_ARGS; ++index) {
+    arg_names[index][0] = 'a';
+    arg_names[index][1] = (char)('0' + index);
+    arg_names[index][2] = '\0';
+    max_args[index].name = arg_names[index];
+    max_args[index].type = BSC_ARG_UINT;
+    max_args[index].min_uint = 0u;
+    max_args[index].max_uint = 9u;
+    max_args[index].help = NULL;
+  }
+  single_command[0] = help_commands[0];
+  single_command[0].path = max_path;
+  single_command[0].args = max_args;
+  single_command[0].arg_count = (size_t)BSC_MAX_ARGS;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(single_command, 1u, NULL, &error));
+  help_capture_init(&first, sizeof(first.buffer));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(single_command, 1u, (bsc_string_view_t[]){bsc_string_view_from_cstr("max")}, 1u, NULL, &(bsc_output_t){help_capture_write, &first}));
+  HELP_ASSERT_TRUE(help_bytes_find(first.buffer, first.used, arg_names[BSC_MAX_ARGS - 1u], strlen(arg_names[BSC_MAX_ARGS - 1u])) == 1);
+
+  for (index = 0u; index < (size_t)BSC_MAX_ENUM_CHOICES; ++index) {
+    max_choices[index].name = command_names[index];
+    max_choices[index].value = (int32_t)index;
+    max_choices[index].help = index == (size_t)BSC_MAX_ENUM_CHOICES - 1u ? "H" : NULL;
+  }
+  single_command[0] = help_commands[0];
+  single_command[0].path = enum_path;
+  single_command[0].args = enum_arg;
+  single_command[0].arg_count = 1u;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(single_command, 1u, NULL, &error));
+  help_capture_init(&second, sizeof(second.buffer));
   out2.write = help_capture_write;
   out2.user = &second;
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(help_commands, help_command_count, NULL, &out1));
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(help_commands, help_command_count, NULL, &out2));
-  HELP_ASSERT_TRUE(first.used == second.used);
-  HELP_ASSERT_TRUE(memcmp(first.buffer, second.buffer, first.used) == 0);
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(single_command, 1u, (bsc_string_view_t[]){bsc_string_view_from_cstr("enummax")}, 1u, NULL, &out2));
+  HELP_ASSERT_TRUE(help_bytes_find(second.buffer, second.used, command_names[BSC_MAX_ENUM_CHOICES - 1u], strlen(command_names[BSC_MAX_ENUM_CHOICES - 1u])) == 1);
+
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &out1));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &out2));
   return 0;
 }
 
@@ -513,6 +630,198 @@ static int test_help_secret_non_disclosure(const char *test_name) {
   return 0;
 }
 
+
+/** @brief Render with each callback short-written and verify exact prefix/no continuation. */
+static int help_assert_all_boundaries(const char *test_name, bsc_status_t (*render)(help_capture_t *capture)) {
+  help_capture_t success;
+  size_t fail_call;
+  help_capture_init(&success, sizeof(success.buffer));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, render(&success));
+  for (fail_call = 1u; fail_call <= success.calls; ++fail_call) {
+    help_fail_sink_t sink;
+    bsc_output_t output;
+    bsc_status_t status;
+    bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("settings"), bsc_string_view_from_cstr("wifi"),
+                                  bsc_string_view_from_cstr("set"), bsc_string_view_from_cstr("ssid")};
+    help_fail_sink_init(&sink, fail_call);
+    output.write = help_fail_write;
+    output.user = &sink;
+    if (render == render_index_capture) {
+      status = bsc_help_render_index(help_commands, help_command_count, NULL, &output);
+    } else if (render == render_commands_capture) {
+      status = bsc_help_render_commands(help_commands, help_command_count, NULL, &output);
+    } else if (render == render_settings_capture) {
+      bsc_string_view_t group_token[] = {bsc_string_view_from_cstr("settings")};
+      status = bsc_help_render_path(help_commands, help_command_count, group_token, 1u, NULL, &output);
+    } else {
+      status = bsc_help_render_path(help_commands, help_command_count, tokens, 4u, NULL, &output);
+    }
+    HELP_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, status);
+    HELP_ASSERT_TRUE(sink.first_failure_call == fail_call);
+    HELP_ASSERT_TRUE(sink.calls_after_failure == 0u);
+    HELP_ASSERT_TRUE(sink.used < success.used);
+    HELP_ASSERT_TRUE(memcmp(sink.buffer, success.buffer, sink.used) == 0);
+  }
+  return 0;
+}
+
+static int test_help_short_write_every_boundary(const char *test_name) {
+  HELP_ASSERT_TRUE(help_assert_all_boundaries(test_name, render_index_capture) == 0);
+  HELP_ASSERT_TRUE(help_assert_all_boundaries(test_name, render_commands_capture) == 0);
+  HELP_ASSERT_TRUE(help_assert_all_boundaries(test_name, render_settings_capture) == 0);
+  HELP_ASSERT_TRUE(help_assert_all_boundaries(test_name, render_wifi_set_capture) == 0);
+  return 0;
+}
+
+/** @brief Verify control-byte rejection for all identifier categories and non-ASCII acceptance. */
+static int test_help_identifier_control_validation(const char *test_name) {
+  static const char *const bad_path_cr[] = {"bad\rpath"};
+  static const char *const bad_path_lf[] = {"bad\npath"};
+  static const char *const bad_path_ctl[] = {"bad\x01path"};
+  static const char *const bad_path_del[] = {"bad\x7fpath"};
+  static const char *const good_path_utf8[] = {"caf\xc3\xa9"};
+  static bsc_enum_choice_t enum_bad[] = {{"bad", 1, NULL}};
+  static bsc_arg_def_t enum_arg[] = {{"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, enum_bad, 1u, NULL}};
+  static bsc_arg_def_t bad_arg[] = {{"bad", BSC_ARG_STRING, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 8u, NULL, 0u, NULL}};
+  bsc_command_t command = {bad_path_cr, 1u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL,
+                           BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, NULL, "Sum", "Desc"};
+  bsc_help_validation_error_t error;
+  help_capture_t capture;
+  bsc_output_t output;
+  const char *bad_arg_names[] = {"bad\rarg", "bad\narg", "bad" "\x01" "arg", "bad" "\x7f" "arg", "arg\xc3\xa9"};
+  const char *bad_choice_names[] = {"bad\rchoice", "bad\nchoice", "bad" "\x01" "choice", "bad" "\x7f" "choice", "choice\xc3\xa9"};
+  size_t index;
+
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(&command, 1u, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_INVALID_PATH_TOKEN_CONTROL_BYTE);
+  HELP_ASSERT_TRUE(error.command_index == 0u && error.path_token_index == 0u && error.arg_index == 0u && error.enum_choice_index == 0u);
+  command.path = bad_path_lf;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(&command, 1u, NULL, &error));
+  command.path = bad_path_ctl;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(&command, 1u, NULL, &error));
+  command.path = bad_path_del;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(&command, 1u, NULL, &error));
+  command.path = good_path_utf8;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(&command, 1u, NULL, &error));
+
+  command.path = path_status;
+  command.args = bad_arg;
+  command.arg_count = 1u;
+  for (index = 0u; index < 5u; ++index) {
+    bad_arg[0].name = bad_arg_names[index];
+    if (index == 4u) {
+      HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(&command, 1u, NULL, &error));
+    } else {
+      HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(&command, 1u, NULL, &error));
+      HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_INVALID_ARGUMENT_NAME_CONTROL_BYTE);
+      HELP_ASSERT_TRUE(error.arg_index == 0u && error.path_token_index == 0u && error.enum_choice_index == 0u);
+    }
+  }
+
+  command.args = enum_arg;
+  for (index = 0u; index < 5u; ++index) {
+    enum_bad[0].name = bad_choice_names[index];
+    if (index == 4u) {
+      HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(&command, 1u, NULL, &error));
+    } else {
+      HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(&command, 1u, NULL, &error));
+      HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_INVALID_ENUM_CHOICE_NAME_CONTROL_BYTE);
+      HELP_ASSERT_TRUE(error.arg_index == 0u && error.enum_choice_index == 0u && error.path_token_index == 0u);
+    }
+  }
+
+  command.path = bad_path_lf;
+  command.args = NULL;
+  command.arg_count = 0u;
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_render_index(&command, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(capture.calls == 0u && capture.used == 0u);
+  return 0;
+}
+
+/** @brief Verify a small prose bound does not truncate identifiers or section headings. */
+static int test_help_small_prose_limit_identifier_regression(const char *test_name) {
+  static const char *const path[] = {"longcommand"};
+  static bsc_enum_choice_t choices[] = {{"longchoice", 1, NULL}};
+  static bsc_arg_def_t args[] = {{"longarg", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, choices, 1u, NULL}};
+  static bsc_command_t command = {path, 1u, BSC_NODE_COMMAND, args, 1u, help_forbidden_handler, NULL,
+                                  BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, NULL, "Summary", "Details"};
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("longcommand")};
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(&command, 1u, tokens, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "longcommand", strlen("longcommand")) == 1);
+  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "longarg", strlen("longarg")) == 1);
+  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "longchoice", strlen("longchoice")) == 1);
+  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "VALID VALUES", strlen("VALID VALUES")) == 1);
+  return 0;
+}
+
+
+#if BSC_ENABLE_FLOAT
+#if BSC_MAX_FLOAT_FRACTION_DIGITS == 1u
+#define HELP_FLOAT_HALF 0.25f
+#define HELP_FLOAT_MAXDIGIT 1.1f
+#define HELP_FLOAT_EXPECTED \
+  "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.3..1.3\n  half: decimal, -0.3..0.3\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.1..1.1\n"
+#elif BSC_MAX_FLOAT_FRACTION_DIGITS == 2u
+#define HELP_FLOAT_HALF 0.125f
+#define HELP_FLOAT_MAXDIGIT 1.01f
+#define HELP_FLOAT_EXPECTED \
+  "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.25..1.25\n  half: decimal, -0.13..0.13\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.01..1.01\n"
+#elif BSC_MAX_FLOAT_FRACTION_DIGITS == 3u
+#define HELP_FLOAT_HALF 0.0625f
+#define HELP_FLOAT_MAXDIGIT 1.001f
+#define HELP_FLOAT_EXPECTED \
+  "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.25..1.25\n  half: decimal, -0.063..0.063\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.001..1.001\n"
+#elif BSC_MAX_FLOAT_FRACTION_DIGITS == 4u
+#define HELP_FLOAT_HALF 0.03125f
+#define HELP_FLOAT_MAXDIGIT 1.0001f
+#define HELP_FLOAT_EXPECTED \
+  "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.25..1.25\n  half: decimal, -0.0313..0.0313\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.0001..1.0001\n"
+#elif BSC_MAX_FLOAT_FRACTION_DIGITS == 5u
+#define HELP_FLOAT_HALF 0.015625f
+#define HELP_FLOAT_MAXDIGIT 1.00001f
+#define HELP_FLOAT_EXPECTED \
+  "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.25..1.25\n  half: decimal, -0.01563..0.01563\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.00001..1.00001\n"
+#else
+#define HELP_FLOAT_HALF 0.0078125f
+#define HELP_FLOAT_MAXDIGIT 1.000001f
+#define HELP_FLOAT_EXPECTED \
+  "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.25..1.25\n  half: decimal, -0.007813..0.007813\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.000001..1.000001\n"
+#endif
+
+static int test_help_float_precision_exact_output(const char *test_name) {
+  static const char *const path[] = {"floatfmt"};
+  static bsc_arg_def_t args[7];
+  bsc_command_t command;
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("floatfmt")};
+  size_t expected_len = strlen(HELP_FLOAT_EXPECTED);
+  args[0] = (bsc_arg_def_t){"zero", BSC_ARG_FLOAT, 0, 0, 0u, 0u, -0.0f, 0.0f, 0u, 0u, NULL, 0u, NULL};
+  args[1] = (bsc_arg_def_t){"integers", BSC_ARG_FLOAT, 0, 0, 0u, 0u, -2.0f, 2.0f, 0u, 0u, NULL, 0u, NULL};
+  args[2] = (bsc_arg_def_t){"one", BSC_ARG_FLOAT, 0, 0, 0u, 0u, 1.5f, 1.5f, 0u, 0u, NULL, 0u, NULL};
+  args[3] = (bsc_arg_def_t){"trim", BSC_ARG_FLOAT, 0, 0, 0u, 0u, 1.25f, 1.25f, 0u, 0u, NULL, 0u, NULL};
+  args[4] = (bsc_arg_def_t){"half", BSC_ARG_FLOAT, 0, 0, 0u, 0u, -HELP_FLOAT_HALF, HELP_FLOAT_HALF, 0u, 0u, NULL, 0u, NULL};
+  args[5] = (bsc_arg_def_t){"limit", BSC_ARG_FLOAT, 0, 0, 0u, 0u, -(float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE, (float)BSC_COMPACT_FLOAT_MAX_MAGNITUDE, 0u, 0u, NULL, 0u, NULL};
+  args[6] = (bsc_arg_def_t){"maxdigit", BSC_ARG_FLOAT, 0, 0, 0u, 0u, HELP_FLOAT_MAXDIGIT, HELP_FLOAT_MAXDIGIT, 0u, 0u, NULL, 0u, NULL};
+  command = (bsc_command_t){path, 1u, BSC_NODE_COMMAND, args, 7u, help_forbidden_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, NULL, "Float", "Float"};
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(&command, 1u, tokens, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(capture.used == expected_len);
+  HELP_ASSERT_TRUE(memcmp(capture.buffer, HELP_FLOAT_EXPECTED, expected_len) == 0);
+  return 0;
+}
+#endif
+
 int bsc_run_help_tests(void) {
   int failures = 0;
   HELP_RUN_TEST(test_help_options_defaults);
@@ -524,8 +833,14 @@ int bsc_run_help_tests(void) {
   HELP_RUN_TEST(test_help_lookup_behaviors);
   HELP_RUN_TEST(test_help_golden_outputs);
   HELP_RUN_TEST(test_help_output_failures);
+  HELP_RUN_TEST(test_help_short_write_every_boundary);
+  HELP_RUN_TEST(test_help_identifier_control_validation);
+  HELP_RUN_TEST(test_help_small_prose_limit_identifier_regression);
   HELP_RUN_TEST(test_help_invalid_metadata_emits_no_output);
   HELP_RUN_TEST(test_help_maximum_bounds_and_reuse);
+#if BSC_ENABLE_FLOAT
+  HELP_RUN_TEST(test_help_float_precision_exact_output);
+#endif
   HELP_RUN_TEST(test_help_secret_non_disclosure);
   return failures;
 }

@@ -361,4 +361,4 @@ The current core implements static descriptor validation, nested path matching, 
 
 ## Generated help staging
 
-The implemented first help milestone is a pure platform-independent renderer: it validates help prose separately from ordinary registry validation, performs exact metadata-path lookup, and renders initial NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, VALID VALUES, and COMMANDS sections through `bsc_output_t`. Console-level `help` and `commands` built-ins, extended metadata sections, subtopics, examples, and adapters remain future staged work rather than abandoned product intent.
+The implemented first help milestone is a pure platform-independent renderer: it validates help prose and emitted identifiers separately from ordinary registry validation, performs exact metadata-path lookup, and renders initial NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, VALID VALUES, and COMMANDS sections through `bsc_output_t`. Console-level `help` and `commands` built-ins, extended metadata sections, subtopics, examples, and adapters remain future staged work rather than abandoned product intent.

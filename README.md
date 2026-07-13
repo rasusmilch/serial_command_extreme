@@ -226,7 +226,7 @@ test/
   golden/
 ```
 
-The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, internal compact-float parser, descriptor, status, string-view, and output modules. Planned future modules still include help/manpage rendering, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add generated-help, broader redaction, adapter, and golden-output coverage.
+The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated-help validation/lookup/rendering, internal compact-float parser, descriptor, status, string-view, and output modules. Planned future modules still include optional console help built-ins, extended help metadata/subtopics, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering/golden output, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add broader redaction, adapter, and integration coverage.
 
 ## Example command descriptor intent
 
@@ -251,7 +251,7 @@ From that metadata, the current reusable core can already:
 Still-future integration must:
 
 - Redact secrets in echo, status, logs, history, or other presentation layers outside the parser.
-- Generate `help settings wifi set password`.
+- Optionally route console-level `help settings wifi set password` through a future built-in integration layer.
 
 ## Development workflow expectation
 
@@ -287,7 +287,7 @@ In short:
 
 ## Next recommended task
 
-After output-neutral complete-line console orchestration, the next useful implementation task should be selected from the remaining approved roadmap areas, such as generated help/manpage rendering or broader redaction integration, each with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
+After independent validation of the pure generated-help core, the next useful implementation task is the optional console built-in routing stage for `help` and `commands`, or another approved roadmap item with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
 
 ## License
 

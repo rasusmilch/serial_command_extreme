@@ -25,8 +25,8 @@ Current implemented repository state:
 - Compact float parser: internal compact decimal float support is implemented in `src/internal/bsc_float_parse.*` and controlled by `SCE_ENABLE_FLOAT`.
 - Selected-command dispatch: access enforcement, typed parsing handoff, handler invocation, and handler-status normalization are implemented in `src/bsc_dispatch.*`.
 - Complete-line console orchestration: output-neutral orchestration is implemented in `src/bsc_console.*` using lightweight console configuration plus caller-owned execution workspace.
-- Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, and complete-line console orchestration.
-- Generated help/manpages: not implemented; this is the next planned core phase.
+- Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, complete-line console orchestration, and pure generated-help validation/rendering with byte-exact golden fixtures.
+- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, and executable-command pages are implemented in `src/bsc_help.*`; console built-ins and extended sections remain future work.
 - Examples: not implemented.
 - Arduino adapter: not implemented.
 - ESP-IDF adapter: not implemented.
