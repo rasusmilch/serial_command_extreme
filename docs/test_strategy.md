@@ -786,3 +786,9 @@ Acceptance:
 ## Final rule
 
 A core change is not ready just because it compiles for firmware. A core change is ready when host tests prove the parser/registry/validation/dispatch/help behavior and the receipt clearly states what adapter and hardware validation did or did not run.
+
+## Generated-help golden-output policy
+
+The pure help core has byte-exact golden fixtures under `test/golden/`. CMake copies that directory to the test binary directory and provides the copied path to `sce_host_tests` with a private compile definition, so tests do not depend on the process working directory. Golden files are opened in binary mode and compared byte-for-byte with LF-only output; tests fail on CRLF, whitespace changes, missing final LF, reordered entries, or changed section headings.
+
+Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Future console built-ins, extended sections, and subtopics must add or update golden fixtures when their output grammar is approved.

@@ -8,11 +8,17 @@ add_executable(
   test_bsc_args.c
   test_bsc_dispatch.c
   test_bsc_console.c
+  test_bsc_help.c
 )
 
 target_link_libraries(sce_host_tests PRIVATE serial_command_extreme::serial_command_extreme)
 
 target_compile_features(sce_host_tests PRIVATE c_std_99)
+
+set(SCE_GOLDEN_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/golden")
+set(SCE_GOLDEN_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/golden")
+file(COPY "${SCE_GOLDEN_SOURCE_DIR}/" DESTINATION "${SCE_GOLDEN_BINARY_DIR}")
+target_compile_definitions(sce_host_tests PRIVATE BSC_TEST_GOLDEN_DIR="${SCE_GOLDEN_BINARY_DIR}")
 
 add_test(NAME sce_host_tests COMMAND sce_host_tests)
 

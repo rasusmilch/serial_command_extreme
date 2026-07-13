@@ -183,9 +183,11 @@ Implemented in `src/bsc_console.*`, with host coverage in `test/test_bsc_console
 
 The implemented boundary is lightweight validated console configuration plus caller-owned workspace. The API accepts an explicit input span and length, rejects embedded NUL, performs one bounded copy into workspace storage, calls tokenizer -> matcher -> selected-command dispatch, exposes optional non-secret result metadata, cleans up transient workspace state, and emits no automatic console output.
 
-### Phase 3A — Generated help/manpage foundation: next planned core phase
+### Phase 3A — Pure generated help/manpage foundation: implemented
 
-The next planned core phase is generated help/manpage support from the same descriptor metadata. This phase must decide built-in routing, command-collision policy, visibility filtering, output format, and golden-output tests before implementation.
+Implemented in `src/bsc_help.*`, with host and byte-exact LF golden coverage in `test/test_bsc_help.c` and `test/golden/`. The pure help core validates help-specific metadata separately from ordinary registry validation, first verifies the underlying registry schema, resolves exact descriptor paths for groups and executable commands without using the dispatch matcher, and renders top-level indexes, complete visible command lists, group pages, and executable-command pages through `bsc_output_t`. It never invokes command handlers or `command->access_fn`. Output uses descriptor-table order, generated synopsis text, generated valid-value text, LF line endings, no heap allocation, no public help workspace, no full-manpage buffer, and immediate propagation of the first output failure.
+
+Task 11B2 optional console built-ins remain future work. Extended metadata sections such as notes, warnings, examples, related commands, and subtopics remain future Task 11C work.
 
 ### Phase 4A — Host examples: future
 
@@ -226,6 +228,8 @@ The following decisions are settled in the current repository state:
 - The current default dispatch access matrix allows normal and advanced commands and denies factory and locked commands when no access callback is present.
 - A command access callback, when present, decides allow/deny for the command's required access level.
 - `BSC_COMMAND_FLAG_HIDDEN` is a metadata flag distinct from access level and does not by itself deny dispatch.
+- Pure generated help APIs use static visibility options: normal and advanced descriptors are visible by default, while factory, locked, and hidden descriptors are filtered unless explicitly included.
+- Help output uses descriptor-table order and LF-only bytes.
 
 ## Deferred beyond the current MVP or current phase
 
@@ -249,7 +253,6 @@ The following features are deferred and are not blockers for the current impleme
 The following unresolved decisions belong to future features and require approval before those features begin:
 
 - generated-help built-in routing and command-collision policy;
-- help visibility/filtering for advanced, factory, hidden, and locked commands;
 - automatic diagnostic, echo, redacted-echo, and final-result output policy;
 - whether to add a bounded formatted-output helper such as `bsc_out_printf()`;
 - runtime-registration design, if runtime registration is later approved;
@@ -272,11 +275,11 @@ Workspace line bytes are ordinary-cleared by console cleanup as best-effort priv
 
 ## Output and presentation rules
 
-The current core has output helpers and forwards configured output to handlers. It does not implement a console presentation policy.
+The current core has output helpers, forwards configured output to handlers, and implements pure generated-help rendering through explicit help APIs. It does not implement a console presentation policy or built-in `help`/`commands` route.
 
 Deferred presentation features include:
 
-- generated help/manpage rendering;
+- console-level generated-help built-ins;
 - command echo;
 - redacted echo;
 - automatic parser/matcher/access diagnostics;
@@ -293,12 +296,13 @@ Current host tests are built into `sce_host_tests` and registered with CTest. Th
 - `test_bsc_matcher.c`;
 - `test_bsc_args.c`;
 - `test_bsc_dispatch.c`;
-- `test_bsc_console.c`.
+- `test_bsc_console.c`;
+- `test_bsc_help.c`.
 
 CTest also registers `sce_forbidden_patterns` when Python3 is available. Core validation must continue to run without Arduino, ESP-IDF, UART hardware, or target boards.
 
-Future generated-help work must add golden-output tests once exact output is approved.
+Generated-help work has byte-exact LF golden-output tests for the pure renderer. Future console built-ins and extended sections must add or update golden fixtures when their exact output is approved.
 
 ## Current non-goals
 
-The current MVP does not implement generated help/manpages, built-in `help` or `commands`, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.
+The current MVP implements pure generated help/manpages through explicit APIs but does not implement built-in `help` or `commands`, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.

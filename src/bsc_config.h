@@ -68,6 +68,11 @@
 #error "BSC_MAX_FLOAT_FRACTION_DIGITS must be between 1 and 6"
 #endif
 
+/** Maximum bytes accepted in one generated-help prose string, excluding the terminator. */
+#ifndef BSC_MAX_HELP_TEXT_LEN
+#define BSC_MAX_HELP_TEXT_LEN 512u
+#endif
+
 /** Maximum bytes that bounded formatting helpers may emit per chunk if added later. */
 #ifndef BSC_OUTPUT_CHUNK_LEN
 #define BSC_OUTPUT_CHUNK_LEN 96u

@@ -1,0 +1,8 @@
+NAME
+  settings - Configure device settings
+
+DESCRIPTION
+  Settings commands.
+
+COMMANDS
+  settings wifi - Configure WiFi

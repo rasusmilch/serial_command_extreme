@@ -1,0 +1,4 @@
+COMMANDS
+  status - Show system status
+  settings - Configure device settings
+  mode - Set operating mode

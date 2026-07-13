@@ -1,0 +1,28 @@
+NAME
+  settings wifi set ssid - Set WiFi SSID
+
+SYNOPSIS
+  settings wifi set ssid <ssid> <password> <channel> <power> <enabled> <mode> <ratio>
+
+DESCRIPTION
+  Stores WiFi credentials and radio settings.
+
+ARGUMENTS
+  ssid - Network name
+  password - Network password
+  channel - WiFi channel
+  power - Transmit power
+  enabled - Enable radio
+  mode - Radio mode
+  ratio
+
+VALID VALUES
+  ssid: string, 1..32 bytes
+  password: secret, 8..64 bytes
+  channel: unsigned integer, 1..11
+  power: integer, -40..20
+  enabled: on | off | true | false | 1 | 0
+  mode: off | sta | ap
+    off - Disable radio
+    sta - Station mode
+  ratio: decimal, -1.5..2.25

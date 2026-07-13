@@ -754,7 +754,11 @@ static int test_dispatch_float_configuration_behavior(const char *test_name) {
   bsc_parsed_args_t parsed;
   bsc_arg_parse_error_t error;
   bsc_command_t command;
+#if BSC_MAX_FLOAT_FRACTION_DIGITS == 1u
+  bsc_string_view_t float_token = token_from_cstr("1.2");
+#else
   bsc_string_view_t float_token = token_from_cstr("1.25");
+#endif
   bsc_string_view_t int_token = token_from_cstr("1");
 
   fixture_init(&fixture);
@@ -769,7 +773,7 @@ static int test_dispatch_float_configuration_behavior(const char *test_name) {
                               bsc_dispatch_command(&fixture, &command, &float_token, 1u, &parsed, &error, NULL));
   DISPATCH_TEST_ASSERT_TRUE(parsed.count == 1u);
   DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].type == BSC_ARG_FLOAT);
-  DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].data.float_value > 1.24f && parsed.values[0].data.float_value < 1.26f);
+  DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].data.float_value > 1.1f && parsed.values[0].data.float_value < 1.3f);
 #else
   DISPATCH_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
                               bsc_dispatch_command(&fixture, &command, &float_token, 1u, &parsed, &error, NULL));

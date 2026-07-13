@@ -4,7 +4,7 @@ Serial Command Extreme is a reusable bounded embedded serial command library und
 
 The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to define commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, output-neutral complete-line console orchestration with caller-owned execution workspace, host tests, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: generated help/manpages, examples, and platform adapters remain future work.
+This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, output-neutral complete-line console orchestration with caller-owned execution workspace, a pure bounded generated-help core, host tests, golden help-output fixtures, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: console-level help built-ins, extended help sections, examples, and platform adapters remain future work.
 
 ## Intended use
 
@@ -92,14 +92,14 @@ Tests: Host coverage for foundational helpers, descriptor types, tokenizer, regi
 Typed argument parser: implemented for signed integer, unsigned integer, compact decimal float when enabled, boolean, enum, bounded string, and bounded secret
 Selected-command dispatch and access enforcement: implemented
 Output-neutral complete-line console orchestration: implemented
-Generated help/manpages: not added yet
+Generated help/manpages: pure metadata validation, exact path lookup, top-level index, complete command list, group pages, and executable command pages implemented; console built-ins and extended sections remain future work
 Examples: not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, and dispatch handlers, but it still lacks generated help/manpages, examples, and adapters.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, and render pure generated help through explicit APIs, but it still lacks console-level help built-ins, extended help sections, examples, and adapters.
 
 
 ## Compact float arguments

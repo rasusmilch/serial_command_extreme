@@ -2,18 +2,10 @@
 
 #include <string.h>
 
-/**
- * @brief Adapt bounded byte writes to the configured output callback.
- *
- * Validates that the output sink and callback are present, treats a zero-length
- * write as a successful no-op, and maps callback short writes to
- * BSC_STATUS_OUTPUT_TRUNCATED. The data buffer is caller-owned and is not
- * retained after the callback returns.
- */
-static bsc_status_t bsc_out_write_bytes(bsc_output_t *out, const char *data, size_t length) {
+bsc_status_t bsc_out_write_bytes(bsc_output_t *out, const char *data, size_t length) {
   size_t written;
 
-  if (out == NULL || out->write == NULL) {
+  if (out == NULL || out->write == NULL || (data == NULL && length != 0u)) {
     return BSC_STATUS_INTERNAL_ERROR;
   }
   if (length == 0u) {
@@ -27,7 +19,8 @@ static bsc_status_t bsc_out_write_bytes(bsc_output_t *out, const char *data, siz
  * @brief Write a nullable C string through the shared byte-write adapter.
  *
  * NULL text is treated as an empty write. Non-NULL text is measured with
- * strlen before forwarding so the callback receives an explicit byte count.
+ * strlen before forwarding so legacy callers keep the existing C-string
+ * behavior; generated help uses the explicit-length helper after validation.
  */
 bsc_status_t bsc_out_write(bsc_output_t *out, const char *text) {
   if (text == NULL) {

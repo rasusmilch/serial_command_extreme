@@ -33,6 +33,10 @@ int bsc_run_dispatch_tests(void);
  * @brief Run complete-line console orchestration tests supplied by the console module.
  */
 int bsc_run_console_tests(void);
+/**
+ * @brief Run generated-help tests supplied by the help module.
+ */
+int bsc_run_help_tests(void);
 
 /**
  * @brief Fail the current host test when a condition is false.
@@ -157,6 +161,22 @@ static int test_string_view_empty_behavior(const char *test_name) {
   return 0;
 }
 
+
+/**
+ * @brief Verify public explicit-length output writes and invalid span handling.
+ */
+static int test_output_write_bytes_public_helper(const char *test_name) {
+  capture_sink_t sink = {{0}, 0u};
+  bsc_output_t output = {capture_write, &sink};
+
+  TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_out_write_bytes(&output, "abc", 3u));
+  TEST_ASSERT_TRUE(sink.used == 3u);
+  TEST_ASSERT_TRUE(memcmp(sink.buffer, "abc", 3u) == 0);
+  TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_out_write_bytes(&output, NULL, 0u));
+  TEST_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_out_write_bytes(&output, NULL, 1u));
+  return 0;
+}
+
 /**
  * @brief Verify write and writeln append bytes to the bounded capture sink in order.
  */
@@ -197,6 +217,7 @@ int main(void) {
   RUN_TEST(test_string_view_mismatch);
   RUN_TEST(test_string_view_non_null_terminated_slice);
   RUN_TEST(test_string_view_empty_behavior);
+  RUN_TEST(test_output_write_bytes_public_helper);
   RUN_TEST(test_output_write_and_writeln_capture);
   RUN_TEST(test_output_truncation);
 
@@ -207,6 +228,7 @@ int main(void) {
   failures += bsc_run_args_tests();
   failures += bsc_run_dispatch_tests();
   failures += bsc_run_console_tests();
+  failures += bsc_run_help_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);
