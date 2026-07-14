@@ -385,6 +385,91 @@ static int test_help_validation_control_and_bounds(const char *test_name) {
   return 0;
 }
 
+static void fill_help_text(char *text, size_t length, char value) {
+  size_t index;
+  for (index = 0u; index < length; ++index) {
+    text[index] = value;
+  }
+  text[length] = '\0';
+}
+
+static void poison_help_error(bsc_help_validation_error_t *error) {
+  error->reason = BSC_HELP_ERROR_EMPTY_SUMMARY;
+  error->command_index = 77u;
+  error->path_token_index = 78u;
+  error->arg_index = 79u;
+  error->enum_choice_index = 80u;
+  error->required_parent_depth = 81u;
+  error->registry_error.reason = BSC_REGISTRY_ERROR_EMPTY_PATH;
+  error->registry_error.command_index = 82u;
+  error->registry_error.path_token_index = 83u;
+  error->registry_error.arg_index = 84u;
+  error->registry_error.enum_choice_index = 85u;
+  error->registry_error.duplicate_command_index = 86u;
+}
+
+static int assert_help_error_cleared(const char *test_name, const bsc_help_validation_error_t *error) {
+  HELP_ASSERT_TRUE(error->reason == BSC_HELP_ERROR_NONE);
+  HELP_ASSERT_TRUE(error->command_index == 0u);
+  HELP_ASSERT_TRUE(error->path_token_index == 0u);
+  HELP_ASSERT_TRUE(error->arg_index == 0u);
+  HELP_ASSERT_TRUE(error->enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error->required_parent_depth == 0u);
+  HELP_ASSERT_TRUE(error->registry_error.reason == BSC_REGISTRY_ERROR_NONE);
+  HELP_ASSERT_TRUE(error->registry_error.command_index == 0u);
+  HELP_ASSERT_TRUE(error->registry_error.path_token_index == 0u);
+  HELP_ASSERT_TRUE(error->registry_error.arg_index == 0u);
+  HELP_ASSERT_TRUE(error->registry_error.enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error->registry_error.duplicate_command_index == 0u);
+  return 0;
+}
+
+static int test_help_validation_all_prose_bounds(const char *test_name) {
+  static char max_text[BSC_MAX_HELP_TEXT_LEN + 1u];
+  static char too_long[BSC_MAX_HELP_TEXT_LEN + 2u];
+  bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
+  bsc_arg_def_t args[WIFI_ARG_COUNT];
+  bsc_enum_choice_t choices[3];
+  bsc_help_validation_error_t error;
+  fill_help_text(max_text, (size_t)BSC_MAX_HELP_TEXT_LEN, 'm');
+  fill_help_text(too_long, (size_t)BSC_MAX_HELP_TEXT_LEN + 1u, 'x');
+
+  copy_commands(table);
+  table[0].description = max_text;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(table, help_command_count, NULL, &error));
+  copy_commands(table);
+  table[0].description = too_long;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_DESCRIPTION_TOO_LONG);
+  HELP_ASSERT_TRUE(error.command_index == 0u && error.path_token_index == 0u);
+  HELP_ASSERT_TRUE(error.arg_index == 0u && error.enum_choice_index == 0u && error.required_parent_depth == 0u);
+
+  copy_commands(table);
+  memcpy(args, wifi_args, sizeof(args));
+  table[5].args = args;
+  args[0].help = max_text;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(table, help_command_count, NULL, &error));
+  args[0].help = too_long;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_ARGUMENT_HELP_TOO_LONG);
+  HELP_ASSERT_TRUE(error.command_index == 5u && error.arg_index == 0u);
+  HELP_ASSERT_TRUE(error.path_token_index == 0u && error.enum_choice_index == 0u && error.required_parent_depth == 0u);
+
+  copy_commands(table);
+  memcpy(args, wifi_args, sizeof(args));
+  memcpy(choices, mode_choices, sizeof(choices));
+  args[5].enum_choices = choices;
+  table[5].args = args;
+  choices[0].help = max_text;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(table, help_command_count, NULL, &error));
+  choices[0].help = too_long;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_ENUM_CHOICE_HELP_TOO_LONG);
+  HELP_ASSERT_TRUE(error.command_index == 5u && error.arg_index == 5u && error.enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error.path_token_index == 0u && error.required_parent_depth == 0u);
+  return 0;
+}
+
 static int test_help_validation_registry_and_parent_groups(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   bsc_help_validation_error_t error;
@@ -464,6 +549,227 @@ static int test_help_lookup_behaviors(const char *test_name) {
   options.include_factory = true;
   HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_find_path(help_commands, help_command_count, hidden_factory, 2u, &options, &result));
   HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
+  return 0;
+}
+
+static int assert_rendered_text(const char *test_name,
+                                bsc_status_t status,
+                                const help_capture_t *capture,
+                                const char *expected) {
+  size_t expected_len = strlen(expected);
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, status);
+  HELP_ASSERT_TRUE(capture->used == expected_len);
+  HELP_ASSERT_TRUE(memcmp(capture->buffer, expected, expected_len) == 0);
+  return 0;
+}
+
+static bsc_status_t render_index_with_options(const bsc_help_options_t *options, help_capture_t *capture) {
+  bsc_output_t output = {help_capture_write, capture};
+  help_capture_init(capture, sizeof(capture->buffer));
+  return bsc_help_render_index(help_commands, help_command_count, options, &output);
+}
+
+static bsc_status_t render_commands_with_options(const bsc_help_options_t *options, help_capture_t *capture) {
+  bsc_output_t output = {help_capture_write, capture};
+  help_capture_init(capture, sizeof(capture->buffer));
+  return bsc_help_render_commands(help_commands, help_command_count, options, &output);
+}
+
+static int test_help_rendered_visibility_options(const char *test_name) {
+  static const char default_index[] = "COMMANDS\n  status - Status\n  settings - Settings\n  mode - Mode\n";
+  static const char no_advanced_index[] = "COMMANDS\n  status - Status\n  settings - Settings\n";
+  static const char factory_index[] =
+      "COMMANDS\n  status - Status\n  settings - Settings\n  mode - Mode\n  factory - Factory\n";
+  static const char locked_index[] =
+      "COMMANDS\n  status - Status\n  settings - Settings\n  mode - Mode\n  locked - Locked\n";
+  static const char hidden_index[] =
+      "COMMANDS\n  status - Status\n  settings - Settings\n  mode - Mode\n  hidden - Hidden\n";
+  static const char hidden_factory_index[] =
+      "COMMANDS\n  status - Status\n  settings - Settings\n  mode - Mode\n  factory - Factory\n"
+      "  hidden - Hidden\n";
+  static const char default_commands[] =
+      "COMMANDS\n  status - Status\n  settings wifi set ssid - SSID\n  mode - Mode\n";
+  static const char no_advanced_commands[] =
+      "COMMANDS\n  status - Status\n  settings wifi set ssid - SSID\n";
+  static const char factory_commands[] =
+      "COMMANDS\n  status - Status\n  settings wifi scan - Scan\n  settings wifi set ssid - SSID\n"
+      "  mode - Mode\n  factory - Factory\n";
+  static const char locked_commands[] =
+      "COMMANDS\n  status - Status\n  settings wifi set ssid - SSID\n  mode - Mode\n  locked - Locked\n";
+  static const char hidden_commands[] =
+      "COMMANDS\n  status - Status\n  settings wifi set ssid - SSID\n  mode - Mode\n";
+  static const char hidden_factory_commands[] =
+      "COMMANDS\n  status - Status\n  settings wifi scan - Scan\n  settings wifi set ssid - SSID\n"
+      "  mode - Mode\n  factory - Factory\n  hidden factory - HidFact\n";
+  help_capture_t capture;
+  bsc_help_options_t options;
+
+  g_handler_calls = 0;
+  g_access_calls = 0;
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_index_with_options(NULL, &capture), &capture, default_index) == 0);
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_commands_with_options(NULL, &capture), &capture, default_commands) == 0);
+
+  bsc_help_options_init(&options);
+  options.include_advanced = false;
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_index_with_options(&options, &capture), &capture, no_advanced_index) == 0);
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_commands_with_options(&options, &capture), &capture, no_advanced_commands) == 0);
+
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_index_with_options(&options, &capture), &capture, factory_index) == 0);
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_commands_with_options(&options, &capture), &capture, factory_commands) == 0);
+
+  bsc_help_options_init(&options);
+  options.include_locked = true;
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_index_with_options(&options, &capture), &capture, locked_index) == 0);
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_commands_with_options(&options, &capture), &capture, locked_commands) == 0);
+
+  bsc_help_options_init(&options);
+  options.include_hidden = true;
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_index_with_options(&options, &capture), &capture, hidden_index) == 0);
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_commands_with_options(&options, &capture), &capture, hidden_commands) == 0);
+
+  options.include_factory = true;
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_index_with_options(&options, &capture), &capture, hidden_factory_index) == 0);
+  HELP_ASSERT_TRUE(assert_rendered_text(test_name, render_commands_with_options(&options, &capture), &capture, hidden_factory_commands) == 0);
+
+  HELP_ASSERT_TRUE(g_handler_calls == 0);
+  HELP_ASSERT_TRUE(g_access_calls == 0);
+  return 0;
+}
+
+static void poison_lookup_result(bsc_help_lookup_result_t *result) {
+  result->command = &help_commands[0];
+  result->command_index = 99u;
+}
+
+static int assert_lookup_cleared(const char *test_name, const bsc_help_lookup_result_t *result) {
+  HELP_ASSERT_TRUE(result->command == NULL);
+  HELP_ASSERT_TRUE(result->command_index == 0u);
+  return 0;
+}
+
+static int test_help_lookup_result_clearing_failures(const char *test_name) {
+  bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
+  bsc_help_lookup_result_t result;
+  bsc_string_view_t status_token[] = {bsc_string_view_from_cstr("status")};
+  bsc_string_view_t unknown[] = {bsc_string_view_from_cstr("unknown")};
+  bsc_string_view_t factory[] = {bsc_string_view_from_cstr("factory")};
+
+  poison_lookup_result(&result);
+  HELP_ASSERT_STATUS(BSC_STATUS_NO_INPUT, bsc_help_find_path(help_commands, help_command_count, status_token, 0u, NULL, &result));
+  HELP_ASSERT_TRUE(assert_lookup_cleared(test_name, &result) == 0);
+
+  poison_lookup_result(&result);
+  HELP_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_help_find_path(help_commands, help_command_count, NULL, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(assert_lookup_cleared(test_name, &result) == 0);
+
+  poison_lookup_result(&result);
+  HELP_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_help_find_path(help_commands, help_command_count, unknown, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(assert_lookup_cleared(test_name, &result) == 0);
+
+  poison_lookup_result(&result);
+  HELP_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_help_find_path(help_commands, help_command_count, factory, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(assert_lookup_cleared(test_name, &result) == 0);
+
+  copy_commands(table);
+  table[0].path = NULL;
+  poison_lookup_result(&result);
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_find_path(table, help_command_count, status_token, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(assert_lookup_cleared(test_name, &result) == 0);
+
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_find_path(help_commands, help_command_count, status_token, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(result.command == &help_commands[0]);
+  HELP_ASSERT_TRUE(result.command_index == 0u);
+  return 0;
+}
+
+static int test_help_validation_diagnostic_clearing(const char *test_name) {
+  bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
+  bsc_help_validation_error_t error;
+
+  poison_help_error(&error);
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(help_commands, help_command_count, NULL, &error));
+  HELP_ASSERT_TRUE(assert_help_error_cleared(test_name, &error) == 0);
+
+  copy_commands(table);
+  table[0].summary = "";
+  poison_help_error(&error);
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_EMPTY_SUMMARY);
+  HELP_ASSERT_TRUE(error.command_index == 0u);
+  HELP_ASSERT_TRUE(error.path_token_index == 0u);
+  HELP_ASSERT_TRUE(error.arg_index == 0u);
+  HELP_ASSERT_TRUE(error.enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error.required_parent_depth == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.reason == BSC_REGISTRY_ERROR_NONE);
+  HELP_ASSERT_TRUE(error.registry_error.command_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.path_token_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.arg_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.duplicate_command_index == 0u);
+
+  copy_commands(table);
+  table[0].path = NULL;
+  poison_help_error(&error);
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(table, help_command_count, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_REGISTRY_INVALID);
+  HELP_ASSERT_TRUE(error.command_index == 0u);
+  HELP_ASSERT_TRUE(error.path_token_index == 0u);
+  HELP_ASSERT_TRUE(error.arg_index == 0u);
+  HELP_ASSERT_TRUE(error.enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error.required_parent_depth == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.reason == BSC_REGISTRY_ERROR_NULL_PATH);
+  HELP_ASSERT_TRUE(error.registry_error.command_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.path_token_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.arg_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.enum_choice_index == 0u);
+  HELP_ASSERT_TRUE(error.registry_error.duplicate_command_index == 0u);
+  return 0;
+}
+
+static int test_help_invalid_api_inputs(const char *test_name) {
+  bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t status_token[] = {bsc_string_view_from_cstr("status")};
+  bsc_string_view_t unknown[] = {bsc_string_view_from_cstr("unknown")};
+  bsc_string_view_t factory[] = {bsc_string_view_from_cstr("factory")};
+
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_validate(NULL, 1u, NULL, NULL));
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
+                     bsc_help_validate(help_commands, (size_t)BSC_MAX_COMMANDS + 1u, NULL, NULL));
+  HELP_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR,
+                     bsc_help_find_path(help_commands, help_command_count, status_token, 1u, NULL, NULL));
+  HELP_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR,
+                     bsc_help_find_path(help_commands, help_command_count, NULL, 1u, NULL,
+                                        &(bsc_help_lookup_result_t){&help_commands[0], 1u}));
+  HELP_ASSERT_STATUS(BSC_STATUS_NO_INPUT,
+                     bsc_help_find_path(help_commands, help_command_count, status_token, 0u, NULL,
+                                        &(bsc_help_lookup_result_t){&help_commands[0], 1u}));
+
+  HELP_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_help_render_index(help_commands, help_command_count, NULL, NULL));
+  output.write = NULL;
+  output.user = NULL;
+  HELP_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_help_render_commands(help_commands, help_command_count, NULL, &output));
+
+  copy_commands(table);
+  table[0].summary = NULL;
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_render_commands(table, help_command_count, NULL, &output));
+  HELP_ASSERT_TRUE(capture.calls == 0u && capture.used == 0u);
+
+  help_capture_init(&capture, sizeof(capture.buffer));
+  HELP_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                     bsc_help_render_path(help_commands, help_command_count, unknown, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(capture.calls == 0u && capture.used == 0u);
+
+  help_capture_init(&capture, sizeof(capture.buffer));
+  HELP_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                     bsc_help_render_path(help_commands, help_command_count, factory, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(capture.calls == 0u && capture.used == 0u);
   return 0;
 }
 
@@ -843,9 +1149,14 @@ int bsc_run_help_tests(void) {
   HELP_RUN_TEST(test_help_validation_successes);
   HELP_RUN_TEST(test_help_validation_required_and_optional_text);
   HELP_RUN_TEST(test_help_validation_control_and_bounds);
+  HELP_RUN_TEST(test_help_validation_all_prose_bounds);
   HELP_RUN_TEST(test_help_validation_registry_and_parent_groups);
   HELP_RUN_TEST(test_help_validation_filtered_metadata);
   HELP_RUN_TEST(test_help_lookup_behaviors);
+  HELP_RUN_TEST(test_help_rendered_visibility_options);
+  HELP_RUN_TEST(test_help_lookup_result_clearing_failures);
+  HELP_RUN_TEST(test_help_validation_diagnostic_clearing);
+  HELP_RUN_TEST(test_help_invalid_api_inputs);
   HELP_RUN_TEST(test_help_golden_outputs);
   HELP_RUN_TEST(test_help_output_failures);
   HELP_RUN_TEST(test_help_short_write_every_boundary);
