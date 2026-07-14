@@ -809,115 +809,352 @@ static int test_help_invalid_metadata_emits_no_output(const char *test_name) {
   return 0;
 }
 
+typedef struct help_expected {
+  char buffer[8192];
+  size_t used;
+  int overflow;
+} help_expected_t;
 
-static int test_help_maximum_bounds_and_reuse(const char *test_name) {
+static void help_expected_init(help_expected_t *expected) {
+  expected->used = 0u;
+  expected->overflow = 0;
+}
+
+static void help_expected_append(help_expected_t *expected, const char *text) {
+  size_t length = strlen(text);
+  if (length > sizeof(expected->buffer) - expected->used) {
+    expected->overflow = 1;
+    return;
+  }
+  memcpy(&expected->buffer[expected->used], text, length);
+  expected->used += length;
+}
+
+static int help_expect_capture_equals(const char *test_name,
+                                      const help_capture_t *capture,
+                                      const help_expected_t *expected) {
+  HELP_ASSERT_TRUE(!expected->overflow);
+  HELP_ASSERT_TRUE(capture->used == expected->used);
+  HELP_ASSERT_TRUE(expected->used > 0u);
+  HELP_ASSERT_TRUE(expected->buffer[expected->used - 1u] == '\n');
+  HELP_ASSERT_TRUE(memcmp(capture->buffer, expected->buffer, expected->used) == 0);
+  return 0;
+}
+
+static void help_fill_indexed_name(char *name, char prefix, size_t index) {
+  name[0] = prefix;
+  name[1] = (char)('0' + ((index / 10u) % 10u));
+  name[2] = (char)('0' + (index % 10u));
+  name[3] = '\0';
+}
+
+static int test_help_maximum_command_count_rendering(const char *test_name) {
   static char command_names[BSC_MAX_COMMANDS][8];
+  static char summaries[BSC_MAX_COMMANDS][8];
+  static char descriptions[BSC_MAX_COMMANDS][8];
   static const char *command_paths[BSC_MAX_COMMANDS][1];
-  static bsc_command_t command_table[BSC_MAX_COMMANDS];
-  static char path_names[BSC_MAX_PATH_TOKENS][8];
-  static const char *deep_paths[BSC_MAX_PATH_TOKENS][BSC_MAX_PATH_TOKENS];
-  static bsc_command_t deep_table[BSC_MAX_PATH_TOKENS];
-  static char arg_names[BSC_MAX_ARGS][8];
-  static bsc_arg_def_t max_args[BSC_MAX_ARGS];
-  static bsc_enum_choice_t max_choices[BSC_MAX_ENUM_CHOICES];
-  static const char *const max_path[] = {"max"};
-  static const char *const enum_path[] = {"enummax"};
-  static bsc_arg_def_t enum_arg[] = {{"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, max_choices, BSC_MAX_ENUM_CHOICES, NULL}};
-  static bsc_command_t single_command[1];
+  static bsc_command_t commands[BSC_MAX_COMMANDS];
+  help_expected_t expected;
   help_capture_t first;
   help_capture_t second;
-  bsc_output_t out1;
-  bsc_output_t out2;
+  bsc_output_t output;
   bsc_help_validation_error_t error;
   size_t index;
 
+  help_expected_init(&expected);
+  help_expected_append(&expected, "COMMANDS\n");
   for (index = 0u; index < (size_t)BSC_MAX_COMMANDS; ++index) {
-    command_names[index][0] = 'c';
-    command_names[index][1] = (char)('0' + ((index / 10u) % 10u));
-    command_names[index][2] = (char)('0' + (index % 10u));
-    command_names[index][3] = '\0';
+    help_fill_indexed_name(command_names[index], 'c', index);
+    help_fill_indexed_name(summaries[index], 'S', index);
+    help_fill_indexed_name(descriptions[index], 'D', index);
     command_paths[index][0] = command_names[index];
-    command_table[index].path = command_paths[index];
-    command_table[index].path_len = 1u;
-    command_table[index].node_type = BSC_NODE_COMMAND;
-    command_table[index].args = NULL;
-    command_table[index].arg_count = 0u;
-    command_table[index].handler = help_forbidden_handler;
-    command_table[index].command_context = NULL;
-    command_table[index].access = BSC_ACCESS_NORMAL;
-    command_table[index].flags = BSC_COMMAND_FLAG_NONE;
-    command_table[index].access_fn = help_forbidden_access;
-    command_table[index].summary = "S";
-    command_table[index].description = "D";
+    commands[index] = (bsc_command_t){command_paths[index], 1u, BSC_NODE_COMMAND, NULL, 0u,
+                                      help_forbidden_handler, NULL, BSC_ACCESS_NORMAL,
+                                      BSC_COMMAND_FLAG_NONE, help_forbidden_access,
+                                      summaries[index], descriptions[index]};
+    help_expected_append(&expected, "  ");
+    help_expected_append(&expected, command_names[index]);
+    help_expected_append(&expected, " - ");
+    help_expected_append(&expected, summaries[index]);
+    help_expected_append(&expected, "\n");
   }
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &error));
+
+  g_handler_calls = 0;
+  g_access_calls = 0;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(commands, (size_t)BSC_MAX_COMMANDS, NULL, &error));
   help_capture_init(&first, sizeof(first.buffer));
-  out1.write = help_capture_write;
-  out1.user = &first;
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &out1));
-  HELP_ASSERT_TRUE(help_bytes_find(first.buffer, first.used, "c00 - S", strlen("c00 - S")) == 1);
-  HELP_ASSERT_TRUE(help_bytes_find(first.buffer, first.used, command_names[BSC_MAX_COMMANDS - 1u], strlen(command_names[BSC_MAX_COMMANDS - 1u])) == 1);
+  output.write = help_capture_write;
+  output.user = &first;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(commands, (size_t)BSC_MAX_COMMANDS, NULL, &output));
+  HELP_ASSERT_TRUE(help_expect_capture_equals(test_name, &first, &expected) == 0);
+  help_capture_init(&second, sizeof(second.buffer));
+  output.user = &second;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(commands, (size_t)BSC_MAX_COMMANDS, NULL, &output));
+  HELP_ASSERT_TRUE(second.used == first.used);
+  HELP_ASSERT_TRUE(memcmp(second.buffer, first.buffer, first.used) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
+  return 0;
+}
+
+static void help_expected_append_path(help_expected_t *expected, char names[BSC_MAX_PATH_TOKENS][8], size_t count) {
+  size_t index;
+  for (index = 0u; index < count; ++index) {
+    if (index != 0u) help_expected_append(expected, " ");
+    help_expected_append(expected, names[index]);
+  }
+}
+
+static int test_help_maximum_path_depth_rendering(const char *test_name) {
+  static char names[BSC_MAX_PATH_TOKENS][8];
+  static const char *paths[BSC_MAX_PATH_TOKENS][BSC_MAX_PATH_TOKENS];
+  static bsc_command_t commands[BSC_MAX_PATH_TOKENS];
+  bsc_string_view_t tokens[BSC_MAX_PATH_TOKENS];
+  help_expected_t expected;
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_help_lookup_result_t result;
+  bsc_help_validation_error_t error;
+  size_t index;
 
   for (index = 0u; index < (size_t)BSC_MAX_PATH_TOKENS; ++index) {
     size_t depth;
-    path_names[index][0] = 'p';
-    path_names[index][1] = (char)('0' + index);
-    path_names[index][2] = '\0';
+    help_fill_indexed_name(names[index], 'p', index);
+    tokens[index] = bsc_string_view_from_cstr(names[index]);
     for (depth = 0u; depth <= index; ++depth) {
-      deep_paths[index][depth] = path_names[depth];
+      paths[index][depth] = names[depth];
     }
-    deep_table[index].path = deep_paths[index];
-    deep_table[index].path_len = index + 1u;
-    deep_table[index].node_type = index + 1u == (size_t)BSC_MAX_PATH_TOKENS ? BSC_NODE_COMMAND : BSC_NODE_GROUP;
-    deep_table[index].args = NULL;
-    deep_table[index].arg_count = 0u;
-    deep_table[index].handler = deep_table[index].node_type == BSC_NODE_COMMAND ? help_forbidden_handler : NULL;
-    deep_table[index].command_context = NULL;
-    deep_table[index].access = BSC_ACCESS_NORMAL;
-    deep_table[index].flags = BSC_COMMAND_FLAG_NONE;
-    deep_table[index].access_fn = help_forbidden_access;
-    deep_table[index].summary = "S";
-    deep_table[index].description = deep_table[index].node_type == BSC_NODE_COMMAND ? "D" : NULL;
+    commands[index] = (bsc_command_t){paths[index], index + 1u,
+                                      index + 1u == (size_t)BSC_MAX_PATH_TOKENS ? BSC_NODE_COMMAND : BSC_NODE_GROUP,
+                                      NULL, 0u,
+                                      index + 1u == (size_t)BSC_MAX_PATH_TOKENS ? help_forbidden_handler : NULL,
+                                      NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, help_forbidden_access,
+                                      "Deep", index + 1u == (size_t)BSC_MAX_PATH_TOKENS ? "Deep." : NULL};
   }
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(deep_table, (size_t)BSC_MAX_PATH_TOKENS, NULL, &error));
+  help_expected_init(&expected);
+  help_expected_append(&expected, "NAME\n  ");
+  help_expected_append_path(&expected, names, (size_t)BSC_MAX_PATH_TOKENS);
+  help_expected_append(&expected, " - Deep\n\nSYNOPSIS\n  ");
+  help_expected_append_path(&expected, names, (size_t)BSC_MAX_PATH_TOKENS);
+  help_expected_append(&expected, "\n\nDESCRIPTION\n  Deep.\n");
 
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(commands, (size_t)BSC_MAX_PATH_TOKENS, NULL, &error));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_find_path(commands, (size_t)BSC_MAX_PATH_TOKENS,
+                                                       tokens, (size_t)BSC_MAX_PATH_TOKENS, NULL, &result));
+  HELP_ASSERT_TRUE(result.command == &commands[BSC_MAX_PATH_TOKENS - 1u]);
+  HELP_ASSERT_TRUE(result.command_index == (size_t)BSC_MAX_PATH_TOKENS - 1u);
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(commands, (size_t)BSC_MAX_PATH_TOKENS,
+                                                        tokens, (size_t)BSC_MAX_PATH_TOKENS, NULL, &output));
+  HELP_ASSERT_TRUE(help_expect_capture_equals(test_name, &capture, &expected) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
+  return 0;
+}
+
+static int test_help_maximum_argument_count_rendering(const char *test_name) {
+  static const char *const path[] = {"argmax"};
+  static char arg_names[BSC_MAX_ARGS][8];
+  static char arg_help[BSC_MAX_ARGS][8];
+  static bsc_arg_def_t args[BSC_MAX_ARGS];
+  static bsc_command_t command[1];
+  help_expected_t expected;
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t token[] = {bsc_string_view_from_cstr("argmax")};
+  bsc_help_validation_error_t error;
+  size_t index;
+
+  help_expected_init(&expected);
+  command[0] = (bsc_command_t){path, 1u, BSC_NODE_COMMAND, args, (size_t)BSC_MAX_ARGS,
+                               help_forbidden_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE,
+                               help_forbidden_access, "Args", "Args."};
+  help_expected_append(&expected, "NAME\n  argmax - Args\n\nSYNOPSIS\n  argmax");
   for (index = 0u; index < (size_t)BSC_MAX_ARGS; ++index) {
-    arg_names[index][0] = 'a';
-    arg_names[index][1] = (char)('0' + index);
-    arg_names[index][2] = '\0';
-    max_args[index].name = arg_names[index];
-    max_args[index].type = BSC_ARG_UINT;
-    max_args[index].min_uint = 0u;
-    max_args[index].max_uint = 9u;
-    max_args[index].help = NULL;
+    help_fill_indexed_name(arg_names[index], 'a', index);
+    help_fill_indexed_name(arg_help[index], 'h', index);
+    args[index] = (bsc_arg_def_t){arg_names[index], BSC_ARG_UINT, 0, 0, 0u, 9u, 0.0f, 0.0f,
+                                  0u, 0u, NULL, 0u, arg_help[index]};
+    help_expected_append(&expected, " <");
+    help_expected_append(&expected, arg_names[index]);
+    help_expected_append(&expected, ">");
   }
-  single_command[0] = help_commands[0];
-  single_command[0].path = max_path;
-  single_command[0].args = max_args;
-  single_command[0].arg_count = (size_t)BSC_MAX_ARGS;
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(single_command, 1u, NULL, &error));
-  help_capture_init(&first, sizeof(first.buffer));
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(single_command, 1u, (bsc_string_view_t[]){bsc_string_view_from_cstr("max")}, 1u, NULL, &(bsc_output_t){help_capture_write, &first}));
-  HELP_ASSERT_TRUE(help_bytes_find(first.buffer, first.used, arg_names[BSC_MAX_ARGS - 1u], strlen(arg_names[BSC_MAX_ARGS - 1u])) == 1);
+  help_expected_append(&expected, "\n\nDESCRIPTION\n  Args.\n\nARGUMENTS\n");
+  for (index = 0u; index < (size_t)BSC_MAX_ARGS; ++index) {
+    help_expected_append(&expected, "  ");
+    help_expected_append(&expected, arg_names[index]);
+    help_expected_append(&expected, " - ");
+    help_expected_append(&expected, arg_help[index]);
+    help_expected_append(&expected, "\n");
+  }
+  help_expected_append(&expected, "\nVALID VALUES\n");
+  for (index = 0u; index < (size_t)BSC_MAX_ARGS; ++index) {
+    help_expected_append(&expected, "  ");
+    help_expected_append(&expected, arg_names[index]);
+    help_expected_append(&expected, ": unsigned integer, 0..9\n");
+  }
 
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(command, 1u, NULL, &error));
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(command, 1u, token, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(help_expect_capture_equals(test_name, &capture, &expected) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
+  return 0;
+}
+
+static int test_help_maximum_enum_choice_rendering(const char *test_name) {
+  static const char *const path[] = {"enummax"};
+  static char choice_names[BSC_MAX_ENUM_CHOICES][8];
+  static char choice_help[BSC_MAX_ENUM_CHOICES][8];
+  static bsc_enum_choice_t choices[BSC_MAX_ENUM_CHOICES];
+  static bsc_arg_def_t arg[] = {{"mode", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f,
+                                0u, 0u, choices, BSC_MAX_ENUM_CHOICES, NULL}};
+  static bsc_command_t command[] = {{path, 1u, BSC_NODE_COMMAND, arg, 1u, help_forbidden_handler, NULL,
+                                    BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, help_forbidden_access,
+                                    "Enum", "Enum."}};
+  help_expected_t expected;
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t token[] = {bsc_string_view_from_cstr("enummax")};
+  bsc_help_validation_error_t error;
+  size_t index;
+
+  help_expected_init(&expected);
+  help_expected_append(&expected, "NAME\n  enummax - Enum\n\nSYNOPSIS\n  enummax <mode>\n\n"
+                                  "DESCRIPTION\n  Enum.\n\nARGUMENTS\n  mode\n\nVALID VALUES\n  mode: ");
   for (index = 0u; index < (size_t)BSC_MAX_ENUM_CHOICES; ++index) {
-    max_choices[index].name = command_names[index];
-    max_choices[index].value = (int32_t)index;
-    max_choices[index].help = index == (size_t)BSC_MAX_ENUM_CHOICES - 1u ? "H" : NULL;
+    help_fill_indexed_name(choice_names[index], 'e', index);
+    help_fill_indexed_name(choice_help[index], 'h', index);
+    choices[index] = (bsc_enum_choice_t){choice_names[index], (int32_t)index, choice_help[index]};
+    if (index != 0u) help_expected_append(&expected, " | ");
+    help_expected_append(&expected, choice_names[index]);
   }
-  single_command[0] = help_commands[0];
-  single_command[0].path = enum_path;
-  single_command[0].args = enum_arg;
-  single_command[0].arg_count = 1u;
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(single_command, 1u, NULL, &error));
-  help_capture_init(&second, sizeof(second.buffer));
-  out2.write = help_capture_write;
-  out2.user = &second;
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(single_command, 1u, (bsc_string_view_t[]){bsc_string_view_from_cstr("enummax")}, 1u, NULL, &out2));
-  HELP_ASSERT_TRUE(help_bytes_find(second.buffer, second.used, command_names[BSC_MAX_ENUM_CHOICES - 1u], strlen(command_names[BSC_MAX_ENUM_CHOICES - 1u])) == 1);
+  help_expected_append(&expected, "\n");
+  for (index = 0u; index < (size_t)BSC_MAX_ENUM_CHOICES; ++index) {
+    help_expected_append(&expected, "    ");
+    help_expected_append(&expected, choice_names[index]);
+    help_expected_append(&expected, " - ");
+    help_expected_append(&expected, choice_help[index]);
+    help_expected_append(&expected, "\n");
+  }
 
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &out1));
-  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_commands(command_table, (size_t)BSC_MAX_COMMANDS, NULL, &out2));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(command, 1u, NULL, &error));
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(command, 1u, token, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(help_expect_capture_equals(test_name, &capture, &expected) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
+  return 0;
+}
+
+static int test_help_maximum_immediate_children_rendering(const char *test_name) {
+  static const char *const root_path[] = {"root"};
+  static char child_names[BSC_MAX_COMMANDS - 1u][8];
+  static char summaries[BSC_MAX_COMMANDS - 1u][8];
+  static char descriptions[BSC_MAX_COMMANDS - 1u][8];
+  static const char *child_paths[BSC_MAX_COMMANDS - 1u][2];
+  static bsc_command_t commands[BSC_MAX_COMMANDS];
+  help_expected_t expected;
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t token[] = {bsc_string_view_from_cstr("root")};
+  bsc_help_lookup_result_t result;
+  bsc_help_validation_error_t error;
+  size_t index;
+
+  commands[0] = (bsc_command_t){root_path, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL,
+                                BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, help_forbidden_access,
+                                "Root", NULL};
+  help_expected_init(&expected);
+  help_expected_append(&expected, "NAME\n  root - Root\n\nCOMMANDS\n");
+  for (index = 0u; index < (size_t)BSC_MAX_COMMANDS - 1u; ++index) {
+    help_fill_indexed_name(child_names[index], 'c', index);
+    help_fill_indexed_name(summaries[index], 'S', index);
+    help_fill_indexed_name(descriptions[index], 'D', index);
+    child_paths[index][0] = "root";
+    child_paths[index][1] = child_names[index];
+    commands[index + 1u] = (bsc_command_t){child_paths[index], 2u, BSC_NODE_COMMAND, NULL, 0u,
+                                           help_forbidden_handler, NULL, BSC_ACCESS_NORMAL,
+                                           BSC_COMMAND_FLAG_NONE, help_forbidden_access,
+                                           summaries[index], descriptions[index]};
+    help_expected_append(&expected, "  root ");
+    help_expected_append(&expected, child_names[index]);
+    help_expected_append(&expected, " - ");
+    help_expected_append(&expected, summaries[index]);
+    help_expected_append(&expected, "\n");
+  }
+
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(commands, (size_t)BSC_MAX_COMMANDS, NULL, &error));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_find_path(commands, (size_t)BSC_MAX_COMMANDS, token, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(result.command == &commands[0] && result.command_index == 0u);
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(commands, (size_t)BSC_MAX_COMMANDS, token, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(help_expect_capture_equals(test_name, &capture, &expected) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
+  return 0;
+}
+
+static int test_help_maximum_identifier_lengths_rendering(const char *test_name) {
+  static char path_token[BSC_MAX_TOKEN_LEN + 1u];
+  static char arg_name[BSC_MAX_TOKEN_LEN + 1u];
+  static char choice_name[BSC_MAX_TOKEN_LEN + 1u];
+  static const char *path[] = {path_token};
+  static bsc_enum_choice_t choices[] = {{choice_name, 1, "Choice"}};
+  static bsc_arg_def_t arg[] = {{arg_name, BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f,
+                                0u, 0u, choices, 1u, "Arg"}};
+  static bsc_command_t command[] = {{path, 1u, BSC_NODE_COMMAND, arg, 1u, help_forbidden_handler, NULL,
+                                    BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, help_forbidden_access,
+                                    "Ident", "Ident."}};
+  help_expected_t expected;
+  help_capture_t capture;
+  bsc_output_t output;
+  bsc_string_view_t token;
+  bsc_help_lookup_result_t result;
+  bsc_help_validation_error_t error;
+  size_t index;
+
+  for (index = 0u; index < (size_t)BSC_MAX_TOKEN_LEN; ++index) {
+    path_token[index] = 'p';
+    arg_name[index] = 'a';
+    choice_name[index] = 'e';
+  }
+  path_token[BSC_MAX_TOKEN_LEN] = '\0';
+  arg_name[BSC_MAX_TOKEN_LEN] = '\0';
+  choice_name[BSC_MAX_TOKEN_LEN] = '\0';
+  token.data = path_token;
+  token.length = (size_t)BSC_MAX_TOKEN_LEN;
+
+  help_expected_init(&expected);
+  help_expected_append(&expected, "NAME\n  ");
+  help_expected_append(&expected, path_token);
+  help_expected_append(&expected, " - Ident\n\nSYNOPSIS\n  ");
+  help_expected_append(&expected, path_token);
+  help_expected_append(&expected, " <");
+  help_expected_append(&expected, arg_name);
+  help_expected_append(&expected, ">\n\nDESCRIPTION\n  Ident.\n\nARGUMENTS\n  ");
+  help_expected_append(&expected, arg_name);
+  help_expected_append(&expected, " - Arg\n\nVALID VALUES\n  ");
+  help_expected_append(&expected, arg_name);
+  help_expected_append(&expected, ": ");
+  help_expected_append(&expected, choice_name);
+  help_expected_append(&expected, "\n    ");
+  help_expected_append(&expected, choice_name);
+  help_expected_append(&expected, " - Choice\n");
+
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(command, 1u, NULL, &error));
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_find_path(command, 1u, &token, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(result.command == &command[0] && result.command_index == 0u);
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(command, 1u, &token, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(help_expect_capture_equals(test_name, &capture, &expected) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0 && g_access_calls == 0);
   return 0;
 }
 
@@ -1163,7 +1400,12 @@ int bsc_run_help_tests(void) {
   HELP_RUN_TEST(test_help_identifier_control_validation);
   HELP_RUN_TEST(test_help_small_prose_limit_identifier_regression);
   HELP_RUN_TEST(test_help_invalid_metadata_emits_no_output);
-  HELP_RUN_TEST(test_help_maximum_bounds_and_reuse);
+  HELP_RUN_TEST(test_help_maximum_command_count_rendering);
+  HELP_RUN_TEST(test_help_maximum_path_depth_rendering);
+  HELP_RUN_TEST(test_help_maximum_argument_count_rendering);
+  HELP_RUN_TEST(test_help_maximum_enum_choice_rendering);
+  HELP_RUN_TEST(test_help_maximum_immediate_children_rendering);
+  HELP_RUN_TEST(test_help_maximum_identifier_lengths_rendering);
 #if BSC_ENABLE_FLOAT
   HELP_RUN_TEST(test_help_float_precision_exact_output);
 #endif
