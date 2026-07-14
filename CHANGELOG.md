@@ -16,7 +16,7 @@ This file records notable repository changes.
 - Presentation-layer rejection of control bytes in every help-emitted metadata string, including path tokens, argument names, enum-choice names, and help prose.
 - Deterministic generated synopsis and valid-value output from descriptor metadata, including integer, unsigned, compact-float, boolean, enum, string, and secret argument schemas.
 - Public explicit-length `bsc_out_write_bytes()` output helper used by generated help rendering.
-- Byte-exact LF golden fixtures and host tests for generated help output, visibility filtering, metadata validation, lookup, short-write boundaries, actual maximum-capacity fixtures, exact compact-float precision output, small help-prose limits, and secret non-disclosure.
+- Byte-exact LF golden fixtures and host tests for generated help output, visibility filtering, metadata validation, lookup, short-write boundaries, configured-boundary and capacity-oriented fixtures, exact compact-float precision output, small help-prose limits, and secret non-disclosure.
 
 ### Changed
 

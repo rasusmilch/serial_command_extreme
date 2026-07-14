@@ -176,7 +176,27 @@ bsc_status_t bsc_help_render_index(const bsc_command_t *commands,
 
 /**
  * @brief Render every visible executable command under a COMMANDS heading.
- * Contract and status behavior match #bsc_help_render_index, but group descriptors are not listed.
+ * @param commands Borrowed descriptor table whose path tokens, argument metadata, summaries, and descriptions
+ *        must remain valid only for the duration of the call; the renderer retains no descriptor pointers.
+ * @param command_count Number of descriptors in @p commands. The same command/table validity rules used by
+ *        #bsc_help_validate apply before any bytes are emitted.
+ * @param options Optional borrowed static visibility options. NULL selects #bsc_help_options_init defaults:
+ *        normal and advanced descriptors are visible, while factory, locked, and hidden descriptors are filtered.
+ * @param output Required caller-owned output sink. The sink callback may block according to application policy;
+ *        this API performs no serialization around a shared sink.
+ * @retval BSC_STATUS_OK Output completed.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Registry or help metadata validation failed before any output was emitted.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first partial/short sink write occurred; rendering stopped immediately
+ *         and no fallback text or trailing newline was added.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required API inputs or output callback storage were invalid.
+ *
+ * The emitted document is LF-only, starts with a COMMANDS heading, lists only visible executable command descriptors
+ * (groups are omitted), and preserves descriptor-table order without sorting or heap allocation. The function validates
+ * descriptors before output, never invokes command handlers or command access callbacks, never reads parsed runtime
+ * arguments or runtime secret values, and does not retain @p commands, @p options, or @p output after return. Calls are
+ * reentrant for independent descriptor tables/options/output sinks; callers that share a sink across tasks must provide
+ * external serialization. Because sink behavior may block and registry scans are bounded but nontrivial, this function is
+ * intended for normal task/thread context rather than ISR context.
  */
 bsc_status_t bsc_help_render_commands(const bsc_command_t *commands,
                                       size_t command_count,

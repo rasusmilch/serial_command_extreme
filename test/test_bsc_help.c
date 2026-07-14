@@ -745,20 +745,35 @@ static int test_help_identifier_control_validation(const char *test_name) {
 static int test_help_small_prose_limit_identifier_regression(const char *test_name) {
   static const char *const path[] = {"longcommand"};
   static bsc_enum_choice_t choices[] = {{"longchoice", 1, NULL}};
-  static bsc_arg_def_t args[] = {{"longarg", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f, 0u, 0u, choices, 1u, NULL}};
+  static bsc_arg_def_t args[] = {{"longargument", BSC_ARG_ENUM, 0, 0, 0u, 0u, 0.0f, 0.0f,
+                                  0u, 0u, choices, 1u, NULL}};
   static bsc_command_t command = {path, 1u, BSC_NODE_COMMAND, args, 1u, help_forbidden_handler, NULL,
                                   BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, NULL, "Summary", "Details"};
+  static const char expected[] =
+      "NAME\n"
+      "  longcommand - Summary\n"
+      "\n"
+      "SYNOPSIS\n"
+      "  longcommand <longargument>\n"
+      "\n"
+      "DESCRIPTION\n"
+      "  Details\n"
+      "\n"
+      "ARGUMENTS\n"
+      "  longargument\n"
+      "\n"
+      "VALID VALUES\n"
+      "  longargument: longchoice\n";
   help_capture_t capture;
   bsc_output_t output;
   bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("longcommand")};
+  size_t expected_len = strlen(expected);
   help_capture_init(&capture, sizeof(capture.buffer));
   output.write = help_capture_write;
   output.user = &capture;
   HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(&command, 1u, tokens, 1u, NULL, &output));
-  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "longcommand", strlen("longcommand")) == 1);
-  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "longarg", strlen("longarg")) == 1);
-  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "longchoice", strlen("longchoice")) == 1);
-  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "VALID VALUES", strlen("VALID VALUES")) == 1);
+  HELP_ASSERT_TRUE(capture.used == expected_len);
+  HELP_ASSERT_TRUE(memcmp(capture.buffer, expected, expected_len) == 0);
   return 0;
 }
 

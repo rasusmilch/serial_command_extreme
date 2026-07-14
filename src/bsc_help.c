@@ -349,6 +349,9 @@ static bsc_status_t bsc_help_write(bsc_output_t *output, const char *data, size_
   return bsc_out_write_bytes(output, data, length);
 }
 
+/** @brief Write one compile-time string literal without runtime length scanning. */
+#define BSC_HELP_WRITE_LITERAL(output, literal) bsc_help_write((output), (literal), BSC_HELP_LITERAL_LEN(literal))
+
 /**
  * @brief Return the length of previously validated help prose.
  *
@@ -386,7 +389,7 @@ static bsc_status_t bsc_help_write_path(bsc_output_t *output, const bsc_command_
   bsc_status_t status;
   for (index = 0u; index < command->path_len; ++index) {
     if (index != 0u) {
-      status = bsc_help_write(output, " ", 1u);
+      status = BSC_HELP_WRITE_LITERAL(output, " ");
       if (status != BSC_STATUS_OK) {
         return status;
       }
@@ -400,30 +403,29 @@ static bsc_status_t bsc_help_write_path(bsc_output_t *output, const bsc_command_
 }
 
 /** @brief Emit a section separator before all but the first rendered section. */
-static bsc_status_t bsc_help_section(bsc_output_t *output, const char *heading, int *section_started) {
+static bsc_status_t bsc_help_section(bsc_output_t *output,
+                                     const char *heading,
+                                     size_t heading_length,
+                                     int *section_started) {
   bsc_status_t status;
   if (*section_started) {
-    status = bsc_help_write(output, "\n", 1u);
+    status = BSC_HELP_WRITE_LITERAL(output, "\n");
     if (status != BSC_STATUS_OK) {
       return status;
     }
   }
   *section_started = 1;
-  status = bsc_help_write(output, heading, heading[0] == 'V' ? BSC_HELP_LITERAL_LEN("VALID VALUES") :
-                          heading[0] == 'D' ? BSC_HELP_LITERAL_LEN("DESCRIPTION") :
-                          heading[0] == 'S' ? BSC_HELP_LITERAL_LEN("SYNOPSIS") :
-                          heading[0] == 'A' ? BSC_HELP_LITERAL_LEN("ARGUMENTS") :
-                          heading[0] == 'C' ? BSC_HELP_LITERAL_LEN("COMMANDS") : BSC_HELP_LITERAL_LEN("NAME"));
+  status = bsc_help_write(output, heading, heading_length);
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  return bsc_help_write(output, "\n", 1u);
+  return BSC_HELP_WRITE_LITERAL(output, "\n");
 }
 
 /** @brief Emit one COMMANDS entry in the approved descriptor-order grammar. */
 static bsc_status_t bsc_help_entry(bsc_output_t *output, const bsc_command_t *command) {
   bsc_status_t status;
-  status = bsc_help_write(output, "  ", 2u);
+  status = BSC_HELP_WRITE_LITERAL(output, "  ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -431,7 +433,7 @@ static bsc_status_t bsc_help_entry(bsc_output_t *output, const bsc_command_t *co
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, " - ", 3u);
+  status = BSC_HELP_WRITE_LITERAL(output, " - ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -439,7 +441,7 @@ static bsc_status_t bsc_help_entry(bsc_output_t *output, const bsc_command_t *co
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  return bsc_help_write(output, "\n", 1u);
+  return BSC_HELP_WRITE_LITERAL(output, "\n");
 }
 
 /** @brief Return whether child is an immediate visible child of group. */
@@ -460,11 +462,11 @@ static int bsc_help_is_immediate_child(const bsc_command_t *group,
 
 /** @brief Emit the NAME section shared by groups and commands. */
 static bsc_status_t bsc_help_render_name(bsc_output_t *output, const bsc_command_t *command, int *sections) {
-  bsc_status_t status = bsc_help_section(output, "NAME", sections);
+  bsc_status_t status = bsc_help_section(output, "NAME", BSC_HELP_LITERAL_LEN("NAME"), sections);
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, "  ", 2u);
+  status = BSC_HELP_WRITE_LITERAL(output, "  ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -472,7 +474,7 @@ static bsc_status_t bsc_help_render_name(bsc_output_t *output, const bsc_command
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, " - ", 3u);
+  status = BSC_HELP_WRITE_LITERAL(output, " - ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -480,7 +482,7 @@ static bsc_status_t bsc_help_render_name(bsc_output_t *output, const bsc_command
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  return bsc_help_write(output, "\n", 1u);
+  return BSC_HELP_WRITE_LITERAL(output, "\n");
 }
 
 /** @brief Emit a signed integer using a local non-escaping 16-byte buffer. */
@@ -578,11 +580,11 @@ static bsc_status_t bsc_help_write_float(bsc_output_t *output, float value) {
 /** @brief Emit the generated synopsis directly from descriptor path and required args. */
 static bsc_status_t bsc_help_render_synopsis(bsc_output_t *output, const bsc_command_t *command, int *sections) {
   size_t index;
-  bsc_status_t status = bsc_help_section(output, "SYNOPSIS", sections);
+  bsc_status_t status = bsc_help_section(output, "SYNOPSIS", BSC_HELP_LITERAL_LEN("SYNOPSIS"), sections);
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, "  ", 2u);
+  status = BSC_HELP_WRITE_LITERAL(output, "  ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -591,7 +593,7 @@ static bsc_status_t bsc_help_render_synopsis(bsc_output_t *output, const bsc_com
     return status;
   }
   for (index = 0u; index < command->arg_count; ++index) {
-    status = bsc_help_write(output, " <", 2u);
+    status = BSC_HELP_WRITE_LITERAL(output, " <");
     if (status != BSC_STATUS_OK) {
       return status;
     }
@@ -599,12 +601,12 @@ static bsc_status_t bsc_help_render_synopsis(bsc_output_t *output, const bsc_com
     if (status != BSC_STATUS_OK) {
       return status;
     }
-    status = bsc_help_write(output, ">", 1u);
+    status = BSC_HELP_WRITE_LITERAL(output, ">");
     if (status != BSC_STATUS_OK) {
       return status;
     }
   }
-  return bsc_help_write(output, "\n", 1u);
+  return BSC_HELP_WRITE_LITERAL(output, "\n");
 }
 
 /** @brief Emit optional DESCRIPTION after validation has made mandatory prose safe. */
@@ -613,11 +615,11 @@ static bsc_status_t bsc_help_render_description(bsc_output_t *output, const char
   if (description == NULL) {
     return BSC_STATUS_OK;
   }
-  status = bsc_help_section(output, "DESCRIPTION", sections);
+  status = bsc_help_section(output, "DESCRIPTION", BSC_HELP_LITERAL_LEN("DESCRIPTION"), sections);
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  status = bsc_help_write(output, "  ", 2u);
+  status = BSC_HELP_WRITE_LITERAL(output, "  ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -625,7 +627,7 @@ static bsc_status_t bsc_help_render_description(bsc_output_t *output, const char
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  return bsc_help_write(output, "\n", 1u);
+  return BSC_HELP_WRITE_LITERAL(output, "\n");
 }
 
 /** @brief Emit ARGUMENTS lines while preserving descriptor argument order. */
@@ -635,13 +637,13 @@ static bsc_status_t bsc_help_render_arguments(bsc_output_t *output, const bsc_co
   if (command->arg_count == 0u) {
     return BSC_STATUS_OK;
   }
-  status = bsc_help_section(output, "ARGUMENTS", sections);
+  status = bsc_help_section(output, "ARGUMENTS", BSC_HELP_LITERAL_LEN("ARGUMENTS"), sections);
   if (status != BSC_STATUS_OK) {
     return status;
   }
   for (index = 0u; index < command->arg_count; ++index) {
     const bsc_arg_def_t *arg = &command->args[index];
-    status = bsc_help_write(output, "  ", 2u);
+    status = BSC_HELP_WRITE_LITERAL(output, "  ");
     if (status != BSC_STATUS_OK) {
       return status;
     }
@@ -650,7 +652,7 @@ static bsc_status_t bsc_help_render_arguments(bsc_output_t *output, const bsc_co
       return status;
     }
     if (arg->help != NULL) {
-      status = bsc_help_write(output, " - ", 3u);
+      status = BSC_HELP_WRITE_LITERAL(output, " - ");
       if (status != BSC_STATUS_OK) {
         return status;
       }
@@ -659,7 +661,7 @@ static bsc_status_t bsc_help_render_arguments(bsc_output_t *output, const bsc_co
         return status;
       }
     }
-    status = bsc_help_write(output, "\n", 1u);
+    status = BSC_HELP_WRITE_LITERAL(output, "\n");
     if (status != BSC_STATUS_OK) {
       return status;
     }
@@ -669,7 +671,7 @@ static bsc_status_t bsc_help_render_arguments(bsc_output_t *output, const bsc_co
 
 /** @brief Emit one argument name prefix used by VALID VALUES. */
 static bsc_status_t bsc_help_arg_prefix(bsc_output_t *output, const bsc_arg_def_t *arg) {
-  bsc_status_t status = bsc_help_write(output, "  ", 2u);
+  bsc_status_t status = BSC_HELP_WRITE_LITERAL(output, "  ");
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -677,7 +679,7 @@ static bsc_status_t bsc_help_arg_prefix(bsc_output_t *output, const bsc_arg_def_
   if (status != BSC_STATUS_OK) {
     return status;
   }
-  return bsc_help_write(output, ": ", 2u);
+  return BSC_HELP_WRITE_LITERAL(output, ": ");
 }
 
 /** @brief Emit generated valid-value text that mirrors current parser descriptor schema. */
@@ -687,7 +689,7 @@ static bsc_status_t bsc_help_render_valid_values(bsc_output_t *output, const bsc
   if (command->arg_count == 0u) {
     return BSC_STATUS_OK;
   }
-  status = bsc_help_section(output, "VALID VALUES", sections);
+  status = bsc_help_section(output, "VALID VALUES", BSC_HELP_LITERAL_LEN("VALID VALUES"), sections);
   if (status != BSC_STATUS_OK) {
     return status;
   }
@@ -700,30 +702,30 @@ static bsc_status_t bsc_help_render_valid_values(bsc_output_t *output, const bsc
     }
     switch (arg->type) {
     case BSC_ARG_INT:
-      status = bsc_help_write(output, "integer, ", 9u);
+      status = BSC_HELP_WRITE_LITERAL(output, "integer, ");
       if (status == BSC_STATUS_OK) status = bsc_help_write_int32(output, arg->min_int);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, "..", 2u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, "..");
       if (status == BSC_STATUS_OK) status = bsc_help_write_int32(output, arg->max_int);
       break;
     case BSC_ARG_UINT:
-      status = bsc_help_write(output, "unsigned integer, ", 18u);
+      status = BSC_HELP_WRITE_LITERAL(output, "unsigned integer, ");
       if (status == BSC_STATUS_OK) status = bsc_help_write_uint32(output, arg->min_uint);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, "..", 2u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, "..");
       if (status == BSC_STATUS_OK) status = bsc_help_write_uint32(output, arg->max_uint);
       break;
     case BSC_ARG_FLOAT:
-      status = bsc_help_write(output, "decimal, ", 9u);
+      status = BSC_HELP_WRITE_LITERAL(output, "decimal, ");
       if (status == BSC_STATUS_OK) status = bsc_help_write_float(output, arg->min_float);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, "..", 2u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, "..");
       if (status == BSC_STATUS_OK) status = bsc_help_write_float(output, arg->max_float);
       break;
     case BSC_ARG_BOOL:
-      status = bsc_help_write(output, "on | off | true | false | 1 | 0", 31u);
+      status = BSC_HELP_WRITE_LITERAL(output, "on | off | true | false | 1 | 0");
       break;
     case BSC_ARG_ENUM:
       for (choice_index = 0u; choice_index < arg->enum_choice_count; ++choice_index) {
         if (choice_index != 0u) {
-          status = bsc_help_write(output, " | ", 3u);
+          status = BSC_HELP_WRITE_LITERAL(output, " | ");
           if (status != BSC_STATUS_OK) return status;
         }
         status = bsc_help_write(output, arg->enum_choices[choice_index].name,
@@ -732,18 +734,18 @@ static bsc_status_t bsc_help_render_valid_values(bsc_output_t *output, const bsc
       }
       break;
     case BSC_ARG_STRING:
-      status = bsc_help_write(output, "string, ", 8u);
+      status = BSC_HELP_WRITE_LITERAL(output, "string, ");
       if (status == BSC_STATUS_OK) status = bsc_help_write_uint32(output, (uint32_t)arg->min_length);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, "..", 2u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, "..");
       if (status == BSC_STATUS_OK) status = bsc_help_write_uint32(output, (uint32_t)arg->max_length);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, " bytes", 6u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, " bytes");
       break;
     case BSC_ARG_SECRET:
-      status = bsc_help_write(output, "secret, ", 8u);
+      status = BSC_HELP_WRITE_LITERAL(output, "secret, ");
       if (status == BSC_STATUS_OK) status = bsc_help_write_uint32(output, (uint32_t)arg->min_length);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, "..", 2u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, "..");
       if (status == BSC_STATUS_OK) status = bsc_help_write_uint32(output, (uint32_t)arg->max_length);
-      if (status == BSC_STATUS_OK) status = bsc_help_write(output, " bytes", 6u);
+      if (status == BSC_STATUS_OK) status = BSC_HELP_WRITE_LITERAL(output, " bytes");
       break;
     case BSC_ARG_NONE:
       status = BSC_STATUS_INVALID_DESCRIPTOR;
@@ -752,24 +754,24 @@ static bsc_status_t bsc_help_render_valid_values(bsc_output_t *output, const bsc
     if (status != BSC_STATUS_OK) {
       return status;
     }
-    status = bsc_help_write(output, "\n", 1u);
+    status = BSC_HELP_WRITE_LITERAL(output, "\n");
     if (status != BSC_STATUS_OK) {
       return status;
     }
     if (arg->type == BSC_ARG_ENUM) {
       for (choice_index = 0u; choice_index < arg->enum_choice_count; ++choice_index) {
         if (arg->enum_choices[choice_index].help != NULL) {
-          status = bsc_help_write(output, "    ", 4u);
+          status = BSC_HELP_WRITE_LITERAL(output, "    ");
           if (status != BSC_STATUS_OK) return status;
           status = bsc_help_write(output, arg->enum_choices[choice_index].name,
                                   bsc_help_identifier_length(arg->enum_choices[choice_index].name));
           if (status != BSC_STATUS_OK) return status;
-          status = bsc_help_write(output, " - ", 3u);
+          status = BSC_HELP_WRITE_LITERAL(output, " - ");
           if (status != BSC_STATUS_OK) return status;
           status = bsc_help_write(output, arg->enum_choices[choice_index].help,
                                   bsc_help_prose_length(arg->enum_choices[choice_index].help));
           if (status != BSC_STATUS_OK) return status;
-          status = bsc_help_write(output, "\n", 1u);
+          status = BSC_HELP_WRITE_LITERAL(output, "\n");
           if (status != BSC_STATUS_OK) return status;
         }
       }
@@ -786,7 +788,7 @@ bsc_status_t bsc_help_render_index(const bsc_command_t *commands,
   bsc_status_t status;
   status = bsc_help_validate(commands, command_count, options, NULL);
   if (status != BSC_STATUS_OK) return status;
-  status = bsc_help_write(output, "COMMANDS\n", 9u);
+  status = BSC_HELP_WRITE_LITERAL(output, "COMMANDS\n");
   if (status != BSC_STATUS_OK) return status;
   for (index = 0u; index < command_count; ++index) {
     if (bsc_help_is_visible(&commands[index], options) && commands[index].path_len == 1u) {
@@ -805,7 +807,7 @@ bsc_status_t bsc_help_render_commands(const bsc_command_t *commands,
   bsc_status_t status;
   status = bsc_help_validate(commands, command_count, options, NULL);
   if (status != BSC_STATUS_OK) return status;
-  status = bsc_help_write(output, "COMMANDS\n", 9u);
+  status = BSC_HELP_WRITE_LITERAL(output, "COMMANDS\n");
   if (status != BSC_STATUS_OK) return status;
   for (index = 0u; index < command_count; ++index) {
     if (bsc_help_is_visible(&commands[index], options) && commands[index].node_type == BSC_NODE_COMMAND) {
@@ -835,7 +837,7 @@ static bsc_status_t bsc_help_render_group_children(bsc_output_t *output,
   if (!any) {
     return BSC_STATUS_OK;
   }
-  status = bsc_help_section(output, "COMMANDS", sections);
+  status = bsc_help_section(output, "COMMANDS", BSC_HELP_LITERAL_LEN("COMMANDS"), sections);
   if (status != BSC_STATUS_OK) return status;
   for (index = 0u; index < command_count; ++index) {
     if (bsc_help_is_immediate_child(group, &commands[index], options)) {

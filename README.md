@@ -156,7 +156,7 @@ The implementation should be original and shaped around this project's bounded C
 
 ## Target core shape
 
-The approved design and implementation guide expect the completed core to evolve toward:
+The current core uses static, borrowed descriptor metadata with caller-owned execution storage:
 
 ```text
 bsc_console_t
@@ -169,25 +169,31 @@ bsc_console_workspace_t
   is caller-owned and supplied per complete-line execution
 
 bsc_command_t
-  literal path tokens
+  borrowed literal path tokens
   node type: group or executable command
-  access level
-  synopsis, description, examples, related help
-  typed argument descriptors
+  borrowed typed argument descriptor array
   handler callback
-  optional access check
-  optional user data
+  command context
+  access level
+  command flags
+  optional access callback
+  optional summary
+  optional description
 
 bsc_arg_def_t
   argument name
-  type
-  required flag
+  argument type
   numeric bounds
-  string length bounds
+  string or secret length bounds
   enum choices
-  help text
-  secret/redaction behavior
+  optional argument help
 ```
+
+All current positional arguments are required by position; there is no current `required`
+field and no optional-argument syntax. Generated help synopsis text is derived from the
+descriptor path and argument metadata rather than from a stored synopsis field. Notes,
+warnings, examples, related commands, and subtopics remain future help metadata, not
+current `bsc_command_t` members.
 
 Expected execution flow:
 
