@@ -105,35 +105,37 @@ Acceptance:
 
 ## Phase 3 — Generated help/manpage system
 
-Goal: implement rich help using command metadata.
+Goal: implement rich help using command metadata in staged, reviewable pieces.
 
-Minimum help sections:
+### Task 11B1 — Pure help core: implemented
 
-```text
-NAME
-SYNOPSIS
-DESCRIPTION
-ARGUMENTS
-VALID VALUES
-NOTES
-EXAMPLES
-RELATED
-```
+Implemented capabilities:
 
-Requirements:
+- help-specific metadata validation separate from ordinary registry validation;
+- exact ASCII case-insensitive descriptor-path lookup for groups and executable commands;
+- static visibility options for advanced, factory, locked, and hidden descriptors;
+- top-level help index rendering;
+- complete visible executable-command listing;
+- nested group pages;
+- executable-command pages;
+- generated NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, VALID VALUES, and COMMANDS sections;
+- descriptor-order LF-only output through `bsc_output_t`;
+- byte-exact golden fixtures plus short-write, maximum-capacity, small-prose-limit, control-byte, and exact float-precision tests;
+- no heap allocation and no public help workspace.
 
-- `help` lists top-level commands/groups.
-- `help <group>` lists group children.
-- `help <leaf>` prints manpage.
-- `help <path>` supports nested paths.
-- Sensitive arguments are redacted in examples/status helpers when marked secret.
-- Public commands missing required help fields should be caught by validation tests.
+### Task 11B2 — Optional console built-ins: future
 
-Acceptance:
+Future work will decide and implement optional console-level `help` and `commands` routing, including collision policy for application-defined command names.
 
-- Help output is stable and testable in golden files.
-- All example commands in the repo have useful manpages.
+### Task 11C — Extended metadata and subtopics: future
+
+Future work still includes notes, warnings, examples, related-command metadata, subtopics, and example applications demonstrating the full help surface. Sensitive arguments and examples must continue to avoid runtime secret disclosure.
+
+Acceptance for completed pure help work:
+
+- Help output is stable and byte-exact in golden files.
 - Help output does not require heap allocation.
+- Ordinary execution and console initialization do not require help prose.
 
 ## Phase 4 — Example applications
 

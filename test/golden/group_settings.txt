@@ -1,0 +1,8 @@
+NAME
+  settings - Settings
+
+DESCRIPTION
+  Settings
+
+COMMANDS
+  settings wifi - WiFi

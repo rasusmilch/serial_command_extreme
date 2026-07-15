@@ -2,7 +2,7 @@
 
 This directory is reserved for the platform-independent core library.
 
-Current platform-independent C99 core source exists here for configuration, status diagnostics, borrowed string views, output callbacks, complete-line console configuration and output-neutral orchestration, static descriptor types, bounded tokenization, registry descriptor validation, longest-path command matching, typed positional argument parsing, selected-command dispatch/access enforcement, and internal compact float parsing. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
+Current platform-independent C99 core source exists here for configuration, status diagnostics, borrowed string views, output callbacks, complete-line console configuration and output-neutral orchestration, static descriptor types, bounded tokenization, registry descriptor validation, longest-path command matching, typed positional argument parsing, selected-command dispatch/access enforcement, and internal compact float parsing, and pure generated-help validation/lookup/rendering. Do not add Arduino, ESP-IDF, UART, RTOS, or hardware-specific dependencies to this directory.
 
 ## Intended core modules
 
@@ -24,6 +24,8 @@ src/bsc_console.h
 src/bsc_console.c
 src/bsc_dispatch.h
 src/bsc_dispatch.c
+src/bsc_help.h
+src/bsc_help.c
 src/bsc_types.h
 src/bsc_tokenizer.h
 src/bsc_tokenizer.c
@@ -33,7 +35,7 @@ src/bsc_matcher.h
 src/bsc_matcher.c
 ```
 
-Planned future modules still include help/manpage rendering, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
+Planned future modules still include optional console built-in routing, extended help metadata/subtopics, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
 
 
 ## Compact float parser boundary
@@ -63,7 +65,7 @@ The core must remain:
 
 ## Expected responsibilities
 
-Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, typed positional argument parsing with structured diagnostics, selected-command dispatch/access enforcement, output helpers, and status diagnostics. Implemented responsibilities now include output-neutral complete-line orchestration over tokenizer, matcher, and selected-command dispatch. Planned responsibilities still include help/manpage rendering and broader redaction:
+Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, typed positional argument parsing with structured diagnostics, selected-command dispatch/access enforcement, output helpers, and status diagnostics. Implemented responsibilities now include output-neutral complete-line orchestration over tokenizer, matcher, and selected-command dispatch plus pure generated-help validation, exact metadata-path lookup, and deterministic help rendering. Planned responsibilities still include optional console built-ins, extended help metadata/subtopics, and broader redaction:
 
 - Bounded line/token handling.
 - Bounded tokenizer with quotes and escapes.
@@ -74,7 +76,7 @@ Core source should implement only the reusable command subsystem. Current respon
 - Selected-command callback dispatch with access enforcement.
 - Output-neutral complete-line console orchestration with caller-owned workspace.
 - Output callback helpers.
-- Generated help/manpage rendering.
+- Generated help/manpage rendering through the pure help API.
 - Error/status code mapping.
 - Secret argument redaction.
 
@@ -95,4 +97,4 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, and dispatch are implemented; help rendering, adapters, and examples remain future work.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, and dispatch are implemented; console built-in help routing, extended help sections, adapters, and examples remain future work.

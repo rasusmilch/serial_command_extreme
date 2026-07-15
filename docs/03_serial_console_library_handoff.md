@@ -1,5 +1,7 @@
 # Bounded Serial Console Library — Handoff for New Chat
 
+> Historical status: this file is the original new-chat handoff preserved for project chronology. Its preimplementation sequence and MVP checklist are not the current next-task list. Current implementation status is defined by `README.md`, `docs/01_serial_console_library_roadmap.md`, `docs/02_serial_console_library_implementation_guide.md`, and `docs/architecture_plan.md`.
+
 ## Context
 
 The user wants a reusable embedded serial console library, not a one-off help command system. The new library should support command registration, nested command paths, typed argument validation, callbacks/function pointers, bounded storage, and generated manpage-style help.

@@ -1,0 +1,4 @@
+COMMANDS
+  status - Status
+  settings wifi set ssid - SSID
+  mode - Mode

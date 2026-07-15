@@ -45,6 +45,22 @@ typedef struct bsc_output {
 } bsc_output_t;
 
 /**
+ * @brief Write an explicit byte span to an output target.
+ *
+ * @param out Output target. It borrows the callback and user context.
+ * @param data Bytes to write. May be NULL only when @p length is zero. The
+ *   pointer is borrowed for the call and is not retained.
+ * @param length Number of bytes to write. Zero is a successful no-op for a
+ *   valid output target.
+ * @retval BSC_STATUS_OK All requested bytes were accepted.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The sink accepted fewer than @p length bytes.
+ * @retval BSC_STATUS_INTERNAL_ERROR The output target was invalid or @p data was
+ *   NULL with nonzero length.
+ * @note This helper does not redact data; callers must avoid passing secrets.
+ */
+bsc_status_t bsc_out_write_bytes(bsc_output_t *out, const char *data, size_t length);
+
+/**
  * @brief Write a null-terminated string to an output target.
  *
  * @param out Output target. It borrows the callback and user context.

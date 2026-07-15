@@ -1,0 +1,4 @@
+COMMANDS
+  status - Status
+  settings - Settings
+  mode - Mode
