@@ -24,17 +24,16 @@ Do not write comments solely for the original author. Assume the next reader doe
 
 ## Repository languages detected
 
-Current-source inspection for this policy found the project repository in an early anchor/documentation state. The current GitHub repository contains serial console documentation anchors under `docs/`. No implementation source files were found in the repository during this pass.
+Current-source inspection for this policy found an implemented C99 core under `src/`, a CMake host build, host C tests under `test/`, a Python forbidden-pattern checker under `tools/`, Markdown anchors and policies under the repository root and `docs/`, and reference-only historical material used for design context. The implemented core currently covers bounded tokenization, static descriptor validation, command matching, typed argument parsing, selected-command dispatch, complete-line console orchestration, output callbacks, and the pure generated-help validation/lookup/rendering layer.
 
-The uploaded archive and reference-only sources contain or plan for the following relevant languages and file types:
+The repository currently uses or documents these relevant languages and file types:
 
-- Markdown: design anchors, roadmap, implementation guide, README files, policy documents, test plans, and integration notes.
-- C: planned core library, ESP-IDF-style adapter code, PT100 reference firmware, and host-testable parser/registry/help code.
-- C++: planned Arduino adapter, Arduino-oriented reference libraries, and possible host/example code.
-- Arduino `.ino`: reference examples and future Arduino examples.
-- Python: reference build/test/helper scripts and likely future validation or tooling scripts.
+- Markdown: design anchors, roadmap, implementation guide, README files, policy documents, test plans, changelog, and handoff/history notes.
+- C: the platform-independent core library and host test runner.
+- Python: repository tooling such as forbidden-pattern checks.
+- C++ and Arduino `.ino`: reference-only or future adapter/example material; Arduino and ESP-IDF adapters are not implemented in the current core.
 
-Additional file types exist in the reference archive, including JavaScript, HTML, CSS, PDF, images, DOCX, logs, CSV, and Arduino library metadata. These were checked as archive contents, but they are not currently planned as primary implementation languages for this library. This policy does not define a JavaScript or web-front-end documentation standard unless such code is later added to the project.
+Additional reference/archive file types may exist outside the active source tree. This policy does not define a JavaScript, web-front-end, or hardware-firmware documentation standard unless such code is later added to this repository.
 
 ## General documentation standard
 
@@ -621,20 +620,32 @@ If this policy conflicts with a more specific approved task instruction, follow 
 
 ## Last updated context and unverified items
 
-Last updated: 2026-07-07.
+Last updated: 2026-07-14.
 
-Context inspected for this policy:
+Context inspected for this policy update:
 
-- Local uploaded archive: `/mnt/data/Archive.tar.gz` extracted to `/mnt/data/sce_archive`.
-- Local docs from archive: `docs/00_serial_console_library_design_intent.md`, `docs/01_serial_console_library_roadmap.md`, `docs/02_serial_console_library_implementation_guide.md`, and `docs/03_serial_console_library_handoff.md`.
-- Reference-only code directories in the archive, including `AdvancedCLI`, `StaticSerialCommands`, `SimpleSerialShell`, `SerialUI`, `SerialCommandCoordinator`, `SerialCommands`, `SerialCommand`, `SerialCommand_Advanced`, `SerialCmd`, `ParseCommands`, `SerialConfigCommand`, `CommandCatcher`, `tinyCommand`, `cmdArduino`, and `PT100_Mesh_Datalogger`.
-- PT100 reference policy inspected as a source of documentation-structure precedent only: `reference_only/PT100_Mesh_Datalogger/docs/code_documentation_policy.md`.
-- PT100 console reference files noted for future implementation planning: `main/console_registry.h`, `main/console_registry.c`, `main/console_help.h`, `main/console_help.c`, and `main/console_alerts.c`.
-- GitHub repository inspected: `rasusmilch/serial_command_extreme`, branch `main`, public repository. The canonical `docs/code_documentation_policy.md` did not exist before this file was created.
+- Current checkout path: `/workspace/serial_command_extreme`.
+- Current local branch/alias inspected during the update: `work`.
+- Current checkout head inspected during the update: the active Task 11B1 draft-PR source tree available in the local repository.
+- Active implementation source under `src/`, including tokenizer, registry, matcher, argument parser, dispatcher, console orchestration, output helpers, configuration, type definitions, and generated-help modules.
+- Host C tests under `test/`, including the generated-help test module and golden fixtures.
+- CMake host build files at the repository root and under `test/`.
+- Python forbidden-pattern checker under `tools/`.
+- Markdown anchors: `README.md`, `CHANGELOG.md`, `docs/00_serial_console_library_design_intent.md`, `docs/01_serial_console_library_roadmap.md`, `docs/02_serial_console_library_implementation_guide.md`, `docs/03_serial_console_library_handoff.md`, `docs/architecture_plan.md`, `docs/test_strategy.md`, `src/README.md`, and `test/README.md`.
+- Historical/reference context from earlier archive and prior-art materials, treated as chronology and design background rather than current implementation state.
+
+Verified current repository capabilities for this policy update:
+
+- C99 core implementation exists under `src/`.
+- CMake host build files exist and build the current host test runner.
+- Host C tests exist and exercise the current core, including generated-help behavior.
+- Python forbidden-pattern tooling exists for core-source checks.
+- Markdown anchors and repository policies exist and are part of the reviewed source tree.
 
 Unverified items:
 
-- No implementation source existed in the current repository during this policy pass; source-language standards are based on the approved design anchors and uploaded reference archive.
-- No CI, build system, formatter, test runner, or hardware target has been verified for the new standalone repository.
-- Arduino, ESP-IDF, AS7331, and other hardware integration assumptions remain unverified until those integrations exist and are inspected.
-- Repository code search indexing was reported unavailable during inspection, so file discovery relied on known paths, repository metadata, and the uploaded archive.
+- Arduino adapter integration remains future work and has not been validated on Arduino hardware or toolchains.
+- ESP-IDF adapter integration remains future work and has not been validated on ESP-IDF hardware or toolchains.
+- AS7331 integration remains future work and has not been validated against hardware.
+- Future adapters, examples, completion/history features, authentication, persistent settings, and interactive prompt behavior remain unimplemented until approved tasks add and test them.
+- Hosted CI workflow behavior remains unverified when no CI workflow file is present in the inspected checkout.

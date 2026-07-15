@@ -253,22 +253,26 @@ static int help_assert_golden(const char *test_name,
   return 0;
 }
 
+/** @brief Render the default top-level index into caller-owned capture storage. */
 static bsc_status_t render_index_capture(help_capture_t *capture) {
   bsc_output_t output = {help_capture_write, capture};
   return bsc_help_render_index(help_commands, help_command_count, NULL, &output);
 }
 
+/** @brief Render the default executable-command listing into caller-owned capture storage. */
 static bsc_status_t render_commands_capture(help_capture_t *capture) {
   bsc_output_t output = {help_capture_write, capture};
   return bsc_help_render_commands(help_commands, help_command_count, NULL, &output);
 }
 
+/** @brief Render the representative settings group page into caller-owned capture storage. */
 static bsc_status_t render_settings_capture(help_capture_t *capture) {
   bsc_output_t output = {help_capture_write, capture};
   bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("settings")};
   return bsc_help_render_path(help_commands, help_command_count, tokens, 1u, NULL, &output);
 }
 
+/** @brief Render the representative nested Wi-Fi command page into caller-owned capture storage. */
 static bsc_status_t render_wifi_set_capture(help_capture_t *capture) {
   bsc_output_t output = {help_capture_write, capture};
   bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("settings"), bsc_string_view_from_cstr("wifi"),
@@ -276,6 +280,7 @@ static bsc_status_t render_wifi_set_capture(help_capture_t *capture) {
   return bsc_help_render_path(help_commands, help_command_count, tokens, 4u, NULL, &output);
 }
 
+/** @brief Compare principal generated-help pages with LF-only golden fixtures. */
 static int test_help_golden_outputs(const char *test_name) {
   HELP_ASSERT_TRUE(help_assert_golden(test_name, "help_index.txt", render_index_capture) == 0);
   HELP_ASSERT_TRUE(help_assert_golden(test_name, "commands.txt", render_commands_capture) == 0);
@@ -295,6 +300,7 @@ static int test_help_golden_outputs(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify help visibility option defaults and NULL initialization behavior. */
 static int test_help_options_defaults(const char *test_name) {
   bsc_help_options_t options;
   memset(&options, 0, sizeof(options));
@@ -307,6 +313,7 @@ static int test_help_options_defaults(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify the shared descriptor fixture passes ordinary and help-specific validation. */
 static int test_help_validation_successes(const char *test_name) {
   bsc_help_validation_error_t error;
   HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(help_commands, help_command_count, NULL, &error));
@@ -317,6 +324,7 @@ static int test_help_validation_successes(const char *test_name) {
 /** @brief Create mutable descriptor copy for focused validation failure tests. */
 static void copy_commands(bsc_command_t *out) { memcpy(out, help_commands, sizeof(help_commands)); }
 
+/** @brief Verify required and optional help prose failures produce expected diagnostics. */
 static int test_help_validation_required_and_optional_text(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   bsc_help_validation_error_t error;
@@ -349,6 +357,7 @@ static int test_help_validation_required_and_optional_text(const char *test_name
   return 0;
 }
 
+/** @brief Verify help prose control-byte rejection and summary length boundaries. */
 static int test_help_validation_control_and_bounds(const char *test_name) {
   static char max_text[BSC_MAX_HELP_TEXT_LEN + 1u];
   static char too_long[BSC_MAX_HELP_TEXT_LEN + 2u];
@@ -385,6 +394,7 @@ static int test_help_validation_control_and_bounds(const char *test_name) {
   return 0;
 }
 
+/** @brief Fill caller-owned test prose with a repeated byte and a terminating NUL. */
 static void fill_help_text(char *text, size_t length, char value) {
   size_t index;
   for (index = 0u; index < length; ++index) {
@@ -393,6 +403,7 @@ static void fill_help_text(char *text, size_t length, char value) {
   text[length] = '\0';
 }
 
+/** @brief Seed every validation diagnostic field with sentinels before clear tests. */
 static void poison_help_error(bsc_help_validation_error_t *error) {
   error->reason = BSC_HELP_ERROR_EMPTY_SUMMARY;
   error->command_index = 77u;
@@ -408,6 +419,7 @@ static void poison_help_error(bsc_help_validation_error_t *error) {
   error->registry_error.duplicate_command_index = 86u;
 }
 
+/** @brief Assert a validation diagnostic is in its documented cleared state. */
 static int assert_help_error_cleared(const char *test_name, const bsc_help_validation_error_t *error) {
   HELP_ASSERT_TRUE(error->reason == BSC_HELP_ERROR_NONE);
   HELP_ASSERT_TRUE(error->command_index == 0u);
@@ -424,6 +436,7 @@ static int assert_help_error_cleared(const char *test_name, const bsc_help_valid
   return 0;
 }
 
+/** @brief Verify exact and over-limit prose bounds for description, argument help, and enum help. */
 static int test_help_validation_all_prose_bounds(const char *test_name) {
   static char max_text[BSC_MAX_HELP_TEXT_LEN + 1u];
   static char too_long[BSC_MAX_HELP_TEXT_LEN + 2u];
@@ -470,6 +483,7 @@ static int test_help_validation_all_prose_bounds(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify registry failures and missing visible parent groups are reported deterministically. */
 static int test_help_validation_registry_and_parent_groups(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   bsc_help_validation_error_t error;
@@ -491,6 +505,7 @@ static int test_help_validation_registry_and_parent_groups(const char *test_name
   return 0;
 }
 
+/** @brief Verify filtered descriptors do not require help prose until options make them visible. */
 static int test_help_validation_filtered_metadata(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   bsc_help_validation_error_t error;
@@ -505,6 +520,7 @@ static int test_help_validation_filtered_metadata(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify exact help-path lookup, filtering, case folding, and callback non-invocation. */
 static int test_help_lookup_behaviors(const char *test_name) {
   bsc_help_lookup_result_t result;
   bsc_help_options_t options;
@@ -552,6 +568,7 @@ static int test_help_lookup_behaviors(const char *test_name) {
   return 0;
 }
 
+/** @brief Compare a successful render capture against one complete expected C literal. */
 static int assert_rendered_text(const char *test_name,
                                 bsc_status_t status,
                                 const help_capture_t *capture,
@@ -563,18 +580,21 @@ static int assert_rendered_text(const char *test_name,
   return 0;
 }
 
+/** @brief Render the top-level index with explicit visibility options into caller-owned storage. */
 static bsc_status_t render_index_with_options(const bsc_help_options_t *options, help_capture_t *capture) {
   bsc_output_t output = {help_capture_write, capture};
   help_capture_init(capture, sizeof(capture->buffer));
   return bsc_help_render_index(help_commands, help_command_count, options, &output);
 }
 
+/** @brief Render the executable-command list with explicit visibility options into caller-owned storage. */
 static bsc_status_t render_commands_with_options(const bsc_help_options_t *options, help_capture_t *capture) {
   bsc_output_t output = {help_capture_write, capture};
   help_capture_init(capture, sizeof(capture->buffer));
   return bsc_help_render_commands(help_commands, help_command_count, options, &output);
 }
 
+/** @brief Verify rendered index and command-list visibility combinations byte-for-byte. */
 static int test_help_rendered_visibility_options(const char *test_name) {
   static const char default_index[] = "COMMANDS\n  status - Status\n  settings - Settings\n  mode - Mode\n";
   static const char no_advanced_index[] = "COMMANDS\n  status - Status\n  settings - Settings\n";
@@ -638,17 +658,59 @@ static int test_help_rendered_visibility_options(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify a visible group without description or visible children renders a NAME-only page. */
+static int test_help_group_without_description_or_visible_children(const char *test_name) {
+  static const char *const empty_path[] = {"empty"};
+  static const char *const child_path[] = {"empty", "factory"};
+  static bsc_command_t commands[] = {
+      {empty_path, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE,
+       help_forbidden_access, "Empty", NULL},
+      {child_path, 2u, BSC_NODE_COMMAND, NULL, 0u, help_forbidden_handler, NULL, BSC_ACCESS_FACTORY,
+       BSC_COMMAND_FLAG_NONE, help_forbidden_access, "Factory", "Factory."},
+  };
+  static const char expected[] = "NAME\n  empty - Empty\n";
+  bsc_help_validation_error_t error;
+  bsc_help_lookup_result_t result;
+  bsc_string_view_t tokens[] = {bsc_string_view_from_cstr("empty")};
+  help_capture_t capture;
+  bsc_output_t output;
+  size_t expected_len = strlen(expected);
+
+  g_handler_calls = 0;
+  g_access_calls = 0;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_validate(commands, 2u, NULL, &error));
+  HELP_ASSERT_TRUE(error.reason == BSC_HELP_ERROR_NONE);
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_find_path(commands, 2u, tokens, 1u, NULL, &result));
+  HELP_ASSERT_TRUE(result.command == &commands[0]);
+  HELP_ASSERT_TRUE(result.command_index == 0u);
+  help_capture_init(&capture, sizeof(capture.buffer));
+  output.write = help_capture_write;
+  output.user = &capture;
+  HELP_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_path(commands, 2u, tokens, 1u, NULL, &output));
+  HELP_ASSERT_TRUE(capture.used == expected_len);
+  HELP_ASSERT_TRUE(memcmp(capture.buffer, expected, expected_len) == 0);
+  HELP_ASSERT_TRUE(capture.used > 0u && capture.buffer[capture.used - 1u] == '\n');
+  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "DESCRIPTION", strlen("DESCRIPTION")) == 0);
+  HELP_ASSERT_TRUE(help_bytes_find(capture.buffer, capture.used, "COMMANDS", strlen("COMMANDS")) == 0);
+  HELP_ASSERT_TRUE(g_handler_calls == 0);
+  HELP_ASSERT_TRUE(g_access_calls == 0);
+  return 0;
+}
+
+/** @brief Seed a lookup result with non-default values before failure-clear checks. */
 static void poison_lookup_result(bsc_help_lookup_result_t *result) {
   result->command = &help_commands[0];
   result->command_index = 99u;
 }
 
+/** @brief Assert a lookup result is in its documented cleared state. */
 static int assert_lookup_cleared(const char *test_name, const bsc_help_lookup_result_t *result) {
   HELP_ASSERT_TRUE(result->command == NULL);
   HELP_ASSERT_TRUE(result->command_index == 0u);
   return 0;
 }
 
+/** @brief Verify lookup failures clear borrowed result pointers and indexes. */
 static int test_help_lookup_result_clearing_failures(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   bsc_help_lookup_result_t result;
@@ -684,6 +746,7 @@ static int test_help_lookup_result_clearing_failures(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify validation clears diagnostics on entry, success, help failures, and registry failures. */
 static int test_help_validation_diagnostic_clearing(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   bsc_help_validation_error_t error;
@@ -728,6 +791,7 @@ static int test_help_validation_diagnostic_clearing(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify documented invalid API inputs and no-output failure behavior. */
 static int test_help_invalid_api_inputs(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   help_capture_t capture;
@@ -773,6 +837,7 @@ static int test_help_invalid_api_inputs(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify invalid output targets and zero-byte sinks return expected renderer statuses. */
 static int test_help_output_failures(const char *test_name) {
   help_capture_t capture;
   bsc_output_t output;
@@ -795,6 +860,7 @@ static int test_help_output_failures(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify invalid metadata is detected before renderer callbacks are invoked. */
 static int test_help_invalid_metadata_emits_no_output(const char *test_name) {
   bsc_command_t table[sizeof(help_commands) / sizeof(help_commands[0])];
   help_capture_t capture;
@@ -815,11 +881,13 @@ typedef struct help_expected {
   int overflow;
 } help_expected_t;
 
+/** @brief Initialize a fixed-size test-only expected-output builder. */
 static void help_expected_init(help_expected_t *expected) {
   expected->used = 0u;
   expected->overflow = 0;
 }
 
+/** @brief Append a C string to the expected-output builder and flag overflow. */
 static void help_expected_append(help_expected_t *expected, const char *text) {
   size_t length = strlen(text);
   if (length > sizeof(expected->buffer) - expected->used) {
@@ -830,6 +898,7 @@ static void help_expected_append(help_expected_t *expected, const char *text) {
   expected->used += length;
 }
 
+/** @brief Assert capture bytes exactly match independently constructed expected output. */
 static int help_expect_capture_equals(const char *test_name,
                                       const help_capture_t *capture,
                                       const help_expected_t *expected) {
@@ -841,6 +910,7 @@ static int help_expect_capture_equals(const char *test_name,
   return 0;
 }
 
+/** @brief Format a unique bounded fixture identifier into caller-provided storage. */
 static void help_fill_indexed_name(char *name, char prefix, size_t index) {
   name[0] = prefix;
   name[1] = (char)('0' + ((index / 10u) % 10u));
@@ -848,6 +918,7 @@ static void help_fill_indexed_name(char *name, char prefix, size_t index) {
   name[3] = '\0';
 }
 
+/** @brief Verify byte-exact rendering for a table containing BSC_MAX_COMMANDS commands. */
 static int test_help_maximum_command_count_rendering(const char *test_name) {
   static char command_names[BSC_MAX_COMMANDS][8];
   static char summaries[BSC_MAX_COMMANDS][8];
@@ -896,6 +967,7 @@ static int test_help_maximum_command_count_rendering(const char *test_name) {
   return 0;
 }
 
+/** @brief Append a complete space-separated path from fixed fixture token storage. */
 static void help_expected_append_path(help_expected_t *expected, char names[BSC_MAX_PATH_TOKENS][8], size_t count) {
   size_t index;
   for (index = 0u; index < count; ++index) {
@@ -904,6 +976,7 @@ static void help_expected_append_path(help_expected_t *expected, char names[BSC_
   }
 }
 
+/** @brief Verify lookup and byte-exact rendering at BSC_MAX_PATH_TOKENS depth. */
 static int test_help_maximum_path_depth_rendering(const char *test_name) {
   static char names[BSC_MAX_PATH_TOKENS][8];
   static const char *paths[BSC_MAX_PATH_TOKENS][BSC_MAX_PATH_TOKENS];
@@ -952,6 +1025,7 @@ static int test_help_maximum_path_depth_rendering(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify every BSC_MAX_ARGS argument appears in synopsis, arguments, and valid values. */
 static int test_help_maximum_argument_count_rendering(const char *test_name) {
   static const char *const path[] = {"argmax"};
   static char arg_names[BSC_MAX_ARGS][8];
@@ -1004,6 +1078,7 @@ static int test_help_maximum_argument_count_rendering(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify every BSC_MAX_ENUM_CHOICES enum choice and help subline renders in order. */
 static int test_help_maximum_enum_choice_rendering(const char *test_name) {
   static const char *const path[] = {"enummax"};
   static char choice_names[BSC_MAX_ENUM_CHOICES][8];
@@ -1050,6 +1125,7 @@ static int test_help_maximum_enum_choice_rendering(const char *test_name) {
   return 0;
 }
 
+/** @brief Verify the maximum possible visible immediate children render exactly once in order. */
 static int test_help_maximum_immediate_children_rendering(const char *test_name) {
   static const char *const root_path[] = {"root"};
   static char child_names[BSC_MAX_COMMANDS - 1u][8];
@@ -1099,6 +1175,7 @@ static int test_help_maximum_immediate_children_rendering(const char *test_name)
   return 0;
 }
 
+/** @brief Verify BSC_MAX_TOKEN_LEN path, argument, and enum identifiers render without truncation. */
 static int test_help_maximum_identifier_lengths_rendering(const char *test_name) {
   static char path_token[BSC_MAX_TOKEN_LEN + 1u];
   static char arg_name[BSC_MAX_TOKEN_LEN + 1u];
@@ -1158,6 +1235,7 @@ static int test_help_maximum_identifier_lengths_rendering(const char *test_name)
   return 0;
 }
 
+/** @brief Verify generated help emits secret schema metadata without runtime secret values. */
 static int test_help_secret_non_disclosure(const char *test_name) {
   help_capture_t capture;
   bsc_output_t output;
@@ -1208,6 +1286,7 @@ static int help_assert_all_boundaries(const char *test_name, bsc_status_t (*rend
   return 0;
 }
 
+/** @brief Verify every renderer stops at each callback-boundary short write with an exact prefix. */
 static int test_help_short_write_every_boundary(const char *test_name) {
   HELP_ASSERT_TRUE(help_assert_all_boundaries(test_name, render_index_capture) == 0);
   HELP_ASSERT_TRUE(help_assert_all_boundaries(test_name, render_commands_capture) == 0);
@@ -1354,6 +1433,7 @@ static int test_help_small_prose_limit_identifier_regression(const char *test_na
   "NAME\n  floatfmt - Float\n\nSYNOPSIS\n  floatfmt <zero> <integers> <one> <trim> <half> <limit> <maxdigit>\n\nDESCRIPTION\n  Float\n\nARGUMENTS\n  zero\n  integers\n  one\n  trim\n  half\n  limit\n  maxdigit\n\nVALID VALUES\n  zero: decimal, 0..0\n  integers: decimal, -2..2\n  one: decimal, 1.5..1.5\n  trim: decimal, 1.25..1.25\n  half: decimal, -0.007813..0.007813\n  limit: decimal, -1000000000..1000000000\n  maxdigit: decimal, 1.000001..1.000001\n"
 #endif
 
+/** @brief Verify exact generated float bounds for the configured fraction precision. */
 static int test_help_float_precision_exact_output(const char *test_name) {
   static const char *const path[] = {"floatfmt"};
   static bsc_arg_def_t args[7];
@@ -1380,6 +1460,7 @@ static int test_help_float_precision_exact_output(const char *test_name) {
 }
 #endif
 
+/** @brief Run the generated-help host-test module. */
 int bsc_run_help_tests(void) {
   int failures = 0;
   HELP_RUN_TEST(test_help_options_defaults);
@@ -1391,6 +1472,7 @@ int bsc_run_help_tests(void) {
   HELP_RUN_TEST(test_help_validation_filtered_metadata);
   HELP_RUN_TEST(test_help_lookup_behaviors);
   HELP_RUN_TEST(test_help_rendered_visibility_options);
+  HELP_RUN_TEST(test_help_group_without_description_or_visible_children);
   HELP_RUN_TEST(test_help_lookup_result_clearing_failures);
   HELP_RUN_TEST(test_help_validation_diagnostic_clearing);
   HELP_RUN_TEST(test_help_invalid_api_inputs);

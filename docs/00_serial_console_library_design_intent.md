@@ -357,7 +357,7 @@ From SerialUI:
 
 Build the reusable library as its own repository, not inside AS7331. Continue with a host-tested C core before adapters. Use AS7331 as the first integration pilot only after the standalone parser/registry/help system works.
 
-The current core implements static descriptor validation, nested path matching, typed positional arguments, selected-command dispatch, and output-neutral complete-line console orchestration with caller-owned workspace storage. Generated help/manpages remain the next core phase. Defer completion, history, authentication, persistent settings, interactive prompts, examples, and adapters until the core behavior is validated.
+The current core implements static descriptor validation, nested path matching, typed positional arguments, selected-command dispatch, output-neutral complete-line console orchestration with caller-owned workspace storage, and the pure generated-help layer for metadata validation, exact descriptor-path lookup, and deterministic help/manpage rendering. Console-level `help` and `commands` routing, extended help metadata and subtopics, completion, history, authentication, persistent settings, interactive prompts, examples, and adapters remain future staged work until each item has an approved bounded design and host-test plan.
 
 ## Generated help staging
 

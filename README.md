@@ -267,7 +267,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-The read-only architecture planning milestone has already established the implementation direction. Future implementation should continue from the approved architecture and current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, and complete-line console orchestration foundation; do not skip ahead to adapters or examples before the remaining core help behavior is defined and tested.
+The read-only architecture planning milestone established the implementation direction, and the pure generated-help foundation is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and pure help-rendering foundation; the remaining help work is optional console built-in integration plus extended metadata/subtopics, and adapters or examples should not begin ahead of approved remaining core work.
 
 Future Codex tasks should:
 

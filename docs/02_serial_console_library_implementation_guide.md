@@ -308,77 +308,88 @@ The tokenizer, matcher, typed parser, access enforcement, dispatch, and handler 
 
 ## 12. Built-in commands
 
-Generated help/manpages and built-in commands remain future work. The current complete-line console executes only the configured application descriptor table and contains no hard-coded `help`, `commands`, `version`, or `about` behavior.
+The pure generated-help APIs are implemented in `src/bsc_help.h` and `src/bsc_help.c`: callers can validate help metadata, resolve exact descriptor paths, and render top-level indexes, command lists, group pages, and executable-command pages through `bsc_output_t`. The complete-line console still executes only the configured application descriptor table and contains no hard-coded `help`, `commands`, `version`, or `about` route.
 
-Future built-ins may be represented as descriptors supplied by the library/application or as a clearly documented pre-dispatch route after tokenization. Collision policy, visibility filtering, variable path-token handling, and access behavior must be approved with that future feature.
+Optional console built-in routing remains future work. That future stage must approve how built-ins are exposed, how application command-name collisions are handled, and whether built-ins are mandatory, optional, or compile-time configurable. The static help visibility behavior is already settled for the pure renderer: normal and advanced descriptors are visible by default, while factory, locked, and hidden descriptors require explicit help options and help never invokes execution handlers or access callbacks.
 
 ## 13. Example: sensor gain command
 
-Command behavior:
+Command behavior through the current dispatcher remains application-defined:
 
 ```text
 gain 2048
-help gain
 ```
 
-Descriptor sketch:
+The same descriptor metadata can be rendered today by calling `bsc_help_render_path()` with the path token `gain`. A console command such as `help gain` is not hard-coded into `bsc_execute_line()` yet; optional console-level help routing remains future work.
+
+Representative current-schema descriptor:
 
 ```c
+static const char *const k_gain_path[] = {"gain"};
+
 static const bsc_enum_choice_t k_gain_choices[] = {
-  { "1", "lowest sensitivity, highest saturation margin" },
-  { "2", "low sensitivity" },
-  { "4", "low sensitivity" },
-  { "8", "moderate sensitivity" },
-  { "16", "moderate sensitivity" },
-  { "32", "moderate sensitivity" },
-  { "64", "high sensitivity" },
-  { "128", "high sensitivity" },
-  { "256", "very high sensitivity" },
-  { "512", "very high sensitivity" },
-  { "1024", "near maximum sensitivity" },
-  { "2048", "maximum sensitivity, high saturation risk" },
+  {.name = "1", .value = 1, .help = "Lowest sensitivity, highest saturation margin."},
+  {.name = "2", .value = 2, .help = "Low sensitivity."},
+  {.name = "4", .value = 4, .help = "Low sensitivity."},
+  {.name = "8", .value = 8, .help = "Moderate sensitivity."},
+  {.name = "16", .value = 16, .help = "Moderate sensitivity."},
+  {.name = "32", .value = 32, .help = "Moderate sensitivity."},
+  {.name = "64", .value = 64, .help = "High sensitivity."},
+  {.name = "128", .value = 128, .help = "High sensitivity."},
+  {.name = "256", .value = 256, .help = "Very high sensitivity."},
+  {.name = "512", .value = 512, .help = "Very high sensitivity."},
+  {.name = "1024", .value = 1024, .help = "Near maximum sensitivity."},
+  {.name = "2048", .value = 2048, .help = "Maximum sensitivity, high saturation risk."},
 };
 
 static const bsc_arg_def_t k_gain_args[] = {
   {
     .name = "value",
     .type = BSC_ARG_ENUM,
-    .required = true,
+    .min_int = 0,
+    .max_int = 0,
+    .min_uint = 0u,
+    .max_uint = 0u,
+    .min_float = 0.0f,
+    .max_float = 0.0f,
+    .min_length = 0u,
+    .max_length = 0u,
     .enum_choices = k_gain_choices,
     .enum_choice_count = sizeof(k_gain_choices) / sizeof(k_gain_choices[0]),
     .help = "Sensor gain multiplier. Higher values make weak signals easier to see but saturate sooner."
   }
 };
 
-static bsc_status_t handle_gain(void* app_ctx,
-                                const bsc_command_t* command,
-                                const bsc_parsed_args_t* args,
-                                bsc_output_t* out) {
+static bsc_status_t handle_gain(void *app_context,
+                                const bsc_command_t *command,
+                                const bsc_parsed_args_t *args,
+                                bsc_output_t *output) {
+  app_config_t *cfg = (app_config_t *)app_context;
   (void)command;
-  app_config_t* cfg = (app_config_t*)app_ctx;
-  const uint8_t choice = args->values[0].value.enum_index;
-  cfg->gain = gain_value_from_choice(choice);
-  /* Application-specific output belongs in the handler; the core does not provide printf-style output. */
+  (void)output;
+  cfg->gain = gain_value_from_choice(args->values[0].data.enum_value);
   return BSC_STATUS_OK;
 }
 
 static const bsc_command_t k_commands[] = {
   {
-    .path = { "gain" },
-    .path_len = 1,
+    .path = k_gain_path,
+    .path_len = sizeof(k_gain_path) / sizeof(k_gain_path[0]),
     .node_type = BSC_NODE_COMMAND,
-    .access = BSC_ACCESS_NORMAL,
-    .brief = "Set sensor gain",
-    .synopsis = "gain <1|2|4|8|16|32|64|128|256|512|1024|2048>",
-    .description = "Changes sensor sensitivity. Use higher gain for weak signals and lower gain when readings saturate or show WARN/overflow flags.",
-    .notes = "Changing gain changes raw counts and scaled estimates. Do not compare readings across different gain settings unless the workflow explicitly accounts for it.",
-    .examples = "  gain 2048\n  gain 2",
     .args = k_gain_args,
-    .arg_count = 1,
+    .arg_count = sizeof(k_gain_args) / sizeof(k_gain_args[0]),
     .handler = handle_gain,
+    .command_context = NULL,
+    .access = BSC_ACCESS_NORMAL,
+    .flags = BSC_COMMAND_FLAG_NONE,
+    .access_fn = NULL,
+    .summary = "Set sensor gain",
+    .description = "Changes sensor sensitivity. Use higher gain for weak signals and lower gain when readings saturate."
   },
 };
 ```
+
+All current positional arguments are required by position. The current schema has no stored synopsis, notes, examples, or related-command fields; generated help derives SYNOPSIS and VALID VALUES from the path and argument metadata above.
 
 ## 14. Example: Wi-Fi settings namespace
 
@@ -403,7 +414,9 @@ Representative current-style descriptors use borrowed path arrays and current fi
 
 ## 15. Example help output
 
-`help settings wifi set password`:
+The pure generated-help renderer emits only the sections implemented by the current `src/bsc_help.*` API. It does not emit NOTES, WARNINGS, EXAMPLES, RELATED, or subtopics yet.
+
+`bsc_help_render_path()` for `settings wifi set password` may produce:
 
 ```text
 NAME
@@ -413,39 +426,31 @@ SYNOPSIS
   settings wifi set password <password>
 
 DESCRIPTION
-  Sets the Wi-Fi password. This is a sensitive field and must be redacted from echo and status output.
+  Sets the Wi-Fi password. This is a sensitive field and must be redacted by future echo, history, or log layers.
 
 ARGUMENTS
-  password  secret[8..64]
-            Wi-Fi password. Echo/status output must redact this value.
+  password - Wi-Fi password.
 
-EXAMPLES
-  settings wifi set password "example password"
-
-RELATED
-  settings wifi status
-  settings wifi set ssid
-  settings wifi clear
+VALID VALUES
+  password: secret, 8..64 bytes
 ```
 
-`help settings wifi`:
+`bsc_help_render_path()` for the group `settings wifi` may produce:
 
 ```text
 NAME
   settings wifi - Wi-Fi settings namespace
 
-SYNOPSIS
-  settings wifi <status|set|clear> ...
-
 DESCRIPTION
   Inspect or update Wi-Fi connection settings.
 
 COMMANDS
-  status        Show Wi-Fi settings status
-  set ssid      Set Wi-Fi SSID
-  set password  Set Wi-Fi password
-  clear         Clear Wi-Fi settings
+  settings wifi status - Show Wi-Fi status
+  settings wifi set - Set Wi-Fi fields
+  settings wifi clear - Clear Wi-Fi settings
 ```
+
+Group DESCRIPTION is omitted when the group descriptor has no description, and COMMANDS is omitted when no immediate children are visible under the selected static help options.
 
 ## 16. Tokenizer requirements
 
@@ -477,7 +482,7 @@ Typed parsing rules:
 - Int: optional leading `-`, decimal digits, full-token consumption required.
 - UInt: decimal digits only, no sign, full-token consumption required.
 - Float: decimal syntax, full-token consumption required; reject NaN/inf if standard library makes them possible.
-- Bool: accept `on/off`, `true/false`, `yes/no`, `1/0`; canonical output should use `on/off`.
+- Bool: accept `on/off`, `true/false`, and `1/0`; generated valid-value output preserves the parser-supported order `on | off | true | false | 1 | 0`.
 - Enum: match allowed values case-insensitively by default.
 - String: bounded length in bytes, preserve content after unescaping.
 - Secret: same as string but marked sensitive for redaction.
@@ -573,13 +578,18 @@ Host unit tests must cover:
 - Secret redaction.
 - Complete-line console initialization and execution.
 - Workspace cleanup and same-workspace recursion rejection.
-- Help index output once generated help is implemented.
-- Help group output once generated help is implemented.
-- Help leaf/manpage output once generated help is implemented.
+- Top-level generated-help index output.
+- Complete generated command-list output.
+- Generated group output, including optional DESCRIPTION and COMMANDS omission.
+- Generated executable-command output, including NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, and VALID VALUES.
+- Exact LF-only golden output for representative generated-help pages.
+- Help visibility filtering, hidden/factory/locked omission, and optional-section omission behavior.
+- Help metadata validation failures and renderer no-output behavior.
+- Output short-write failures at help-rendering callback boundaries.
 - Access-denied path.
 - Handler return status.
 
-Golden tests should compare exact help output for representative commands.
+Golden tests compare exact help output for representative commands, while focused C literals cover narrow one-off regressions that do not need fixture files.
 
 ## 21. Forbidden implementation patterns
 
@@ -599,8 +609,8 @@ Do not use:
 
 Before merging any implementation:
 
-- When generated help is implemented, does every public command have a useful manpage?
-- Does every argument have a type, bounds, and help text?
+- Does every visible public command intended for generated help have a useful summary and executable description?
+- Does every argument have a type and bounds, with optional help text where operator-facing context is needed?
 - Are all capacities compile-time bounded?
 - Are too-long inputs rejected safely?
 - Are secret values avoided in core-generated diagnostics, and are future presentation layers responsible for redaction?

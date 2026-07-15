@@ -773,7 +773,11 @@ static int test_dispatch_float_configuration_behavior(const char *test_name) {
                               bsc_dispatch_command(&fixture, &command, &float_token, 1u, &parsed, &error, NULL));
   DISPATCH_TEST_ASSERT_TRUE(parsed.count == 1u);
   DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].type == BSC_ARG_FLOAT);
-  DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].data.float_value > 1.1f && parsed.values[0].data.float_value < 1.3f);
+#if BSC_MAX_FLOAT_FRACTION_DIGITS == 1u
+  DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].data.float_value > 1.19f && parsed.values[0].data.float_value < 1.21f);
+#else
+  DISPATCH_TEST_ASSERT_TRUE(parsed.values[0].data.float_value > 1.24f && parsed.values[0].data.float_value < 1.26f);
+#endif
 #else
   DISPATCH_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
                               bsc_dispatch_command(&fixture, &command, &float_token, 1u, &parsed, &error, NULL));
