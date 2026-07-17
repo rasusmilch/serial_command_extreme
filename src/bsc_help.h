@@ -97,6 +97,142 @@ typedef struct bsc_help_lookup_result {
   size_t command_index;
 } bsc_help_lookup_result_t;
 
+
+typedef struct bsc_help_text_list {
+  /** Borrowed array of borrowed help text items. Ignored when count is zero. */
+  const char *const *items;
+  /** Number of active entries in items. */
+  size_t count;
+} bsc_help_text_list_t;
+
+typedef struct bsc_help_example {
+  /** Required borrowed presentation command line. It is never parsed or executed by help validation. */
+  const char *line;
+  /** Optional borrowed explanatory prose; NULL omits the explanation. */
+  const char *description;
+} bsc_help_example_t;
+
+typedef struct bsc_help_related {
+  /** Required borrowed descriptor pointer that must equal one element in the owning catalog command table. */
+  const bsc_command_t *target;
+} bsc_help_related_t;
+
+typedef struct bsc_help_target {
+  /** Required borrowed descriptor pointer for the command or group receiving extended metadata. */
+  const bsc_command_t *target;
+  /** Optional borrowed note prose entries rendered in metadata order by future renderers. */
+  bsc_help_text_list_t notes;
+  /** Optional borrowed warning prose entries rendered in metadata order by future renderers. */
+  bsc_help_text_list_t warnings;
+  /** Optional borrowed presentation examples. Ignored when example_count is zero. */
+  const bsc_help_example_t *examples;
+  /** Number of active entries in examples. */
+  size_t example_count;
+  /** Optional borrowed related-command references. Ignored when related_count is zero. */
+  const bsc_help_related_t *related;
+  /** Number of active entries in related. */
+  size_t related_count;
+} bsc_help_target_t;
+
+typedef struct bsc_help_topic {
+  /** Required borrowed parent descriptor pointer; topics inherit this descriptor's future rendering visibility. */
+  const bsc_command_t *parent;
+  /** Required borrowed single-token topic identifier; topics are flat and non-executable in Task 11C. */
+  const char *id;
+  /** Required borrowed one-line topic summary. */
+  const char *summary;
+  /** Optional borrowed topic description; non-NULL descriptions must be non-empty and bounded. */
+  const char *description;
+  /** Optional borrowed note prose entries. */
+  bsc_help_text_list_t notes;
+  /** Optional borrowed warning prose entries. */
+  bsc_help_text_list_t warnings;
+  /** Optional borrowed presentation examples. Ignored when example_count is zero. */
+  const bsc_help_example_t *examples;
+  /** Number of active entries in examples. */
+  size_t example_count;
+  /** Optional borrowed related-command references. Ignored when related_count is zero. */
+  const bsc_help_related_t *related;
+  /** Number of active entries in related. */
+  size_t related_count;
+} bsc_help_topic_t;
+
+typedef struct bsc_help_catalog {
+  /** Authoritative borrowed command table used by all catalog structural validation. */
+  const bsc_command_t *commands;
+  /** Number of descriptors in commands. */
+  size_t command_count;
+  /** Optional borrowed extended metadata records keyed by descriptor pointer. Ignored when target_count is zero. */
+  const bsc_help_target_t *targets;
+  /** Number of active entries in targets; must not exceed command_count. */
+  size_t target_count;
+  /** Optional borrowed flat topic records. Ignored when topic_count is zero. */
+  const bsc_help_topic_t *topics;
+  /** Number of active entries in topics; must not exceed BSC_MAX_HELP_TOPICS. */
+  size_t topic_count;
+} bsc_help_catalog_t;
+
+typedef enum bsc_help_catalog_error_reason {
+  BSC_HELP_CATALOG_ERROR_NONE = 0,
+  BSC_HELP_CATALOG_ERROR_NULL_CATALOG,
+  BSC_HELP_CATALOG_ERROR_REGISTRY_INVALID,
+  BSC_HELP_CATALOG_ERROR_TARGETS_POINTER_COUNT,
+  BSC_HELP_CATALOG_ERROR_TOPICS_POINTER_COUNT,
+  BSC_HELP_CATALOG_ERROR_TOO_MANY_TARGETS,
+  BSC_HELP_CATALOG_ERROR_TOO_MANY_TOPICS,
+  BSC_HELP_CATALOG_ERROR_INVALID_DESCRIPTOR_REFERENCE,
+  BSC_HELP_CATALOG_ERROR_DUPLICATE_TARGET,
+  BSC_HELP_CATALOG_ERROR_TEXT_LIST_POINTER_COUNT,
+  BSC_HELP_CATALOG_ERROR_TOO_MANY_TEXT_ITEMS,
+  BSC_HELP_CATALOG_ERROR_MISSING_TEXT,
+  BSC_HELP_CATALOG_ERROR_EMPTY_TEXT,
+  BSC_HELP_CATALOG_ERROR_TEXT_TOO_LONG,
+  BSC_HELP_CATALOG_ERROR_INVALID_TEXT_CONTROL_BYTE,
+  BSC_HELP_CATALOG_ERROR_EXAMPLES_POINTER_COUNT,
+  BSC_HELP_CATALOG_ERROR_TOO_MANY_EXAMPLES,
+  BSC_HELP_CATALOG_ERROR_MISSING_EXAMPLE_LINE,
+  BSC_HELP_CATALOG_ERROR_EMPTY_EXAMPLE_LINE,
+  BSC_HELP_CATALOG_ERROR_EXAMPLE_LINE_TOO_LONG,
+  BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_LINE_CONTROL_BYTE,
+  BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_DESCRIPTION,
+  BSC_HELP_CATALOG_ERROR_RELATED_POINTER_COUNT,
+  BSC_HELP_CATALOG_ERROR_TOO_MANY_RELATED,
+  BSC_HELP_CATALOG_ERROR_INVALID_RELATED_DESCRIPTOR,
+  BSC_HELP_CATALOG_ERROR_DUPLICATE_RELATED_DESCRIPTOR,
+  BSC_HELP_CATALOG_ERROR_TARGET_RELATED_SELF_REFERENCE,
+  BSC_HELP_CATALOG_ERROR_MISSING_TOPIC_ID,
+  BSC_HELP_CATALOG_ERROR_EMPTY_TOPIC_ID,
+  BSC_HELP_CATALOG_ERROR_TOPIC_ID_TOO_LONG,
+  BSC_HELP_CATALOG_ERROR_INVALID_TOPIC_ID_CONTROL_BYTE,
+  BSC_HELP_CATALOG_ERROR_MISSING_TOPIC_SUMMARY,
+  BSC_HELP_CATALOG_ERROR_EMPTY_TOPIC_SUMMARY,
+  BSC_HELP_CATALOG_ERROR_TOPIC_SUMMARY_TOO_LONG,
+  BSC_HELP_CATALOG_ERROR_INVALID_TOPIC_SUMMARY_CONTROL_BYTE,
+  BSC_HELP_CATALOG_ERROR_INVALID_TOPIC_DESCRIPTION,
+  BSC_HELP_CATALOG_ERROR_DUPLICATE_TOPIC
+} bsc_help_catalog_error_reason_t;
+
+typedef struct bsc_help_catalog_validation_error {
+  /** Catalog structural failure reason, or NONE after clear/success. */
+  bsc_help_catalog_error_reason_t reason;
+  /** Failing target metadata index when applicable. */
+  size_t target_index;
+  /** Failing topic index when applicable. */
+  size_t topic_index;
+  /** Failing note/warning text item index when applicable. */
+  size_t item_index;
+  /** Failing example index when applicable. */
+  size_t example_index;
+  /** Failing related-command index when applicable. */
+  size_t related_index;
+  /** Resolved or failing command descriptor index when applicable. */
+  size_t command_index;
+  /** Duplicate target/topic/related index when applicable. */
+  size_t duplicate_index;
+  /** Nested registry diagnostic for REGISTRY_INVALID; cleared otherwise. */
+  bsc_registry_validation_error_t registry_error;
+} bsc_help_catalog_validation_error_t;
+
 /**
  * @brief Initialize help visibility options to defaults.
  * @param options Caller-owned options storage, or NULL for no effect.
@@ -115,6 +251,37 @@ void bsc_help_validation_error_clear(bsc_help_validation_error_t *error);
  * @param result Optional result storage. NULL is accepted. Any borrowed descriptor pointer is discarded.
  */
 void bsc_help_lookup_result_clear(bsc_help_lookup_result_t *result);
+
+/**
+ * @brief Clear a caller-owned catalog validation diagnostic.
+ * @param error Optional diagnostic storage; NULL is accepted.
+ * Clears all scalar indexes and the nested registry diagnostic. The function retains no pointers.
+ */
+void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t *error);
+
+/**
+ * @brief Validate borrowed extended-help catalog structure independently of rendering visibility.
+ * @param catalog Required borrowed catalog whose commands/command_count are the authoritative registry.
+ * @param error Optional caller-owned diagnostic cleared on entry and filled on failure.
+ * @retval BSC_STATUS_OK The catalog is structurally valid.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Registry or catalog metadata validation failed.
+ *
+ * The validator calls #bsc_registry_validate on the authoritative command table and never calls visibility-dependent
+ * generated-help validation. All catalog storage, nested arrays, relationship pointers, strings, examples, and related
+ * metadata remain caller-owned or static and need only outlive this synchronous call. Relationship pointers must equal
+ * exact elements of catalog->commands; metadata never affects tokenizer, matcher, parser, dispatch, aliases, handlers,
+ * execution access callbacks, or runtime argument values. Topics are flat single-token non-executable records that
+ * inherit their parent descriptor visibility in future renderers; Task 11C adds no nested topics, topic visibility flags,
+ * topic access levels, or topic-to-topic relationships. Static examples are presentation text only and should use
+ * application-authored placeholders such as <new-password>, ********, or <secret> for secret arguments.
+ *
+ * The function emits no output, allocates no heap, uses no hidden workspace, retains no pointers after return, and is
+ * reentrant for immutable independent catalogs and diagnostics. It performs bounded but nontrivial scans and is intended
+ * for normal task/thread context rather than ISR-oriented use.
+ */
+bsc_status_t bsc_help_catalog_validate(const bsc_help_catalog_t *catalog,
+                                        bsc_help_catalog_validation_error_t *error);
+
 
 /**
  * @brief Validate registry shape, help-visible metadata, emitted identifiers, and visible parent groups.

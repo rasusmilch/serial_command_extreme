@@ -41,6 +41,10 @@ int bsc_run_console_builtins_tests(void);
  * @brief Run generated-help tests supplied by the help module.
  */
 int bsc_run_help_tests(void);
+/**
+ * @brief Run extended-help catalog validation tests supplied by the help catalog module.
+ */
+int bsc_run_help_catalog_tests(void);
 
 /**
  * @brief Fail the current host test when a condition is false.
@@ -234,6 +238,7 @@ int main(void) {
   failures += bsc_run_console_tests();
   failures += bsc_run_console_builtins_tests();
   failures += bsc_run_help_tests();
+  failures += bsc_run_help_catalog_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);

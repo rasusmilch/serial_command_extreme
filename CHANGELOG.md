@@ -18,6 +18,7 @@ This file records notable repository changes.
 - Public explicit-length `bsc_out_write_bytes()` output helper used by generated help rendering.
 - Byte-exact LF golden fixtures and host tests for generated help output, visibility filtering, metadata validation, lookup, optional-section omission including groups without descriptions or visible children, short-write boundaries, configured-boundary and capacity-oriented fixtures, exact compact-float precision output, small help-prose limits, and secret non-disclosure.
 - Optional built-in-aware complete-line execution through `bsc_execute_line_with_builtins()` for `help`, exact-path `help <path>`, and `commands`, including built-in result and collision metadata plus host coverage for compatibility, routing, collisions, output failures, cleanup, recursion, visibility, and secret non-disclosure.
+- Extended-help catalog schema and structural validation foundation with borrowed notes, warnings, presentation examples, related descriptor references, flat topic metadata, catalog diagnostics, and host coverage while preserving existing generated-help output.
 
 ### Changed
 

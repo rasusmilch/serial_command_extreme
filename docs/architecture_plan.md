@@ -305,3 +305,8 @@ Generated-help work has byte-exact LF golden-output tests for the pure renderer.
 ## Current non-goals
 
 The current MVP implements pure generated help/manpages through explicit APIs and optional complete-line `help`/`commands` routing, but does not implement examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.
+
+
+### Task 11C-1 catalog architecture
+
+The extended-help foundation keeps `bsc_command_t`, `bsc_console_t`, existing help APIs, and existing console APIs unchanged. Optional `bsc_help_catalog_t` metadata is caller-owned or static, wraps one authoritative command table, and uses exact `const bsc_command_t *` references for targets, topic parents, and related commands. Structural validation is independent of help visibility and never affects tokenizer, matcher, parser, access, dispatch, or aliases. Topics are flat single-token non-executable records for this stage; rendering and console grammar are deferred.

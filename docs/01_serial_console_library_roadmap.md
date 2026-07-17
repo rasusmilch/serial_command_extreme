@@ -297,3 +297,8 @@ Use this task only after the new repo exists and the same command-library archiv
 ```text
 Read the serial console library design intent, roadmap, and implementation guide. Inspect the uploaded command-library archive and the PT100 Mesh console reference. Produce a read-only implementation plan for a standalone bounded serial console library. Do not write code yet. Identify file layout, core data structures, parser/tokenizer algorithm, command descriptor schema, typed argument validation, help/manpage rendering, test strategy, examples, and open decisions requiring user approval.
 ```
+
+
+## Task 11C extended help checkpoints
+
+Task 11C-1 establishes only the optional borrowed extended-help catalog schema, structural diagnostics, capacity bounds, and host validation tests. Task 11C-2 is reserved for extended section rendering and pure topic pages. Task 11C-3 is reserved for any catalog-aware console integration after an explicit grammar checkpoint. Phase 4 runnable examples remain separate.
