@@ -42,7 +42,20 @@ typedef struct builtin_fixture {
   bsc_console_workspace_t *nested_workspace;
   const char *secret_seen;
   size_t secret_len;
+  int32_t int_value;
 } builtin_fixture_t;
+
+
+typedef struct builtin_recursive_output {
+  builtin_capture_t capture;
+  bsc_console_t *console;
+  bsc_console_workspace_t *workspace;
+  bsc_help_options_t *options_to_mutate;
+  bsc_console_builtins_result_t nested_result;
+  bsc_status_t nested_status;
+  int recurse_once;
+  int mutate_once;
+} builtin_recursive_output_t;
 
 static const char *const path_status[] = {"status"};
 static const char *const path_settings[] = {"settings"};
@@ -59,6 +72,9 @@ static const char *const path_commands[] = {"commands"};
 static const char *const path_Commands[] = {"Commands"};
 static const char *const path_commands_nested[] = {"commands", "nested"};
 static const char *const path_echo[] = {"echo"};
+static const char *const path_set_int[] = {"set", "int"};
+static const char *const path_set_group[] = {"set"};
+static const char *const path_output[] = {"output"};
 static const char *const path_secret_group[] = {"secret"};
 static const char *const path_secret[] = {"secret", "set"};
 static const char *const path_bad_parent_child[] = {"bad", "child"};
@@ -68,6 +84,10 @@ static const char *const path_bad_control[] = {"badcontrol"};
 
 static const bsc_arg_def_t secret_args[] = {
     {"password", BSC_ARG_SECRET, 0, 0, 0u, 0u, 0.0f, 0.0f, 3u, 16u, NULL, 0u, "Secret password"},
+};
+
+static const bsc_arg_def_t int_args[] = {
+    {"value", BSC_ARG_INT, -5, 5, 0u, 0u, 0.0f, 0.0f, 0u, 0u, NULL, 0u, "Value"},
 };
 
 /** @brief Capture output bytes into bounded fixture storage and optionally force a short write. */
@@ -116,6 +136,31 @@ static int builtin_bytes_find(const char *haystack, size_t haystack_len, const c
   return 0;
 }
 
+
+/** @brief Output callback that can recurse once and mutate caller help options during active rendering. */
+static size_t builtin_recursive_write(void *user, const char *data, size_t length) {
+  builtin_recursive_output_t *fixture = (builtin_recursive_output_t *)user;
+  if (fixture == NULL) {
+    return 0u;
+  }
+  if (fixture->recurse_once == 0 && fixture->console != NULL && fixture->workspace != NULL) {
+    fixture->recurse_once = 1;
+    fixture->nested_status = bsc_execute_line_with_builtins(fixture->console,
+                                                            fixture->workspace,
+                                                            NULL,
+                                                            "commands",
+                                                            strlen("commands"),
+                                                            &fixture->nested_result);
+  }
+  if (fixture->mutate_once == 0 && fixture->options_to_mutate != NULL) {
+    fixture->mutate_once = 1;
+    fixture->options_to_mutate->include_factory = false;
+    fixture->options_to_mutate->include_locked = false;
+    fixture->options_to_mutate->include_hidden = false;
+  }
+  return builtin_capture_write(&fixture->capture, data, length);
+}
+
 /** @brief Access callback sentinel that records unwanted built-in access use. */
 static bool builtin_access(void *app_context, const bsc_command_t *command, bsc_access_level_t required_access) {
   builtin_fixture_t *fixture = (builtin_fixture_t *)app_context;
@@ -141,9 +186,27 @@ static bsc_status_t builtin_handler(void *app_context,
       fixture->secret_seen = args->values[0].data.text_value.data;
       fixture->secret_len = args->values[0].data.text_value.length;
     }
+    if (args != NULL && args->count > 0u && args->values[0].type == BSC_ARG_INT) {
+      fixture->int_value = args->values[0].data.int_value;
+    }
     return fixture->handler_status;
   }
   return BSC_STATUS_OK;
+}
+
+
+/** @brief Handler that writes deterministic bytes so ordinary-route output can be compared. */
+static bsc_status_t builtin_output_handler(void *app_context,
+                                           const bsc_command_t *command,
+                                           const bsc_parsed_args_t *args,
+                                           bsc_output_t *output) {
+  builtin_fixture_t *fixture = (builtin_fixture_t *)app_context;
+  (void)command;
+  (void)args;
+  if (fixture != NULL) {
+    fixture->handler_calls += 1;
+  }
+  return bsc_out_write(output, "abcdef");
 }
 
 /** @brief Handler that recursively invokes the built-in-aware API with fixture-selected workspace. */
@@ -178,6 +241,9 @@ static const bsc_command_t base_commands[] = {
     {path_locked, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_LOCKED, BSC_COMMAND_FLAG_NONE, builtin_access, "Locked", "Locked command."},
     {path_hidden, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_HIDDEN, builtin_access, "Hidden", "Hidden command."},
     {path_echo, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Echo", "Echo command."},
+    {path_set_group, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Set", "Set group."},
+    {path_set_int, 2u, BSC_NODE_COMMAND, int_args, 1u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Set int", "Set integer."},
+    {path_output, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_output_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Output", "Output command."},
     {path_secret_group, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Secret", "Secret group."},
     {path_secret, 2u, BSC_NODE_COMMAND, secret_args, 1u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Secret", "Set secret."},
 };
@@ -259,27 +325,87 @@ static int test_existing_api_dispatches_help_and_commands(const char *test_name)
 
 /** @brief Verify ordinary inputs through the new API match the existing application route. */
 static int test_ordinary_route_equivalence(const char *test_name) {
-  bsc_console_t console;
+  bsc_console_t console_a;
+  bsc_console_t console_b;
   bsc_console_workspace_t workspace_a;
   bsc_console_workspace_t workspace_b;
   bsc_console_result_t app_result;
   bsc_console_builtins_result_t builtin_result;
-  builtin_fixture_t fixture;
-  memset(&fixture, 0, sizeof(fixture));
-  fixture.handler_status = BSC_STATUS_OK;
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, builtin_init_console(&console, &fixture, base_commands, sizeof(base_commands) / sizeof(base_commands[0]), NULL));
+  builtin_capture_t capture_a;
+  builtin_capture_t capture_b;
+  bsc_output_t output_a = {builtin_capture_write, &capture_a};
+  bsc_output_t output_b = {builtin_capture_write, &capture_b};
+  builtin_fixture_t fixture_a;
+  builtin_fixture_t fixture_b;
+  memset(&fixture_a, 0, sizeof(fixture_a));
+  memset(&fixture_b, 0, sizeof(fixture_b));
+  fixture_a.handler_status = BSC_STATUS_OK;
+  fixture_b.handler_status = BSC_STATUS_OK;
+  builtin_capture_init(&capture_a, sizeof(capture_a.buffer));
+  builtin_capture_init(&capture_b, sizeof(capture_b.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, builtin_init_console(&console_a, &fixture_a, base_commands, sizeof(base_commands) / sizeof(base_commands[0]), &output_a));
   bsc_console_workspace_init(&workspace_a);
   bsc_console_workspace_init(&workspace_b);
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console, &workspace_a, "status", 6u, &app_result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace_b, NULL, "status", 6u, &builtin_result));
+
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console_a, &workspace_a, "status", 6u, &app_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, builtin_init_console(&console_b, &fixture_b, base_commands, sizeof(base_commands) / sizeof(base_commands[0]), &output_b));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console_b, &workspace_b, NULL, "status", 6u, &builtin_result));
   BUILTIN_ASSERT_TRUE(builtin_result.builtin == BSC_CONSOLE_BUILTIN_NONE);
   BUILTIN_ASSERT_TRUE(builtin_result.phase == app_result.phase);
   BUILTIN_ASSERT_TRUE(builtin_result.application_result.command == app_result.command);
   BUILTIN_ASSERT_TRUE(builtin_result.application_result.command_index == app_result.command_index);
   BUILTIN_ASSERT_TRUE(builtin_result.collision == NULL);
-  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 2);
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace_b, NULL, "missing", 7u, &builtin_result));
+  BUILTIN_ASSERT_TRUE(fixture_a.handler_calls == 1 && fixture_b.handler_calls == 1);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace_a));
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace_b));
+
+  fixture_a.handler_calls = 0;
+  fixture_b.handler_calls = 0;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND, bsc_execute_line(&console_a, &workspace_a, "set", 3u, &app_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND, bsc_execute_line_with_builtins(&console_b, &workspace_b, NULL, "set", 3u, &builtin_result));
+  BUILTIN_ASSERT_TRUE(app_result.phase == BSC_CONSOLE_PHASE_MATCH);
   BUILTIN_ASSERT_TRUE(builtin_result.phase == BSC_CONSOLE_PHASE_MATCH);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.group == app_result.group);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.group_index == app_result.group_index);
+  BUILTIN_ASSERT_TRUE(fixture_a.handler_calls == 0 && fixture_b.handler_calls == 0);
+
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console_a, &workspace_a, "set int -3", strlen("set int -3"), &app_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console_b, &workspace_b, NULL, "set int -3", strlen("set int -3"), &builtin_result));
+  BUILTIN_ASSERT_TRUE(builtin_result.phase == BSC_CONSOLE_PHASE_DISPATCH);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.command == app_result.command);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.command_index == app_result.command_index);
+  BUILTIN_ASSERT_TRUE(fixture_a.int_value == fixture_b.int_value && fixture_b.int_value == -3);
+
+  fixture_a.handler_calls = 0;
+  fixture_b.handler_calls = 0;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE, bsc_execute_line(&console_a, &workspace_a, "set int bad", strlen("set int bad"), &app_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INVALID_ARGUMENT_TYPE, bsc_execute_line_with_builtins(&console_b, &workspace_b, NULL, "set int bad", strlen("set int bad"), &builtin_result));
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.command == app_result.command);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.command_index == app_result.command_index);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.parse_error.reason == app_result.parse_error.reason);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.parse_error.arg_index == app_result.parse_error.arg_index);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.parse_error.token_offset == app_result.parse_error.token_offset);
+  BUILTIN_ASSERT_TRUE(fixture_a.handler_calls == 0 && fixture_b.handler_calls == 0);
+
+  builtin_capture_init(&capture_a, sizeof(capture_a.buffer));
+  builtin_capture_init(&capture_b, sizeof(capture_b.buffer));
+  fixture_a.handler_calls = 0;
+  fixture_b.handler_calls = 0;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console_a, &workspace_a, "output", 6u, &app_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console_b, &workspace_b, NULL, "output", 6u, &builtin_result));
+  BUILTIN_ASSERT_TRUE(capture_a.used == capture_b.used);
+  BUILTIN_ASSERT_TRUE(memcmp(capture_a.buffer, capture_b.buffer, capture_a.used) == 0);
+  BUILTIN_ASSERT_TRUE(fixture_a.handler_calls == 1 && fixture_b.handler_calls == 1);
+
+  builtin_capture_init(&capture_a, 3u);
+  builtin_capture_init(&capture_b, 3u);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line(&console_a, &workspace_a, "output", 6u, &app_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line_with_builtins(&console_b, &workspace_b, NULL, "output", 6u, &builtin_result));
+  BUILTIN_ASSERT_TRUE(builtin_result.builtin == BSC_CONSOLE_BUILTIN_NONE);
+  BUILTIN_ASSERT_TRUE(builtin_result.collision == NULL);
+  BUILTIN_ASSERT_TRUE(builtin_result.phase == builtin_result.application_result.phase);
+  BUILTIN_ASSERT_TRUE(builtin_result.application_result.command == app_result.command);
+  BUILTIN_ASSERT_TRUE(capture_a.used == capture_b.used && capture_b.used == 3u);
   BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace_a));
   BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace_b));
   return 0;
@@ -318,6 +444,33 @@ static int test_help_index_routes_to_pure_renderer(const char *test_name) {
   return 0;
 }
 
+
+/** @brief Assert one failed exact help path adds no output and leaves no application metadata. */
+static int builtin_assert_failed_help_path(const char *test_name,
+                                           const bsc_console_t *console,
+                                           bsc_console_workspace_t *workspace,
+                                           builtin_capture_t *capture,
+                                           builtin_fixture_t *fixture,
+                                           const char *line) {
+  bsc_console_builtins_result_t result;
+  size_t before = capture->used;
+  int handler_calls = fixture->handler_calls;
+  int access_calls = fixture->access_calls;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(console, workspace, NULL, line, strlen(line), &result));
+  BUILTIN_ASSERT_TRUE(capture->used == before);
+  BUILTIN_ASSERT_TRUE(result.phase == BSC_CONSOLE_PHASE_BUILTIN);
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_TRUE(result.application_result.phase == BSC_CONSOLE_PHASE_NONE);
+  BUILTIN_ASSERT_TRUE(result.application_result.command == NULL);
+  BUILTIN_ASSERT_TRUE(result.application_result.group == NULL);
+  BUILTIN_ASSERT_TRUE(result.collision == NULL);
+  BUILTIN_ASSERT_TRUE(fixture->handler_calls == handler_calls);
+  BUILTIN_ASSERT_TRUE(fixture->access_calls == access_calls);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(workspace));
+  return 0;
+}
+
 /** @brief Verify exact help paths, quoted tokens, filtered paths, and extra-token path semantics. */
 static int test_exact_path_help_routes(const char *test_name) {
   bsc_console_t console;
@@ -346,15 +499,21 @@ static int test_exact_path_help_routes(const char *test_name) {
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help \"settings\" \"wifi\"", strlen("help \"settings\" \"wifi\""), &result));
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help settings wifi set password", strlen("help settings wifi set password"), &result));
   BUILTIN_ASSERT_TRUE(!builtin_bytes_find(capture.buffer, capture.used, "actual-secret"));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help unknown", strlen("help unknown"), &result));
-  BUILTIN_ASSERT_TRUE(result.phase == BSC_CONSOLE_PHASE_BUILTIN);
-  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help factory", strlen("help factory"), &result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help locked", strlen("help locked"), &result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help hidden", strlen("help hidden"), &result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help \"\"", strlen("help \"\""), &result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help status extra", strlen("help status extra"), &result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL, "help a b c d e", strlen("help a b c d e"), &result));
+
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help unknown") == 0);
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help factory") == 0);
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help locked") == 0);
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help hidden") == 0);
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help \"\"") == 0);
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help status extra") == 0);
+  BUILTIN_ASSERT_TRUE(builtin_assert_failed_help_path(test_name, &console, &workspace, &capture, &fixture,
+                                                       "help a b c d e") == 0);
   memcpy(too_many_tokens, "help", 4u);
   too_many_used = 4u;
   for (index = 0u; index < (size_t)BSC_MAX_TOKENS; ++index) {
@@ -565,6 +724,75 @@ static int test_validation_failures(const char *test_name) {
   return 0;
 }
 
+
+/** @brief Verify output-callback recursion for same and independent workspaces. */
+static int test_output_callback_recursion(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t outer_workspace;
+  bsc_console_workspace_t nested_workspace;
+  bsc_console_builtins_result_t outer_result;
+  builtin_recursive_output_t recursive;
+  bsc_output_t output = {builtin_recursive_write, &recursive};
+  builtin_fixture_t fixture;
+  memset(&fixture, 0, sizeof(fixture));
+  memset(&recursive, 0, sizeof(recursive));
+  fixture.handler_status = BSC_STATUS_OK;
+  builtin_capture_init(&recursive.capture, sizeof(recursive.capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, builtin_init_console(&console, &fixture, base_commands, sizeof(base_commands) / sizeof(base_commands[0]), &output));
+  bsc_console_workspace_init(&outer_workspace);
+  recursive.console = &console;
+  recursive.workspace = &outer_workspace;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &outer_workspace, NULL, "help", 4u, &outer_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, recursive.nested_status);
+  BUILTIN_ASSERT_TRUE(recursive.nested_result.phase == BSC_CONSOLE_PHASE_INPUT);
+  BUILTIN_ASSERT_TRUE(outer_result.phase == BSC_CONSOLE_PHASE_BUILTIN);
+  BUILTIN_ASSERT_TRUE(recursive.capture.used != 0u);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&outer_workspace));
+
+  memset(&recursive, 0, sizeof(recursive));
+  builtin_capture_init(&recursive.capture, sizeof(recursive.capture.buffer));
+  bsc_console_workspace_init(&outer_workspace);
+  bsc_console_workspace_init(&nested_workspace);
+  recursive.console = &console;
+  recursive.workspace = &nested_workspace;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &outer_workspace, NULL, "help", 4u, &outer_result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, recursive.nested_status);
+  BUILTIN_ASSERT_TRUE(recursive.nested_result.phase == BSC_CONSOLE_PHASE_BUILTIN);
+  BUILTIN_ASSERT_TRUE(recursive.nested_result.builtin == BSC_CONSOLE_BUILTIN_COMMANDS);
+  /* Output ordering is intentionally caller-owned; this assertion only proves both calls completed and cleaned up. */
+  BUILTIN_ASSERT_TRUE(recursive.capture.used != 0u);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&outer_workspace));
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&nested_workspace));
+  return 0;
+}
+
+/** @brief Verify help options are copied before rendering even if caller storage mutates during output. */
+static int test_help_options_copied_during_render(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_recursive_output_t mutating_output;
+  bsc_output_t output = {builtin_recursive_write, &mutating_output};
+  bsc_help_options_t options;
+  builtin_fixture_t fixture;
+  memset(&fixture, 0, sizeof(fixture));
+  memset(&mutating_output, 0, sizeof(mutating_output));
+  fixture.handler_status = BSC_STATUS_OK;
+  builtin_capture_init(&mutating_output.capture, sizeof(mutating_output.capture.buffer));
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  mutating_output.options_to_mutate = &options;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, builtin_init_console(&console, &fixture, base_commands, sizeof(base_commands) / sizeof(base_commands[0]), &output));
+  bsc_console_workspace_init(&workspace);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options, "help", 4u, &result));
+  BUILTIN_ASSERT_TRUE(options.include_factory == false);
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(mutating_output.capture.buffer, mutating_output.capture.used, "factory"));
+  BUILTIN_ASSERT_TRUE(result.phase == BSC_CONSOLE_PHASE_BUILTIN);
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_INDEX);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+
 /** @brief Verify cleanup and same-workspace recursion behavior for built-in-aware execution. */
 static int test_reentrancy_and_cleanup(const char *test_name) {
   bsc_console_t console;
@@ -632,6 +860,8 @@ int bsc_run_console_builtins_tests(void) {
   BUILTIN_RUN_TEST(test_help_visibility_options);
   BUILTIN_RUN_TEST(test_output_failures);
   BUILTIN_RUN_TEST(test_validation_failures);
+  BUILTIN_RUN_TEST(test_output_callback_recursion);
+  BUILTIN_RUN_TEST(test_help_options_copied_during_render);
   BUILTIN_RUN_TEST(test_reentrancy_and_cleanup);
   BUILTIN_RUN_TEST(test_secret_non_disclosure);
   return failures;

@@ -156,7 +156,7 @@ typedef struct bsc_output {
 
 The current helpers write C strings and C strings followed by `\n` through this callback and report short writes as `BSC_STATUS_OUTPUT_TRUNCATED`. The complete-line console copies the wrapper by value during initialization when one is provided, but the callback and user pointer remain borrowed.
 
-The console orchestration layer is output-neutral. It does not automatically write command echo, help, parser errors, matcher errors, access errors, `OK`, `ERR`, or final-result text. It only forwards the configured output wrapper to handlers through selected-command dispatch. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
+The console orchestration layer is output-neutral. `bsc_execute_line()` performs application execution and only forwards the configured output wrapper to handlers through selected-command dispatch. `bsc_execute_line_with_builtins()` intentionally emits only the explicitly requested pure generated-help renderer output for `help`, exact-path `help <path>`, and `commands`. Neither API automatically writes command echo, parser errors, matcher errors, access errors, prompts, `OK`, `ERR`, or final-result text. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
 
 ## 6. Token representation
 

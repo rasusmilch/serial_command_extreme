@@ -11,9 +11,8 @@ extern "C" {
  *
  * Status values are stable public API. Current tokenizer, registry-validation,
  * matcher, typed parser, selected-command dispatch/access enforcement, output,
- * console-context, and foundational helper functions return the applicable
- * values from this enum. Future integrated-console paths will use these statuses
- * as orchestration modules are implemented.
+ * console-context, generated-help, built-in-aware console integration, and foundational
+ * helper functions return the applicable values from this enum.
  */
 
 /**
