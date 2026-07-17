@@ -17,9 +17,10 @@ This file records notable repository changes.
 - Deterministic generated synopsis and valid-value output from descriptor metadata, including integer, unsigned, compact-float, boolean, enum, string, and secret argument schemas.
 - Public explicit-length `bsc_out_write_bytes()` output helper used by generated help rendering.
 - Byte-exact LF golden fixtures and host tests for generated help output, visibility filtering, metadata validation, lookup, optional-section omission including groups without descriptions or visible children, short-write boundaries, configured-boundary and capacity-oriented fixtures, exact compact-float precision output, small help-prose limits, and secret non-disclosure.
+- Optional built-in-aware complete-line execution through `bsc_execute_line_with_builtins()` for `help`, exact-path `help <path>`, and `commands`, including built-in result and collision metadata plus host coverage for compatibility, routing, collisions, output failures, cleanup, recursion, visibility, and secret non-disclosure.
 
 ### Changed
 
 - Active architecture, implementation, test, source-overview, and workflow documents now describe the implemented console/workspace boundary, current repository state, and the distinction between settled, deferred, and unresolved decisions.
-- Active documentation now reflects the pure help foundation, the implemented descriptor/help model, separate help metadata validation, static visibility policy, descriptor-order LF output, deferred console built-ins, extended sections, and subtopics, and the historical status of the original handoff.
+- Active documentation now reflects the pure help foundation, the implemented optional console built-in route, the descriptor/help model, separate help metadata validation, static visibility policy, descriptor-order LF output, deferred extended sections and subtopics, and the historical status of the original handoff.
 - Generated-help test sources now comply with the existing function-documentation policy while preserving the validated bounded-help behavior.

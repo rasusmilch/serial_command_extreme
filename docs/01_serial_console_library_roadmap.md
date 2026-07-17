@@ -93,7 +93,7 @@ Minimum functionality:
 - Explicit-length complete-line execution through tokenizer, matcher, and selected-command dispatch.
 - Deterministic status codes.
 
-Generated `help`, `help <path>`, and `commands` built-ins move to Phase 3 with the help/manpage system.
+Optional generated `help`, exact-path `help <path>`, and `commands` built-ins are implemented in Phase 3 through `bsc_execute_line_with_builtins()`.
 
 Acceptance:
 
@@ -123,9 +123,17 @@ Implemented capabilities:
 - byte-exact golden fixtures plus short-write, maximum-capacity, small-prose-limit, control-byte, and exact float-precision tests;
 - no heap allocation and no public help workspace.
 
-### Task 11B2 — Optional console built-ins: future
+### Task 11B2 — Optional console built-ins: implemented
 
-Future work will decide and implement optional console-level `help` and `commands` routing, including collision policy for application-defined command names.
+Implemented capabilities:
+
+- separate built-in-aware complete-line API `bsc_execute_line_with_builtins()` while preserving `bsc_execute_line()` as application-only;
+- ASCII case-insensitive routing for `help`, exact-path `help <path>`, and `commands` after tokenizer processing and before application matching;
+- exact help-path rendering through the pure generated-help APIs without longest-prefix dispatch or argument parsing;
+- per-invoked-built-in collision detection for application descriptors beginning with `help` or `commands`, with structured non-secret collision metadata;
+- help visibility options copied by value per call;
+- output-neutral behavior except for explicitly requested help renderer output through the configured console output;
+- host coverage for compatibility, routing, collisions, visibility, output failures, cleanup, recursion, and secret non-disclosure.
 
 ### Task 11C — Extended metadata and subtopics: future
 

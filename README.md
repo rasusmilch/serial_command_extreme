@@ -4,7 +4,7 @@ Serial Command Extreme is a reusable bounded embedded serial command library und
 
 The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to define commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, output-neutral complete-line console orchestration with caller-owned execution workspace, a pure bounded generated-help core, host tests, golden help-output fixtures, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: console-level help built-ins, extended help sections, examples, and platform adapters remain future work.
+This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, output-neutral complete-line console orchestration with caller-owned execution workspace, a pure bounded generated-help core, optional complete-line `help`/`commands` built-in routing, host tests, golden help-output fixtures, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: extended help sections, examples, and platform adapters remain future work.
 
 ## Intended use
 
@@ -92,15 +92,23 @@ Tests: Host coverage for foundational helpers, descriptor types, tokenizer, regi
 Typed argument parser: implemented for signed integer, unsigned integer, compact decimal float when enabled, boolean, enum, bounded string, and bounded secret
 Selected-command dispatch and access enforcement: implemented
 Output-neutral complete-line console orchestration: implemented
-Generated help/manpages: pure metadata validation, exact path lookup, top-level index, complete command list, group pages, and executable command pages implemented; console built-ins and extended sections remain future work
+Generated help/manpages: pure metadata validation, exact path lookup, top-level index, complete command list, group pages, executable command pages, and optional complete-line `help`/`commands` routing implemented; extended sections remain future work
 Examples: not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, and render pure generated help through explicit APIs, but it still lacks console-level help built-ins, extended help sections, examples, and adapters.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, and render pure generated help through explicit APIs, but it still lacks extended help sections, examples, and adapters.
 
+
+## Optional complete-line help built-ins
+
+The pure generated-help APIs remain directly callable for applications that want to render help outside the console pipeline. Applications that want complete-line operator built-ins can call `bsc_execute_line_with_builtins()` instead of `bsc_execute_line()`. The original `bsc_execute_line()` API remains application-only and still permits ordinary application commands named `help` or `commands`.
+
+The built-in-aware API recognizes `help`, `help <exact command or group path>`, and `commands` with ASCII case-insensitive built-in names after the normal tokenizer has processed quotes and escapes. Help path lookup is exact: tokens after `help` are never treated as command arguments and never use longest-prefix dispatch matching. `commands` accepts no extra tokens.
+
+Built-ins use only the output wrapper configured in `bsc_console_init()`. They add no prompts, echo, automatic diagnostics, or final OK/ERR text. If no output is configured, valid help rendering reaches the existing pure renderer and returns its `BSC_STATUS_INTERNAL_ERROR`. Help visibility is supplied with optional `bsc_help_options_t`; NULL uses the existing defaults. Built-in names are reserved only in `bsc_execute_line_with_builtins()` for the invoked built-in, and a colliding application descriptor returns `BSC_STATUS_INVALID_DESCRIPTOR` with non-secret collision metadata.
 
 ## Compact float arguments
 
@@ -232,7 +240,7 @@ test/
   golden/
 ```
 
-The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated-help validation/lookup/rendering, internal compact-float parser, descriptor, status, string-view, and output modules. Planned future modules still include optional console help built-ins, extended help metadata/subtopics, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering/golden output, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add broader redaction, adapter, and integration coverage.
+The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated-help validation/lookup/rendering, internal compact-float parser, descriptor, status, string-view, and output modules. Optional console help built-ins are implemented through `bsc_execute_line_with_builtins()`; planned future modules still include extended help metadata/subtopics, adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering/golden output, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, and forbidden-pattern checks; future tests should add broader redaction, adapter, and integration coverage.
 
 ## Example command descriptor intent
 
@@ -257,7 +265,7 @@ From that metadata, the current reusable core can already:
 Still-future integration must:
 
 - Redact secrets in echo, status, logs, history, or other presentation layers outside the parser.
-- Optionally route console-level `help settings wifi set password` through a future built-in integration layer.
+- Route console-level `help settings wifi set password` through the optional `bsc_execute_line_with_builtins()` integration layer when built-ins are desired.
 
 ## Development workflow expectation
 
@@ -267,7 +275,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-The read-only architecture planning milestone established the implementation direction, and the pure generated-help foundation is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and pure help-rendering foundation; the remaining help work is optional console built-in integration plus extended metadata/subtopics, and adapters or examples should not begin ahead of approved remaining core work.
+The read-only architecture planning milestone established the implementation direction, and the pure generated-help foundation is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and pure help-rendering foundation; the remaining help work is extended metadata/subtopics, and adapters or examples should not begin ahead of approved remaining core work.
 
 Future Codex tasks should:
 
@@ -293,7 +301,7 @@ In short:
 
 ## Next recommended task
 
-After independent validation of the pure generated-help core, the next useful implementation task is the optional console built-in routing stage for `help` and `commands`, or another approved roadmap item with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
+After independent validation of the optional console built-in routing stage for `help` and `commands`, the next useful implementation task is Task 11C extended help metadata/subtopics, or another approved roadmap item with focused host tests and bounded-memory documentation. Do not skip directly to adapters or examples before the remaining core behavior is implemented and validated.
 
 ## License
 

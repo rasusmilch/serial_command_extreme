@@ -6,7 +6,7 @@ This document is the current architecture and implementation contract for `seria
 
 Historical planning context lives in Git history, PR history, receipts, and explicitly historical handoff material. This document is intended to stand on its own as current architectural truth for maintainers and future implementation tasks.
 
-Last reconciled: 2026-07-13.
+Last reconciled: 2026-07-17.
 
 ## Current implementation state
 
@@ -25,8 +25,8 @@ Current implemented repository state:
 - Compact float parser: internal compact decimal float support is implemented in `src/internal/bsc_float_parse.*` and controlled by `SCE_ENABLE_FLOAT`.
 - Selected-command dispatch: access enforcement, typed parsing handoff, handler invocation, and handler-status normalization are implemented in `src/bsc_dispatch.*`.
 - Complete-line console orchestration: output-neutral orchestration is implemented in `src/bsc_console.*` using lightweight console configuration plus caller-owned execution workspace.
-- Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, complete-line console orchestration, and pure generated-help validation/rendering with byte-exact golden fixtures.
-- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, and executable-command pages are implemented in `src/bsc_help.*`; console built-ins and extended sections remain future work.
+- Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, complete-line console orchestration, optional built-in help/commands routing, and pure generated-help validation/rendering with byte-exact golden fixtures.
+- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, executable-command pages, and optional complete-line `help`/`commands` routing are implemented in `src/bsc_help.*` and `src/bsc_console.*`; extended sections remain future work.
 - Examples: not implemented.
 - Arduino adapter: not implemented.
 - ESP-IDF adapter: not implemented.
@@ -187,7 +187,7 @@ The implemented boundary is lightweight validated console configuration plus cal
 
 Implemented in `src/bsc_help.*`, with host and byte-exact LF golden coverage in `test/test_bsc_help.c` and `test/golden/`. The pure help core validates help-specific metadata separately from ordinary registry validation, first verifies the underlying registry schema, resolves exact descriptor paths for groups and executable commands without using the dispatch matcher, and renders top-level indexes, complete visible command lists, group pages, and executable-command pages through `bsc_output_t`. It never invokes command handlers or `command->access_fn`. Output uses descriptor-table order, generated synopsis text, generated valid-value text, LF line endings, no heap allocation, no public help workspace, no full-manpage buffer, and immediate propagation of the first output failure.
 
-Task 11B2 optional console built-ins remain future work. Extended metadata sections such as notes, warnings, examples, related commands, and subtopics remain future Task 11C work.
+Task 11B2 optional console built-ins are implemented through the separate `bsc_execute_line_with_builtins()` composition boundary. Extended metadata sections such as notes, warnings, examples, related commands, and subtopics remain future Task 11C work.
 
 ### Phase 4A — Host examples: future
 
@@ -275,11 +275,9 @@ Workspace line bytes are ordinary-cleared by console cleanup as best-effort priv
 
 ## Output and presentation rules
 
-The current core has output helpers, forwards configured output to handlers, and implements pure generated-help rendering through explicit help APIs. It does not implement a console presentation policy or built-in `help`/`commands` route.
+The current core has output helpers, forwards configured output to handlers, implements pure generated-help rendering through explicit help APIs, and optionally routes complete-line `help`/`commands` through `bsc_execute_line_with_builtins()`. The core still does not implement a general console presentation policy.
 
 Deferred presentation features include:
-
-- console-level generated-help built-ins;
 - command echo;
 - redacted echo;
 - automatic parser/matcher/access diagnostics;
@@ -297,12 +295,13 @@ Current host tests are built into `sce_host_tests` and registered with CTest. Th
 - `test_bsc_args.c`;
 - `test_bsc_dispatch.c`;
 - `test_bsc_console.c`;
+- `test_bsc_console_builtins.c`;
 - `test_bsc_help.c`.
 
 CTest also registers `sce_forbidden_patterns` when Python3 is available. Core validation must continue to run without Arduino, ESP-IDF, UART hardware, or target boards.
 
-Generated-help work has byte-exact LF golden-output tests for the pure renderer. Future console built-ins and extended sections must add or update golden fixtures when their exact output is approved.
+Generated-help work has byte-exact LF golden-output tests for the pure renderer. Current console built-ins reuse the pure renderer bytes; future extended sections must add or update golden fixtures when their exact output is approved.
 
 ## Current non-goals
 
-The current MVP implements pure generated help/manpages through explicit APIs but does not implement built-in `help` or `commands`, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.
+The current MVP implements pure generated help/manpages through explicit APIs and optional complete-line `help`/`commands` routing, but does not implement examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.

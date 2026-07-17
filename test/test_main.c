@@ -34,6 +34,10 @@ int bsc_run_dispatch_tests(void);
  */
 int bsc_run_console_tests(void);
 /**
+ * @brief Run built-in-aware console routing tests supplied by the console built-ins module.
+ */
+int bsc_run_console_builtins_tests(void);
+/**
  * @brief Run generated-help tests supplied by the help module.
  */
 int bsc_run_help_tests(void);
@@ -228,6 +232,7 @@ int main(void) {
   failures += bsc_run_args_tests();
   failures += bsc_run_dispatch_tests();
   failures += bsc_run_console_tests();
+  failures += bsc_run_console_builtins_tests();
   failures += bsc_run_help_tests();
 
   if (failures != 0) {
