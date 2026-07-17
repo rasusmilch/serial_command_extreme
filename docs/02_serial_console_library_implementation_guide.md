@@ -156,7 +156,7 @@ typedef struct bsc_output {
 
 The current helpers write C strings and C strings followed by `\n` through this callback and report short writes as `BSC_STATUS_OUTPUT_TRUNCATED`. The complete-line console copies the wrapper by value during initialization when one is provided, but the callback and user pointer remain borrowed.
 
-The console orchestration layer is output-neutral. It does not automatically write command echo, help, parser errors, matcher errors, access errors, `OK`, `ERR`, or final-result text. It only forwards the configured output wrapper to handlers through selected-command dispatch. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
+The console orchestration layer is output-neutral. `bsc_execute_line()` performs application execution and only forwards the configured output wrapper to handlers through selected-command dispatch. `bsc_execute_line_with_builtins()` intentionally emits only the explicitly requested pure generated-help renderer output for `help`, exact-path `help <path>`, and `commands`. Neither API automatically writes command echo, parser errors, matcher errors, access errors, prompts, `OK`, `ERR`, or final-result text. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
 
 ## 6. Token representation
 
@@ -308,9 +308,9 @@ The tokenizer, matcher, typed parser, access enforcement, dispatch, and handler 
 
 ## 12. Built-in commands
 
-The pure generated-help APIs are implemented in `src/bsc_help.h` and `src/bsc_help.c`: callers can validate help metadata, resolve exact descriptor paths, and render top-level indexes, command lists, group pages, and executable-command pages through `bsc_output_t`. The complete-line console still executes only the configured application descriptor table and contains no hard-coded `help`, `commands`, `version`, or `about` route.
+The pure generated-help APIs are implemented in `src/bsc_help.h` and `src/bsc_help.c`: callers can validate help metadata, resolve exact descriptor paths, and render top-level indexes, command lists, group pages, and executable-command pages through `bsc_output_t`. The original `bsc_execute_line()` API remains application-only and executes the configured descriptor table with no hard-coded built-in route. Applications that want complete-line help can call `bsc_execute_line_with_builtins()`, which recognizes `help`, exact-path `help <path>`, and `commands` after tokenization and before application matching.
 
-Optional console built-in routing remains future work. That future stage must approve how built-ins are exposed, how application command-name collisions are handled, and whether built-ins are mandatory, optional, or compile-time configurable. The static help visibility behavior is already settled for the pure renderer: normal and advanced descriptors are visible by default, while factory, locked, and hidden descriptors require explicit help options and help never invokes execution handlers or access callbacks.
+The built-in-aware API preserves output-neutral orchestration: it emits only the selected pure renderer output, uses only the output wrapper copied into `bsc_console_t`, and adds no prompts, fallback diagnostics, echo, or final OK/ERR text. Built-in names are reserved only for the invoked built-in in this API; application descriptors beginning with that built-in name return `BSC_STATUS_INVALID_DESCRIPTOR` with borrowed collision metadata and do not run the matcher, parser, access callbacks, dispatcher, or handlers. The static help visibility behavior remains separate from execution access: normal and advanced descriptors are visible by default, while factory, locked, and hidden descriptors require explicit `bsc_help_options_t`, copied by value per call.
 
 ## 13. Example: sensor gain command
 
@@ -320,7 +320,7 @@ Command behavior through the current dispatcher remains application-defined:
 gain 2048
 ```
 
-The same descriptor metadata can be rendered today by calling `bsc_help_render_path()` with the path token `gain`. A console command such as `help gain` is not hard-coded into `bsc_execute_line()` yet; optional console-level help routing remains future work.
+The same descriptor metadata can be rendered directly by calling `bsc_help_render_path()` with the path token `gain`, or through `bsc_execute_line_with_builtins()` with a complete line such as `help gain`. The original `bsc_execute_line()` path remains application-only for callers that need ordinary commands named `help` or `commands`.
 
 Representative current-schema descriptor:
 

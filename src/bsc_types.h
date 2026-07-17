@@ -18,8 +18,8 @@ extern "C" {
  * @brief Static command descriptor metadata for the Serial Command Extreme core.
  *
  * This header defines public metadata types shared by the current registry
- * validator, matcher, typed argument parser, and current selected-command
- * dispatcher plus future help-rendering and console-integration modules. It
+ * validator, matcher, typed argument parser, current selected-command
+ * dispatcher, generated-help renderer, and built-in-aware console integration. It
  * performs no validation, matching, parsing, dispatch, help rendering, I/O,
  * allocation, runtime
  * registration, alias expansion, optional-argument handling, custom parsing, or
@@ -29,8 +29,8 @@ extern "C" {
  * path arrays, path strings, argument arrays, enum choice arrays, help strings,
  * callback functions, and opaque context pointers are caller-owned and must
  * remain valid while current registry validation, current matching, current
- * typed argument parsing, current selected-command dispatch, or future
- * console/help code references them.
+ * typed argument parsing, current selected-command dispatch, generated help, or
+ * built-in-aware console routing references them.
  * The core does not copy or release descriptor metadata.
  *
  * Current parsed string and secret argument values returned by
@@ -113,7 +113,7 @@ typedef uint32_t bsc_command_flags_t;
 /** No command metadata flags are set. */
 #define BSC_COMMAND_FLAG_NONE ((bsc_command_flags_t)0u)
 
-/** Hide the command from broad future help/list output unless policy allows it. */
+/** Hide the command from broad generated-help/list output unless help options allow it. */
 #define BSC_COMMAND_FLAG_HIDDEN ((bsc_command_flags_t)(1u << 0u))
 
 /**
@@ -124,7 +124,7 @@ typedef uint32_t bsc_command_flags_t;
  * value current argument parsing exposes in #bsc_arg_value_t enum results.
  */
 typedef struct bsc_enum_choice {
-  /** Borrowed choice name used by current parser diagnostics and future help modules. */
+  /** Borrowed choice name used by current parser diagnostics and generated help. */
   const char *name;
   /** Stable semantic value associated with the choice name. */
   int32_t value;
@@ -204,7 +204,7 @@ typedef bool (*bsc_command_access_fn_t)(void *app_context,
  * or workspace storage. All pointers remain owned by the application/static
  * descriptor table provider and must outlive current registry validation,
  * current matcher use, current typed parsing, current selected-command dispatch,
- * and future console/help use.
+ * generated-help rendering, and built-in-aware console use.
  */
 typedef struct bsc_command {
   /** Borrowed static array of `path_len` literal command path tokens. */
@@ -223,7 +223,7 @@ typedef struct bsc_command {
   void *command_context;
   /** Execution/access metadata enforced by current selected-command dispatch. */
   bsc_access_level_t access;
-  /** Visibility/metadata flags such as #BSC_COMMAND_FLAG_HIDDEN. */
+  /** Visibility/metadata flags such as #BSC_COMMAND_FLAG_HIDDEN, consumed by generated help. */
   bsc_command_flags_t flags;
   /** Optional access-policy hook evaluated by current selected-command dispatch. */
   bsc_command_access_fn_t access_fn;

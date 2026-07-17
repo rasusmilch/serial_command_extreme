@@ -86,7 +86,8 @@ extern "C" {
  * it is invoked exactly once after dispatch API and shallow descriptor checks
  * and before argument parsing. The callback receives app_context, the exact
  * command pointer, and command->access. The hidden flag has no independent
- * exact-dispatch denial effect and remains future help/listing metadata.
+ * exact-dispatch denial effect; generated help/listing visibility consumes it
+ * separately from execution access.
  *
  * Handler policy: the handler is invoked synchronously and exactly once only
  * after valid API inputs, a dispatchable descriptor, allowed access, and

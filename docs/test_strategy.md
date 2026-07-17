@@ -10,24 +10,23 @@ The test strategy is host-first by design. Firmware and hardware testing remain 
 
 ## Current status
 
-Last updated: 2026-07-07.
+Last updated: 2026-07-17.
 
-Current repository status during this policy pass:
+Current repository status during this Task 11B2 update:
 
 ```text
 Repository: rasusmilch/serial_command_extreme
-Branch: main
-Current pre-change head inspected: dc75a9f0f5111376b628a3bd9e0a9fc36e8265a2
-Stage: bounded core implementation through output-neutral complete-line console orchestration
-Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, and complete-line console orchestration
+Branch: main, inspected through local alias work when no remote was configured
+Stage: bounded core implementation through output-neutral complete-line console orchestration, pure generated help, and optional complete-line help/commands built-in routing
+Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, and built-in-aware complete-line routing
 Build system: CMake builds the core library and host tests
-Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, and complete-line console orchestration
+Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, built-in-aware help/commands routing, generated help, default float-enabled behavior, and float-disabled behavior
 Examples: not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 ```
 
-Implementation code and host tests now exist. This file remains the testing-policy anchor and distinguishes current host coverage from future help, adapter, golden-output, and hardware validation.
+Implementation code and host tests now exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. This file remains the testing-policy anchor and distinguishes current host coverage from future extended help, adapter, golden-output expansion, and hardware validation.
 
 ## Source and anchor context inspected
 
@@ -791,7 +790,7 @@ A core change is not ready just because it compiles for firmware. A core change 
 
 The pure help core has byte-exact golden fixtures under `test/golden/`. CMake copies that directory to the test binary directory and provides the copied path to `sce_host_tests` with a private compile definition, so tests do not depend on the process working directory. Golden files are opened in binary mode and compared byte-for-byte with LF-only output; tests fail on CRLF, whitespace changes, missing final LF, reordered entries, or changed section headings.
 
-Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Future console built-ins, extended sections, and subtopics must add or update golden fixtures when their output grammar is approved.
+Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Current console built-ins reuse the pure generated-help renderer bytes. Future extended sections and subtopics must add or update golden fixtures when their output grammar is approved.
 
 Generated-help validation also separates help prose bounds from identifier bounds. Summaries, descriptions, argument help, and enum-choice help use `BSC_MAX_HELP_TEXT_LEN`; command path tokens, argument names, and enum-choice names remain governed by registry token/name bounds and are not truncated by small prose limits. Help validation rejects CR, LF, other ASCII control bytes, and DEL in every emitted metadata string, including identifiers and prose, while preserving printable non-ASCII bytes.
 

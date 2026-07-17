@@ -8,6 +8,7 @@ add_executable(
   test_bsc_args.c
   test_bsc_dispatch.c
   test_bsc_console.c
+  test_bsc_console_builtins.c
   test_bsc_help.c
 )
 
