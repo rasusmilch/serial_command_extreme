@@ -10,58 +10,23 @@ The test strategy is host-first by design. Firmware and hardware testing remain 
 
 ## Current status
 
-Last updated: 2026-07-17.
+Last updated: 2026-07-18.
 
-Current repository status during this Task 11B2 update:
+Current repository state:
 
 ```text
 Repository: rasusmilch/serial_command_extreme
-Branch: main, inspected through local alias work when no remote was configured
-Stage: bounded core implementation through output-neutral complete-line console orchestration, pure generated help, and optional complete-line help/commands built-in routing
-Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, and built-in-aware complete-line routing
+Product branch: main
+Stage: bounded C99 core through output-neutral complete-line console orchestration, pure generated help, optional complete-line help/commands built-in routing, and Task 11C-1 extended-help catalog schema plus structural validation
+Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, built-in-aware complete-line routing, and extended-help catalog structural validation
 Build system: CMake builds the core library and host tests
-Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, built-in-aware help/commands routing, generated help, default float-enabled behavior, and float-disabled behavior
-Examples: not added yet
+Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, built-in-aware help/commands routing, generated help, extended-help catalog validation, default float-enabled behavior, float-disabled behavior, focused catalog capacity overrides, and forbidden-pattern scanning
+Examples: not added yet; runnable example applications remain Phase 4 work
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 ```
 
-Implementation code and host tests now exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. This file remains the testing-policy anchor and distinguishes current host coverage from future extended help, adapter, golden-output expansion, and hardware validation.
-
-## Source and anchor context inspected
-
-Repository files inspected before creating this document:
-
-```text
-README.md
-docs/00_serial_console_library_design_intent.md
-docs/01_serial_console_library_roadmap.md
-docs/02_serial_console_library_implementation_guide.md
-docs/03_serial_console_library_handoff.md
-docs/code_documentation_policy.md
-docs/prior_art_review.md
-```
-
-Expected file before this change:
-
-```text
-docs/test_strategy.md
-```
-
-Status before this change:
-
-```text
-missing
-```
-
-The uploaded reference archive from prior planning was also available as context:
-
-```text
-/mnt/data/Archive.tar.gz
-/mnt/data/sce_archive/
-```
-
-The GitHub connector reported repository code-search indexing unavailable during inspection, so direct path-based file reads were used.
+Implementation code and host tests exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. Task 11C-1 catalog schema and structural validation are implemented on this branch without extended rendering, pure topic pages, or catalog-aware console grammar. Task 11C-2 remains future work for extended rendering and pure topic pages. Task 11C-3 remains future work for catalog-aware console integration after explicit grammar approval. This file remains the durable testing-policy anchor and distinguishes current host coverage from future extended help rendering, adapter, golden-output expansion, and hardware validation.
 
 ## Testing goals
 
@@ -518,50 +483,43 @@ Purpose:
 
 ## Test file layout
 
-Recommended future layout:
+Current host-test files are self-contained C sources registered through CMake and the host runner:
 
 ```text
 test/
+  CMakeLists.txt
   README.md
   test_main.c
-  test_tokenizer.c
-  test_parser.c
-  test_args.c
-  test_dispatch.c
-  test_help.c
-  test_redaction.c
-  test_access.c
-  test_capacity.c
-  fixtures/
-    basic_commands.c
-    sensor_commands.c
-    wifi_commands.c
-    factory_commands.c
+  test_bsc_args.c
+  test_bsc_console.c
+  test_bsc_console_builtins.c
+  test_bsc_dispatch.c
+  test_bsc_help.c
+  test_bsc_help_catalog.c
+  test_bsc_matcher.c
+  test_bsc_registry.c
+  test_bsc_tokenizer.c
+  test_bsc_types.c
   golden/
-    help_index.txt
-    help_gain.txt
-    help_settings_wifi.txt
-    help_settings_wifi_set_password.txt
+    command_wifi_set_ssid.txt
     commands.txt
-    error_invalid_gain.txt
+    group_settings.txt
+    help_index.txt
 ```
 
-If the architecture plan selects a different test framework, keep the same conceptual coverage.
+Future adapter or fixture splits may add separate files when the corresponding adapter, runnable example, or extended-rendering behavior is implemented. Future filenames must be labeled as future in active documentation until they exist.
 
-## Tooling recommendations
+## Current tooling
 
-The first implementation should prefer boring, portable tooling.
+Current validation uses boring, portable host tooling:
 
-Recommended default:
+- CMake configures and builds the core library and host test executable.
+- CTest runs the host test executable as the project test target.
+- `test/test_main.c` is a self-contained C host runner with no external unit-test framework dependency.
+- `tools/check_forbidden_patterns.py` provides the current forbidden-pattern scan for `src/` when Python is available.
+- No repository CI workflow is currently present; local and Codex receipts must report the exact commands run.
 
-- CMake + CTest, or a simple Makefile, for host builds.
-- A self-contained C test harness if that reduces dependency friction.
-- Optional Python helper scripts for static checks and golden update/compare behavior.
-- GitHub Actions for host tests after the build system exists.
-
-Avoid tool choices that require flashing firmware to run core tests.
-
-Avoid making PlatformIO or Arduino IDE the primary core test runner. They can be useful for adapter examples, but the core should test with a normal C compiler.
+Avoid making PlatformIO or Arduino IDE the primary core test runner. They can be useful for future adapter examples, but the core should continue to test with a normal C compiler.
 
 ## CI expectations
 
@@ -686,101 +644,16 @@ Host tests cannot fully validate:
 
 Any task that touches platform adapter or integration code must state which of these remain unverified.
 
-## Open testing decisions
+## Deferred testing decisions
 
-The architecture plan should resolve or explicitly defer these decisions:
+The following testing decisions remain deferred until the corresponding capability is introduced or a maintainer approves the tooling:
 
-1. Host test framework: self-contained harness, CTest, Unity, CMocka, or another option.
-2. Build system: CMake, Make, Meson, or another option.
-3. Golden-output update workflow: manual update, tool-assisted update, or no auto-update.
-4. Static forbidden-pattern check implementation language.
-5. Whether CI is added during the first implementation task or immediately after the core skeleton exists.
-6. Whether coverage tooling is required or deferred.
-7. Whether Arduino compile checks use Arduino CLI, PlatformIO, or another tool.
-8. Whether ESP-IDF compile checks are part of normal CI or manual validation only.
-9. Whether memory-map/size reporting is required for adapter builds.
-10. Whether fuzz/property-style tests are added for tokenizer/parser after deterministic unit tests are stable.
-
-## Suggested phased backlog
-
-### Phase T0 — Test infrastructure plan
-
-Goal: decide build system, test runner, static check style, and CI shape before implementation.
-
-Acceptance:
-
-- No source implementation required.
-- Commands for future host tests are specified.
-- Adapter compile policy is specified.
-- Hardware validation boundary is explicit.
-
-### Phase T1 — Minimal host test harness
-
-Goal: create a host build that can compile and run a failing/passing smoke test before core implementation expands.
-
-Acceptance:
-
-- One host test command exists.
-- CI or local command can run without target hardware.
-- Test receipt format is proven.
-
-### Phase T2 — Core parser/tokenizer tests
-
-Goal: cover line trimming, tokenization, quotes, escapes, and strict rejection cases.
-
-Acceptance:
-
-- Required tokenizer accept/reject cases pass.
-- Boundary tests for line/token/token-count limits pass.
-- Tokenizer/parser buffer-policy tests or review checks prove views point into the active mutable line buffer and no extra tokenizer/parser text buffers were introduced.
-- No hardware required.
-
-### Phase T3 — Registry, matching, and argument validation tests
-
-Goal: validate descriptor tables, path matching, typed arguments, ranges, enum values, and error statuses.
-
-Acceptance:
-
-- Representative command suites execute complete-line tests.
-- Unknown, ambiguous, missing, extra, invalid-type, range, enum, and string-length failures are covered.
-
-### Phase T4 — Dispatch, access, output, and redaction tests
-
-Goal: validate handler invocation, access denial, output capture, and secret redaction.
-
-Acceptance:
-
-- Handlers are not called on parse/validation/access failure.
-- Secrets do not appear in echo/status/log helper output.
-- Output status lines are deterministic.
-
-### Phase T5 — Help/manpage golden tests
-
-Goal: validate generated help output from metadata.
-
-Acceptance:
-
-- Top-level, group, leaf, nested leaf, and command-list outputs have golden tests.
-- Missing help metadata for public commands is caught.
-
-### Phase T6 — Adapter compile and fake-I/O tests
-
-Goal: validate adapters without requiring hardware.
-
-Acceptance:
-
-- Arduino adapter compile check exists if toolchain available.
-- ESP-IDF adapter compile check exists if toolchain available.
-- Fake stream/UART tests exercise input buffering where practical.
-
-### Phase T7 — Hardware smoke validation
-
-Goal: run minimal real-hardware checks only after host behavior is stable.
-
-Acceptance:
-
-- Hardware target, board, toolchain, command log, and observed output are recorded.
-- Hardware checks are not used as a substitute for host core tests.
+1. Whether and when to add a CI workflow.
+2. Whether to collect line, branch, or mutation coverage and which tooling to use.
+3. Which compiler/toolchain checks will be required for future Arduino and ESP-IDF adapters.
+4. Whether memory, stack, flash, or map-size reporting is required for adapter builds.
+5. Whether fuzz or property-style tests should supplement deterministic tokenizer/parser tests.
+6. Whether to add tool-assisted golden-output update workflows.
 
 ## Final rule
 
@@ -790,7 +663,7 @@ A core change is not ready just because it compiles for firmware. A core change 
 
 The pure help core has byte-exact golden fixtures under `test/golden/`. CMake copies that directory to the test binary directory and provides the copied path to `sce_host_tests` with a private compile definition, so tests do not depend on the process working directory. Golden files are opened in binary mode and compared byte-for-byte with LF-only output; tests fail on CRLF, whitespace changes, missing final LF, reordered entries, or changed section headings.
 
-Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Current console built-ins reuse the pure generated-help renderer bytes. Future extended sections and subtopics must add or update golden fixtures when their output grammar is approved.
+Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Extended-help catalog tests cover schema-level structural validation, authoritative descriptor-pointer references, visibility independence, flat topic metadata, deterministic presentation examples, and focused capacity overrides without rendering. Current console built-ins reuse the pure generated-help renderer bytes. Future extended sections and subtopics must add or update golden fixtures when their output grammar is approved.
 
 Generated-help validation also separates help prose bounds from identifier bounds. Summaries, descriptions, argument help, and enum-choice help use `BSC_MAX_HELP_TEXT_LEN`; command path tokens, argument names, and enum-choice names remain governed by registry token/name bounds and are not truncated by small prose limits. Help validation rejects CR, LF, other ASCII control bytes, and DEL in every emitted metadata string, including identifiers and prose, while preserving printable non-ASCII bytes.
 

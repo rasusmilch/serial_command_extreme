@@ -73,6 +73,26 @@
 #define BSC_MAX_HELP_TEXT_LEN 512u
 #endif
 
+/** Maximum flat, non-executable extended-help topic records accepted in one catalog. */
+#ifndef BSC_MAX_HELP_TOPICS
+#define BSC_MAX_HELP_TOPICS 16u
+#endif
+
+/** Maximum note or warning text entries accepted in one extended-help text list. */
+#ifndef BSC_MAX_HELP_TEXT_ITEMS
+#define BSC_MAX_HELP_TEXT_ITEMS 4u
+#endif
+
+/** Maximum presentation examples accepted for one extended-help target or topic. */
+#ifndef BSC_MAX_HELP_EXAMPLES
+#define BSC_MAX_HELP_EXAMPLES 4u
+#endif
+
+/** Maximum related-command references accepted for one extended-help target or topic. */
+#ifndef BSC_MAX_HELP_RELATED
+#define BSC_MAX_HELP_RELATED 4u
+#endif
+
 /** Maximum bytes that bounded formatting helpers may emit per chunk if added later. */
 #ifndef BSC_OUTPUT_CHUNK_LEN
 #define BSC_OUTPUT_CHUNK_LEN 96u

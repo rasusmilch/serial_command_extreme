@@ -22,6 +22,7 @@ add_library(
     src/bsc_console.c
     src/bsc_dispatch.c
     src/bsc_help.c
+    src/bsc_help_catalog.c
     src/bsc_output.c
     src/bsc_status.c
     src/bsc_matcher.c

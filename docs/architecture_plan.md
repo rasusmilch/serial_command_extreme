@@ -26,7 +26,8 @@ Current implemented repository state:
 - Selected-command dispatch: access enforcement, typed parsing handoff, handler invocation, and handler-status normalization are implemented in `src/bsc_dispatch.*`.
 - Complete-line console orchestration: output-neutral orchestration is implemented in `src/bsc_console.*` using lightweight console configuration plus caller-owned execution workspace.
 - Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, complete-line console orchestration, optional built-in help/commands routing, and pure generated-help validation/rendering with byte-exact golden fixtures.
-- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, executable-command pages, and optional complete-line `help`/`commands` routing are implemented in `src/bsc_help.*` and `src/bsc_console.*`; extended sections remain future work.
+- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, executable-command pages, and optional complete-line `help`/`commands` routing are implemented in `src/bsc_help.*` and `src/bsc_console.*`; extended section rendering remains future work.
+- Extended-help catalog foundation: Task 11C-1 schema and visibility-independent structural validation are implemented in `src/bsc_help.h` and `src/bsc_help_catalog.c`; pure topic lookup/rendering and catalog-aware console grammar are not implemented.
 - Examples: not implemented.
 - Arduino adapter: not implemented.
 - ESP-IDF adapter: not implemented.
@@ -37,7 +38,7 @@ Current implemented repository state:
 
 ### `src/bsc_config.h`
 
-Defines conservative compile-time capacities and feature toggles. Current defaults include command count, enum choices, line length, token count, token length, path depth, argument count, compact-float enablement, compact-float fractional precision, and future output chunk size.
+Defines conservative compile-time capacities and feature toggles. Current defaults include command count, enum choices, line length, token count, token length, path depth, argument count, compact-float enablement, compact-float fractional precision, extended-help catalog topic/text/example/related limits, and future output chunk size.
 
 ### `src/bsc_status.h/.c`
 
@@ -79,6 +80,10 @@ The low-level tokenizer treats embedded NUL as ordinary byte data because it ope
 ### `src/bsc_registry.h/.c`
 
 Validates complete static descriptor tables before normal runtime use. It validates command/group shape, path metadata, duplicate paths, argument schemas, enum metadata, string/secret length ranges, float enablement, access levels, and flags. It performs no tokenization, matching, parsing, access callback invocation, dispatch, output, help rendering, or runtime registration.
+
+### `src/bsc_help_catalog.c`
+
+Implements Task 11C-1 extended-help catalog structural validation for public types declared in `src/bsc_help.h`. The module validates one authoritative borrowed command table through `bsc_registry_validate()`, then validates catalog pointer/count pairs, exact descriptor-pointer membership, duplicate target metadata, notes/warnings text lists, deterministic presentation examples, related descriptor references, and flat non-executable topics. It does not call visibility-dependent help validation, render output, perform topic lookup, add console grammar, invoke handlers/access callbacks, allocate heap, or retain pointers.
 
 ### `src/bsc_matcher.h/.c`
 
@@ -187,8 +192,12 @@ The implemented boundary is lightweight validated console configuration plus cal
 
 Implemented in `src/bsc_help.*`, with host and byte-exact LF golden coverage in `test/test_bsc_help.c` and `test/golden/`. The pure help core validates help-specific metadata separately from ordinary registry validation, first verifies the underlying registry schema, resolves exact descriptor paths for groups and executable commands without using the dispatch matcher, and renders top-level indexes, complete visible command lists, group pages, and executable-command pages through `bsc_output_t`. It never invokes command handlers or `command->access_fn`. Output uses descriptor-table order, generated synopsis text, generated valid-value text, LF line endings, no heap allocation, no public help workspace, no full-manpage buffer, and immediate propagation of the first output failure.
 
-Task 11B2 optional console built-ins are implemented through the separate `bsc_execute_line_with_builtins()` composition boundary. Extended metadata sections such as notes, warnings, examples, related commands, and subtopics remain future Task 11C work.
+Task 11B2 optional console built-ins are implemented through the separate `bsc_execute_line_with_builtins()` composition boundary. Task 11C-1 extended-help catalog schema and structural validation are implemented without changing existing pure help or console APIs. Extended section rendering, pure topic pages, and catalog-aware console grammar remain future Task 11C-2 and Task 11C-3 work.
 Implemented Task 11B2 policy is settled: `bsc_execute_line()` remains application-only, while `bsc_execute_line_with_builtins()` is the separate built-in-aware API. Built-in routing uses exact help paths after tokenization, per-invoked-built-in first-token collision rejection, existing console output only, existing `bsc_status_t` values, and separate static `bsc_help_options_t` visibility.
+
+### Task 11C-1 — Extended-help catalog schema and structural validation: implemented
+
+Implemented in `src/bsc_help_catalog.c`, with public borrowed metadata types and diagnostics in `src/bsc_help.h` and host coverage in `test/test_bsc_help_catalog.c`. The catalog wraps one authoritative command table, validates exact descriptor-pointer references by element equality, checks notes, warnings, presentation examples, related descriptors, and flat single-token topic records, and remains independent of help visibility. It emits no output, allocates no heap, retains no pointers, and never invokes handlers or access callbacks.
 
 
 ### Phase 4A — Host examples: future
@@ -296,12 +305,13 @@ Current host tests are built into `sce_host_tests` and registered with CTest. Th
 - `test_bsc_dispatch.c`;
 - `test_bsc_console.c`;
 - `test_bsc_console_builtins.c`;
-- `test_bsc_help.c`.
+- `test_bsc_help.c`;
+- `test_bsc_help_catalog.c`.
 
 CTest also registers `sce_forbidden_patterns` when Python3 is available. Core validation must continue to run without Arduino, ESP-IDF, UART hardware, or target boards.
 
-Generated-help work has byte-exact LF golden-output tests for the pure renderer. Current console built-ins reuse the pure renderer bytes; future extended sections must add or update golden fixtures when their exact output is approved.
+Generated-help work has byte-exact LF golden-output tests for the pure renderer. Current console built-ins reuse the pure renderer bytes; future extended sections must add or update golden fixtures when their exact output is approved. Task 11C-1 catalog validation is covered by focused host tests for pointer/count policy, descriptor-pointer identity, text/example/topic/related bounds, visibility independence, capacity overrides, and callback non-invocation.
 
 ## Current non-goals
 
-The current MVP implements pure generated help/manpages through explicit APIs and optional complete-line `help`/`commands` routing, but does not implement examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.
+The current MVP implements pure generated help/manpages through explicit APIs and optional complete-line `help`/`commands` routing, but does not implement extended section rendering, pure topic lookup/rendering, catalog-aware console grammar, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.

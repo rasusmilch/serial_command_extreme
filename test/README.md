@@ -39,6 +39,7 @@ test/
   test_bsc_dispatch.c
   test_bsc_console.c
   test_bsc_help.c
+  test_bsc_help_catalog.c
   golden/
 ```
 
@@ -109,3 +110,6 @@ The current CTest path includes a first-pass forbidden-pattern check for the cor
 - Hidden stateful menu behavior.
 
 See `docs/test_strategy.md` for the canonical test policy.
+
+
+`test_bsc_help_catalog.c` covers Task 11C-1 extended-help catalog structural validation, including zero-count pointer policy, exact descriptor-pointer membership, flat topics, deterministic example validation, related-command rules, visibility independence, and callback non-invocation.
