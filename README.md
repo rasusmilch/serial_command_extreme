@@ -200,8 +200,10 @@ bsc_arg_def_t
 All current positional arguments are required by position; there is no current `required`
 field and no optional-argument syntax. Generated help synopsis text is derived from the
 descriptor path and argument metadata rather than from a stored synopsis field. Notes,
-warnings, examples, related commands, and subtopics remain future help metadata, not
-current `bsc_command_t` members.
+warnings, presentation examples, related descriptor references, and flat topic metadata are
+represented outside `bsc_command_t` by the optional borrowed `bsc_help_catalog_t`; catalog
+structural validation is implemented, while extended rendering, pure topic lookup/rendering,
+and catalog-aware console grammar remain future work.
 
 Expected execution flow:
 

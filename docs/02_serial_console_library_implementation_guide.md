@@ -2,11 +2,9 @@
 
 ## 1. Naming used in this guide
 
-Working name: `BSC` — Bounded Serial Console.
+The repository and project are Serial Command Extreme. `BSC` is the established public C API prefix used by the platform-independent core.
 
-This name is not final. It is short enough for C symbols and distinguishes the core from project-specific consoles.
-
-Example prefixes:
+Current public symbols include:
 
 ```c
 bsc_console_t
@@ -14,124 +12,89 @@ bsc_command_t
 bsc_arg_def_t
 bsc_parsed_args_t
 bsc_execute_line()
+bsc_execute_line_with_builtins()
+bsc_help_catalog_t
 ```
 
-## 2. Recommended repository layout
+## 2. Current repository layout
+
+The current repository uses this host-first core layout:
 
 ```text
-bounded-serial-console/
+README.md
+CHANGELOG.md
+CMakeLists.txt
+docs/
+  00_serial_console_library_design_intent.md
+  01_serial_console_library_roadmap.md
+  02_serial_console_library_implementation_guide.md
+  03_serial_console_library_handoff.md        # historical handoff
+  architecture_plan.md
+  code_documentation_policy.md
+  prior_art_review.md                         # reference material
+  test_strategy.md
+src/
   README.md
-  LICENSE
-  docs/
-    design_intent.md
-    roadmap.md
-    implementation_guide.md
-    api_reference.md
-    test_plan.md
-    integration_arduino.md
-    integration_esp_idf.md
-  src/
-    bsc_config.h
-    bsc_types.h
-    bsc_tokenizer.h
-    bsc_tokenizer.c
-    bsc_registry.h
-    bsc_registry.c
-    bsc_parser.h
-    bsc_parser.c
-    bsc_help.h
-    bsc_help.c
-    bsc_console.h
-    bsc_console.c
-  adapters/
-    arduino/
-      BscArduinoConsole.h
-      BscArduinoConsole.cpp
-    esp_idf/
-      bsc_esp_idf_adapter.h
-      bsc_esp_idf_adapter.c
-  examples/
-    host_basic/
-    host_sensor_settings/
-    arduino_basic/
-    arduino_sensor_console/
-  test/
-    test_tokenizer.c
-    test_parser.c
-    test_args.c
-    test_help.c
-    test_dispatch.c
-    golden/
+  bsc_args.c / bsc_args.h
+  bsc_config.h                                # authoritative configuration defaults
+  bsc_console.c / bsc_console.h
+  bsc_dispatch.c / bsc_dispatch.h
+  bsc_help.c / bsc_help.h
+  bsc_help_catalog.c                          # Task 11C-1 structural catalog validation
+  bsc_matcher.c / bsc_matcher.h
+  bsc_output.c / bsc_output.h
+  bsc_registry.c / bsc_registry.h
+  bsc_status.h                                # authoritative append-only status enum
+  bsc_tokenizer.c / bsc_tokenizer.h
+  bsc_types.h
+test/
+  CMakeLists.txt
+  README.md
+  test_main.c
+  test_bsc_args.c
+  test_bsc_console.c
+  test_bsc_console_builtins.c
+  test_bsc_dispatch.c
+  test_bsc_help.c
+  test_bsc_help_catalog.c
+  test_bsc_matcher.c
+  test_bsc_registry.c
+  test_bsc_tokenizer.c
+  test_bsc_types.c
+  golden/
+tools/
+  check_forbidden_patterns.py
 ```
+
+Adapter directories and runnable example applications remain future work. Documentation examples may show API usage, but Phase 4 runnable applications are separate from the Task 11C core catalog work.
 
 ## 3. Configuration header
 
-`bsc_config.h` should provide conservative defaults and allow project overrides.
+`src/bsc_config.h` is authoritative for configuration defaults. Applications may override supported macros before including the public headers. Current configuration macros are:
 
-```c
-#ifndef BSC_CONFIG_H
-#define BSC_CONFIG_H
+- `BSC_MAX_COMMANDS` — maximum descriptor count accepted by registry validation.
+- `BSC_MAX_ENUM_CHOICES` — maximum choices per enum argument.
+- `BSC_MAX_LINE_LEN` — maximum complete input line length and Task 11C presentation-example line length.
+- `BSC_MAX_TOKENS` — maximum tokens produced by the tokenizer.
+- `BSC_MAX_TOKEN_LEN` — maximum token length, including descriptor path tokens and flat topic identifiers.
+- `BSC_MAX_PATH_TOKENS` — maximum tokens in one command descriptor path.
+- `BSC_MAX_ARGS` — maximum positional arguments per executable command and parsed values per dispatch.
+- `BSC_ENABLE_FLOAT` — enables or disables float argument parsing at compile time.
+- `BSC_MAX_FLOAT_FRACTION_DIGITS` — generated-help compact-float precision limit.
+- `BSC_MAX_HELP_TEXT_LEN` — maximum generated-help prose and extended-help prose length.
+- `BSC_MAX_HELP_TOPICS` — maximum flat topic records in an extended-help catalog; zero disables nonempty topic metadata.
+- `BSC_MAX_HELP_TEXT_ITEMS` — maximum notes or warnings per target or topic; zero disables nonempty lists.
+- `BSC_MAX_HELP_EXAMPLES` — maximum presentation examples per target or topic; zero disables nonempty example lists.
+- `BSC_MAX_HELP_RELATED` — maximum related descriptor references per target or topic; zero disables nonempty related lists.
+- `BSC_OUTPUT_CHUNK_LEN` — maximum internal output chunk used by generated-help rendering helpers.
 
-#ifndef BSC_MAX_COMMANDS
-#define BSC_MAX_COMMANDS 64u
-#endif
+Do not copy a partial configuration sketch into application code; include `src/bsc_config.h` through the public headers and override only the documented macros that the application needs to tune.
 
-#ifndef BSC_MAX_PATH_TOKENS
-#define BSC_MAX_PATH_TOKENS 6u
-#endif
+## 4. Status source
 
-#ifndef BSC_MAX_ARGS
-#define BSC_MAX_ARGS 8u
-#endif
+`src/bsc_status.h` is authoritative for the append-only public `bsc_status_t` enum. It includes success, input/tokenizer failures, matcher failures, registry/descriptor failures, parser failures such as `BSC_STATUS_ARGUMENT_TOO_SHORT`, access denial, application errors, output truncation, recursion/initialization failures, and `BSC_STATUS_INTERNAL_ERROR` for invalid API usage or internal consistency failures.
 
-#ifndef BSC_MAX_TOKENS
-#define BSC_MAX_TOKENS 24u
-#endif
-
-#ifndef BSC_MAX_LINE_LEN
-#define BSC_MAX_LINE_LEN 160u
-#endif
-
-#ifndef BSC_MAX_TOKEN_LEN
-#define BSC_MAX_TOKEN_LEN 64u
-#endif
-
-#ifndef BSC_MAX_ENUM_CHOICES
-#define BSC_MAX_ENUM_CHOICES 16u
-#endif
-
-#ifndef BSC_ENABLE_FLOAT
-#define BSC_ENABLE_FLOAT 1
-#endif
-
-#endif
-```
-
-## 4. Core status codes
-
-Use explicit status codes. Do not collapse parser failures into a generic false.
-
-```c
-typedef enum {
-  BSC_STATUS_OK = 0,
-  BSC_STATUS_NO_INPUT,
-  BSC_STATUS_LINE_TOO_LONG,
-  BSC_STATUS_TOKEN_TOO_LONG,
-  BSC_STATUS_TOO_MANY_TOKENS,
-  BSC_STATUS_UNTERMINATED_QUOTE,
-  BSC_STATUS_UNKNOWN_COMMAND,
-  BSC_STATUS_AMBIGUOUS_COMMAND,
-  BSC_STATUS_MISSING_ARGUMENT,
-  BSC_STATUS_EXTRA_ARGUMENT,
-  BSC_STATUS_INVALID_ARGUMENT_TYPE,
-  BSC_STATUS_ARGUMENT_OUT_OF_RANGE,
-  BSC_STATUS_ARGUMENT_TOO_LONG,
-  BSC_STATUS_INVALID_ENUM_VALUE,
-  BSC_STATUS_ACCESS_DENIED,
-  BSC_STATUS_APP_ERROR,
-  BSC_STATUS_INTERNAL_ERROR
-} bsc_status_t;
-```
+Do not collapse parser, matcher, output, registry, or API failures into a generic false. New public statuses must be append-only and must not change existing numeric meanings.
 
 ## 5. Output abstraction
 
@@ -195,37 +158,28 @@ All current positional arguments are required by position. Optional positional a
 
 ## 8. Parsed argument representation
 
-```c
-typedef enum {
-  BSC_PARSED_NONE = 0,
-  BSC_PARSED_INT,
-  BSC_PARSED_UINT,
-  BSC_PARSED_FLOAT,
-  BSC_PARSED_BOOL,
-  BSC_PARSED_ENUM,
-  BSC_PARSED_STRING,
-  BSC_PARSED_SECRET
-} bsc_parsed_type_t;
+The current parsed-argument representation is defined in `src/bsc_args.h`. Parsed values reuse `bsc_arg_type_t` as the runtime tag and store type-specific data in the `data` union:
 
-typedef struct {
-  bsc_parsed_type_t type;
+```c
+typedef struct bsc_arg_value {
+  bsc_arg_type_t type;
   union {
-    int32_t i;
-    uint32_t u;
-    float f;
-    bool b;
-    bsc_string_view_t s;
+    int32_t int_value;
+    uint32_t uint_value;
+    float float_value;
+    bool bool_value;
     int32_t enum_value;
-  } value;
+    bsc_string_view_t text_value;
+  } data;
 } bsc_arg_value_t;
 
-typedef struct {
+typedef struct bsc_parsed_args {
   bsc_arg_value_t values[BSC_MAX_ARGS];
-  uint8_t count;
+  size_t count;
 } bsc_parsed_args_t;
 ```
 
-String and secret arguments are borrowed views into the active token storage. In the complete-line console path they point into `bsc_console_workspace_t.line_buffer`. They are valid only during synchronous dispatch/handler execution; applications that need persistent values must copy them into bounded application-owned storage.
+String and secret arguments are borrowed views into the active token storage. In the complete-line console path they point into `bsc_console_workspace_t.line_buffer`. They are valid only during synchronous dispatch/handler execution; applications that need persistent values must copy them into bounded application-owned storage. Runtime secret values must not be emitted by generated help, diagnostics, examples, or result metadata.
 
 ## 9. Command descriptor
 
