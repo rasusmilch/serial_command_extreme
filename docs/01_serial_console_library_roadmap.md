@@ -135,15 +135,21 @@ Implemented capabilities:
 - output-neutral behavior except for explicitly requested help renderer output through the configured console output;
 - host coverage for compatibility, routing, collisions, visibility, output failures, cleanup, recursion, and secret non-disclosure.
 
-### Task 11C — Extended metadata and subtopics: future
+### Task 11C — Extended metadata and subtopics: in progress
 
-Future work still includes notes, warnings, examples, related-command metadata, subtopics, and example applications demonstrating the full help surface. Sensitive arguments and examples must continue to avoid runtime secret disclosure.
+Task 11C is split into approved checkpoints so the catalog schema, rendering behavior, and console grammar remain separately reviewable:
 
-Acceptance for completed pure help work:
+- Task 11C-1 catalog schema and structural validation: implemented on this branch. The optional borrowed catalog stores notes, warnings, presentation examples, related descriptor references, and flat non-executable topic metadata outside `bsc_command_t`; structural validation is visibility-independent and invokes no handlers or access callbacks.
+- Task 11C-2 extended rendering and pure topic APIs: future. This task will add byte-exact extended sections, pure topic lookup, and pure topic pages after output bytes are approved.
+- Task 11C-3 catalog-aware console integration: future after explicit grammar approval. Existing `bsc_execute_line()` and `bsc_execute_line_with_builtins()` behavior remains unchanged until then.
 
-- Help output is stable and byte-exact in golden files.
-- Help output does not require heap allocation.
-- Ordinary execution and console initialization do not require help prose.
+Phase 4 runnable example applications remain separate from Task 11C. Sensitive arguments and static examples must continue to avoid runtime secret disclosure.
+
+Acceptance for completed Task 11C-1 foundation:
+
+- Existing help output stays stable and byte-exact in golden files.
+- Catalog validation does not require heap allocation, rendering storage, or console configuration changes.
+- Ordinary execution and console initialization do not require a catalog or help prose.
 
 ## Phase 4 — Example applications
 
@@ -289,16 +295,3 @@ Every phase that changes code must include:
 - Tests for too-long line/token/argument.
 - Tests confirming no sensitive value leaks in redacted output.
 - Static inspection for heap allocation and forbidden types.
-
-## Suggested first Codex task in the new chat
-
-Use this task only after the new repo exists and the same command-library archive has been uploaded.
-
-```text
-Read the serial console library design intent, roadmap, and implementation guide. Inspect the uploaded command-library archive and the PT100 Mesh console reference. Produce a read-only implementation plan for a standalone bounded serial console library. Do not write code yet. Identify file layout, core data structures, parser/tokenizer algorithm, command descriptor schema, typed argument validation, help/manpage rendering, test strategy, examples, and open decisions requiring user approval.
-```
-
-
-## Task 11C extended help checkpoints
-
-Task 11C-1 establishes only the optional borrowed extended-help catalog schema, structural diagnostics, capacity bounds, and host validation tests. Task 11C-2 is reserved for extended section rendering and pure topic pages. Task 11C-3 is reserved for any catalog-aware console integration after an explicit grammar checkpoint. Phase 4 runnable examples remain separate.

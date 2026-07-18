@@ -138,7 +138,7 @@ static int test_catalog_diagnostic_clear(const char *test_name) {
 static int test_catalog_api_and_registry_failures(const char *test_name) {
   bsc_help_catalog_t catalog = valid_empty_catalog();
   bsc_help_catalog_validation_error_t error;
-  CAT_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_catalog_validate(NULL, &error));
+  CAT_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_help_catalog_validate(NULL, &error));
   CAT_ASSERT_TRUE(error.reason == BSC_HELP_CATALOG_ERROR_NULL_CATALOG);
   catalog.commands = NULL;
   CAT_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_catalog_validate(&catalog, &error));
@@ -188,6 +188,23 @@ static int test_catalog_pointer_count_failures(const char *test_name) {
   CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
                                         BSC_HELP_CATALOG_ERROR_TEXT_LIST_POINTER_COUNT) == 0);
   catalog = valid_empty_catalog();
+  target.notes.count = 0u;
+  target.example_count = 1u;
+  target.examples = NULL;
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+  CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
+                                        BSC_HELP_CATALOG_ERROR_EXAMPLES_POINTER_COUNT) == 0);
+  catalog = valid_empty_catalog();
+  target.example_count = 0u;
+  target.related_count = 1u;
+  target.related = NULL;
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+  CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
+                                        BSC_HELP_CATALOG_ERROR_RELATED_POINTER_COUNT) == 0);
+  catalog = valid_empty_catalog();
+  target.related_count = 0u;
   catalog.targets = &target;
   catalog.target_count = catalog.command_count + 1u;
   CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
@@ -287,10 +304,12 @@ static int test_catalog_examples(const char *test_name) {
   char line_exact[BSC_MAX_LINE_LEN + 1u];
   char line_over[BSC_MAX_LINE_LEN + 2u];
   char desc_exact[BSC_MAX_HELP_TEXT_LEN + 1u];
+  char desc_over[BSC_MAX_HELP_TEXT_LEN + 2u];
   size_t index;
   fill_string(line_exact, (size_t)BSC_MAX_LINE_LEN);
   fill_string(line_over, (size_t)BSC_MAX_LINE_LEN + 1u);
   fill_string(desc_exact, (size_t)BSC_MAX_HELP_TEXT_LEN);
+  fill_string(desc_over, (size_t)BSC_MAX_HELP_TEXT_LEN + 1u);
   for (index = 0u; index < (size_t)BSC_MAX_HELP_EXAMPLES; ++index) {
     examples[index].line = "secret set <secret>";
     examples[index].description = "Use <new-password> or ******** placeholders; token and password words are allowed.";
@@ -325,6 +344,12 @@ static int test_catalog_examples(const char *test_name) {
   examples[0].description = "";
   CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
                                         BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_DESCRIPTION) == 0);
+  examples[0].description = desc_over;
+  CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
+                                        BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_DESCRIPTION) == 0);
+  examples[0].description = "bad";
+  CAT_ASSERT_TRUE(expect_catalog_reason(test_name, &catalog, BSC_STATUS_INVALID_DESCRIPTOR,
+                                        BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_DESCRIPTION) == 0);
   return 0;
 }
 
@@ -335,12 +360,14 @@ static int test_catalog_topics(const char *test_name) {
   char id_exact[BSC_MAX_TOKEN_LEN + 1u];
   char id_over[BSC_MAX_TOKEN_LEN + 2u];
   char summary_exact[BSC_MAX_HELP_TEXT_LEN + 1u];
+  char summary_over[BSC_MAX_HELP_TEXT_LEN + 2u];
   size_t index;
   fill_string(id_exact, (size_t)BSC_MAX_TOKEN_LEN);
   fill_string(id_over, (size_t)BSC_MAX_TOKEN_LEN + 1u);
   fill_string(summary_exact, (size_t)BSC_MAX_HELP_TEXT_LEN);
+  fill_string(summary_over, (size_t)BSC_MAX_HELP_TEXT_LEN + 1u);
   static const char *const topic_ids[] = {"topic0", "topic1", "topic2", "topic3", "topic4", "topic5", "topic6", "topic7",
-                                          "topic8", "topic9", "topic10", "topic11", "topic12", "topic13", "topic14", "topic15", "topic16"};
+                                          "topic8", "topic9", "topic10", "topic11", "topic12", "topic13", "topic14", "topic15", "topic16", "topic17", "topic18", "topic19", "topic20", "topic21", "topic22", "topic23", "topic24", "topic25", "topic26", "topic27", "topic28", "topic29", "topic30", "topic31", "topic32"};
   for (index = 0u; index <= (size_t)BSC_MAX_HELP_TOPICS; ++index) {
     topics[index].parent = &catalog_commands[index % (sizeof(catalog_commands) / sizeof(catalog_commands[0]))];
     topics[index].id = index == 0u ? id_exact : topic_ids[index];

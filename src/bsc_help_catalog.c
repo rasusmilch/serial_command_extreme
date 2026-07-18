@@ -308,7 +308,10 @@ bsc_status_t bsc_help_catalog_validate(const bsc_help_catalog_t *catalog,
   bsc_help_catalog_validation_error_clear(error);
   bsc_registry_validation_error_clear(&registry_error);
   if (catalog == NULL) {
-    return bsc_help_catalog_fail(error, BSC_HELP_CATALOG_ERROR_NULL_CATALOG, 0u, 0u, 0u, 0u, 0u, 0u, 0u);
+    if (error != NULL) {
+      error->reason = BSC_HELP_CATALOG_ERROR_NULL_CATALOG;
+    }
+    return BSC_STATUS_INTERNAL_ERROR;
   }
   status = bsc_registry_validate(catalog->commands, catalog->command_count, &registry_error);
   if (status != BSC_STATUS_OK) {

@@ -98,6 +98,13 @@ typedef struct bsc_help_lookup_result {
 } bsc_help_lookup_result_t;
 
 
+/**
+ * @brief Borrowed ordered list of extended-help prose items.
+ *
+ * The list owns no storage. When count is zero, items may be NULL or non-NULL and is ignored. When count is nonzero,
+ * items must point at count borrowed NUL-terminated strings, each bounded by BSC_MAX_HELP_TEXT_LEN and free of CR, LF,
+ * ASCII control bytes, and DEL. Used for distinct NOTES and WARNINGS sections by future renderers.
+ */
 typedef struct bsc_help_text_list {
   /** Borrowed array of borrowed help text items. Ignored when count is zero. */
   const char *const *items;
@@ -105,6 +112,13 @@ typedef struct bsc_help_text_list {
   size_t count;
 } bsc_help_text_list_t;
 
+/**
+ * @brief Borrowed presentation-only example metadata for future help rendering.
+ *
+ * The required line and optional description are static/caller-owned text. Catalog validation bounds and checks them for
+ * presentation safety but never tokenizes, parses, matches, executes, or scans them for credential-like content. Secret
+ * examples must use application-authored placeholders such as <new-password>, ********, or <secret>.
+ */
 typedef struct bsc_help_example {
   /** Required borrowed presentation command line. It is never parsed or executed by help validation. */
   const char *line;
@@ -112,11 +126,24 @@ typedef struct bsc_help_example {
   const char *description;
 } bsc_help_example_t;
 
+/**
+ * @brief Borrowed related-command reference by exact descriptor pointer.
+ *
+ * The target pointer must equal one element in the owning catalog's authoritative command array. Related metadata never
+ * becomes an alias, matcher input, parser input, dispatch edge, or execution edge.
+ */
 typedef struct bsc_help_related {
   /** Required borrowed descriptor pointer that must equal one element in the owning catalog command table. */
   const bsc_command_t *target;
 } bsc_help_related_t;
 
+/**
+ * @brief Borrowed extended metadata attached to one command or group descriptor.
+ *
+ * The target pointer must equal one element in the owning catalog command table. Notes, warnings, examples, and related
+ * references are optional pointer/count arrays; zero counts ignore their pointers. Target metadata is structural and does
+ * not affect tokenizer, matcher, argument parsing, access, dispatch, or existing help rendering in Task 11C-1.
+ */
 typedef struct bsc_help_target {
   /** Required borrowed descriptor pointer for the command or group receiving extended metadata. */
   const bsc_command_t *target;
@@ -134,6 +161,13 @@ typedef struct bsc_help_target {
   size_t related_count;
 } bsc_help_target_t;
 
+/**
+ * @brief Borrowed flat non-executable topic metadata under one command or group descriptor.
+ *
+ * Topics are single-token records in Task 11C-1. They inherit future rendering visibility from their parent descriptor,
+ * have no access levels or visibility flags, cannot contain child topics, and cannot reference other topic records. The
+ * optional description is validated when present and must be non-empty. Topic metadata never affects execution.
+ */
 typedef struct bsc_help_topic {
   /** Required borrowed parent descriptor pointer; topics inherit this descriptor's future rendering visibility. */
   const bsc_command_t *parent;
@@ -157,6 +191,14 @@ typedef struct bsc_help_topic {
   size_t related_count;
 } bsc_help_topic_t;
 
+/**
+ * @brief Borrowed authoritative extended-help catalog.
+ *
+ * The commands pointer and command_count are the authoritative registry identity for every target, topic parent, and
+ * related-command pointer. The catalog owns no storage, retains no pointers after validation, and can wrap a valid
+ * command table with zero target/topic records. Target count is bounded by command_count; topic count is bounded by
+ * BSC_MAX_HELP_TOPICS.
+ */
 typedef struct bsc_help_catalog {
   /** Authoritative borrowed command table used by all catalog structural validation. */
   const bsc_command_t *commands;
@@ -172,46 +214,96 @@ typedef struct bsc_help_catalog {
   size_t topic_count;
 } bsc_help_catalog_t;
 
+/**
+ * @brief Catalog structural validation failure reasons.
+ *
+ * Reasons describe borrowed catalog metadata only and are independent of help visibility. Diagnostics identify failing
+ * indexes without copying metadata text, runtime line text, token views, parsed values, or secret values.
+ */
 typedef enum bsc_help_catalog_error_reason {
+  /** No catalog validation error is present. */
   BSC_HELP_CATALOG_ERROR_NONE = 0,
+  /** The required catalog API pointer was NULL. */
   BSC_HELP_CATALOG_ERROR_NULL_CATALOG,
+  /** Ordinary registry validation failed for catalog->commands; inspect registry_error. */
   BSC_HELP_CATALOG_ERROR_REGISTRY_INVALID,
+  /** target_count was nonzero while targets was NULL. */
   BSC_HELP_CATALOG_ERROR_TARGETS_POINTER_COUNT,
+  /** topic_count was nonzero while topics was NULL. */
   BSC_HELP_CATALOG_ERROR_TOPICS_POINTER_COUNT,
+  /** target_count exceeded catalog->command_count. */
   BSC_HELP_CATALOG_ERROR_TOO_MANY_TARGETS,
+  /** topic_count exceeded BSC_MAX_HELP_TOPICS. */
   BSC_HELP_CATALOG_ERROR_TOO_MANY_TOPICS,
+  /** A target or topic parent descriptor pointer was not an exact catalog command element. */
   BSC_HELP_CATALOG_ERROR_INVALID_DESCRIPTOR_REFERENCE,
+  /** Two target metadata records referenced the same descriptor. */
   BSC_HELP_CATALOG_ERROR_DUPLICATE_TARGET,
+  /** A notes or warnings list had count nonzero with a NULL items pointer. */
   BSC_HELP_CATALOG_ERROR_TEXT_LIST_POINTER_COUNT,
+  /** A notes or warnings list count exceeded BSC_MAX_HELP_TEXT_ITEMS. */
   BSC_HELP_CATALOG_ERROR_TOO_MANY_TEXT_ITEMS,
+  /** An active notes or warnings text item pointer was NULL. */
   BSC_HELP_CATALOG_ERROR_MISSING_TEXT,
+  /** An active notes or warnings text item was empty. */
   BSC_HELP_CATALOG_ERROR_EMPTY_TEXT,
+  /** An active notes or warnings text item exceeded BSC_MAX_HELP_TEXT_LEN. */
   BSC_HELP_CATALOG_ERROR_TEXT_TOO_LONG,
+  /** An active notes or warnings text item contained CR, LF, another ASCII control byte, or DEL. */
   BSC_HELP_CATALOG_ERROR_INVALID_TEXT_CONTROL_BYTE,
+  /** example_count was nonzero while examples was NULL. */
   BSC_HELP_CATALOG_ERROR_EXAMPLES_POINTER_COUNT,
+  /** example_count exceeded BSC_MAX_HELP_EXAMPLES. */
   BSC_HELP_CATALOG_ERROR_TOO_MANY_EXAMPLES,
+  /** An active example line pointer was NULL. */
   BSC_HELP_CATALOG_ERROR_MISSING_EXAMPLE_LINE,
+  /** An active example line was empty. */
   BSC_HELP_CATALOG_ERROR_EMPTY_EXAMPLE_LINE,
+  /** An active example line exceeded BSC_MAX_LINE_LEN. */
   BSC_HELP_CATALOG_ERROR_EXAMPLE_LINE_TOO_LONG,
+  /** An active example line contained CR, LF, another ASCII control byte, or DEL. */
   BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_LINE_CONTROL_BYTE,
+  /** A non-NULL optional example description was empty, overlength, or contained a control byte. */
   BSC_HELP_CATALOG_ERROR_INVALID_EXAMPLE_DESCRIPTION,
+  /** related_count was nonzero while related was NULL. */
   BSC_HELP_CATALOG_ERROR_RELATED_POINTER_COUNT,
+  /** related_count exceeded BSC_MAX_HELP_RELATED. */
   BSC_HELP_CATALOG_ERROR_TOO_MANY_RELATED,
+  /** A related descriptor pointer was not an exact catalog command element. */
   BSC_HELP_CATALOG_ERROR_INVALID_RELATED_DESCRIPTOR,
+  /** Two related entries in one list referenced the same descriptor. */
   BSC_HELP_CATALOG_ERROR_DUPLICATE_RELATED_DESCRIPTOR,
+  /** Target metadata related to its own target descriptor. */
   BSC_HELP_CATALOG_ERROR_TARGET_RELATED_SELF_REFERENCE,
+  /** A topic id pointer was NULL. */
   BSC_HELP_CATALOG_ERROR_MISSING_TOPIC_ID,
+  /** A topic id was empty. */
   BSC_HELP_CATALOG_ERROR_EMPTY_TOPIC_ID,
+  /** A topic id exceeded BSC_MAX_TOKEN_LEN. */
   BSC_HELP_CATALOG_ERROR_TOPIC_ID_TOO_LONG,
+  /** A topic id contained CR, LF, another ASCII control byte, or DEL. */
   BSC_HELP_CATALOG_ERROR_INVALID_TOPIC_ID_CONTROL_BYTE,
+  /** A topic summary pointer was NULL. */
   BSC_HELP_CATALOG_ERROR_MISSING_TOPIC_SUMMARY,
+  /** A topic summary was empty. */
   BSC_HELP_CATALOG_ERROR_EMPTY_TOPIC_SUMMARY,
+  /** A topic summary exceeded BSC_MAX_HELP_TEXT_LEN. */
   BSC_HELP_CATALOG_ERROR_TOPIC_SUMMARY_TOO_LONG,
+  /** A topic summary contained CR, LF, another ASCII control byte, or DEL. */
   BSC_HELP_CATALOG_ERROR_INVALID_TOPIC_SUMMARY_CONTROL_BYTE,
+  /** A non-NULL optional topic description was empty, overlength, or contained a control byte. */
   BSC_HELP_CATALOG_ERROR_INVALID_TOPIC_DESCRIPTION,
+  /** Two topics under the same parent had the same id under ASCII case folding. */
   BSC_HELP_CATALOG_ERROR_DUPLICATE_TOPIC
 } bsc_help_catalog_error_reason_t;
 
+/**
+ * @brief Caller-owned catalog structural validation diagnostic.
+ *
+ * The diagnostic is cleared on entry/success and filled with scalar indexes for the first structural failure. Index fields
+ * are zero when not applicable. registry_error is populated only for BSC_HELP_CATALOG_ERROR_REGISTRY_INVALID. The
+ * diagnostic never stores borrowed text, runtime input, token views, parsed values, or secret values.
+ */
 typedef struct bsc_help_catalog_validation_error {
   /** Catalog structural failure reason, or NONE after clear/success. */
   bsc_help_catalog_error_reason_t reason;
@@ -264,6 +356,7 @@ void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t
  * @param catalog Required borrowed catalog whose commands/command_count are the authoritative registry.
  * @param error Optional caller-owned diagnostic cleared on entry and filled on failure.
  * @retval BSC_STATUS_OK The catalog is structurally valid.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required API input was invalid.
  * @retval BSC_STATUS_INVALID_DESCRIPTOR Registry or catalog metadata validation failed.
  *
  * The validator calls #bsc_registry_validate on the authoritative command table and never calls visibility-dependent
