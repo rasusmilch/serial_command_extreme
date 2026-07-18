@@ -168,14 +168,21 @@ These should be implemented as validators or application-defined custom types af
 
 Help is generated from command metadata.
 
-Required commands:
+Implemented console help commands remain:
 
 ```text
 help
 help <path>
-help <path> <subtopic>
 commands
 ```
+
+Future Task 11C-3 console grammar, not current built-in behavior, owns:
+
+```text
+help <path> <topic>
+```
+
+The pure help API already supports extended metadata without exposing that console grammar: `bsc_help_find_topic()` resolves flat catalog topics, `bsc_help_render_catalog_path()` renders catalog-aware command/group pages, and `bsc_help_render_topic()` renders pure topic pages. Visibility filtering is presentation policy and must not invoke execution access callbacks.
 
 `help` should list top-level commands/groups with one-line summaries.
 
@@ -183,9 +190,9 @@ commands
 
 `help settings wifi` should show Wi-Fi group description and children.
 
-`help settings wifi set ssid` should show a full manpage with name, synopsis, description, arguments, accepted values/bounds, examples, warnings, and related commands.
+`help settings wifi set ssid` should show a full manpage with name, synopsis, description, arguments, accepted values/bounds, notes, warnings, static examples, topics, and related commands.
 
-Manpage sections should be predictable:
+Implemented command-page sections are predictable:
 
 ```text
 NAME
@@ -194,9 +201,37 @@ DESCRIPTION
 ARGUMENTS
 VALID VALUES
 NOTES
+WARNINGS
+EXAMPLES
+TOPICS
+RELATED
+```
+
+Implemented group-page sections are predictable:
+
+```text
+NAME
+DESCRIPTION
+COMMANDS
+NOTES
+WARNINGS
+EXAMPLES
+TOPICS
+RELATED
+```
+
+Implemented topic-page sections are predictable:
+
+```text
+NAME
+DESCRIPTION
+NOTES
+WARNINGS
 EXAMPLES
 RELATED
 ```
+
+Topic pages omit SYNOPSIS, and static examples have no shell prompt marker.
 
 Every executable command must have enough metadata to produce a useful manpage. The library should fail validation or return an error if a public command lacks a required help field.
 
@@ -357,8 +392,8 @@ From SerialUI:
 
 Build the reusable library as its own repository, not inside AS7331. Continue with a host-tested C core before adapters. Use AS7331 as the first integration pilot only after the standalone parser/registry/help system works.
 
-The current core implements static descriptor validation, nested path matching, typed positional arguments, selected-command dispatch, output-neutral complete-line console orchestration with caller-owned workspace storage, the pure generated-help layer for metadata validation, exact descriptor-path lookup, deterministic help/manpage rendering, and optional complete-line `help`/`commands` routing through `bsc_execute_line_with_builtins()`. Existing `bsc_execute_line()` remains application-only. Extended Task 11C help metadata and subtopics, completion, history, authentication, persistent settings, interactive prompts, examples, and adapters remain future staged work until each item has an approved bounded design and host-test plan.
+The current core implements static descriptor validation, nested path matching, typed positional arguments, selected-command dispatch, output-neutral complete-line console orchestration with caller-owned workspace storage, the pure generated-help layer for metadata validation, exact descriptor-path lookup, deterministic help/manpage rendering, and optional complete-line `help`/`commands` routing through `bsc_execute_line_with_builtins()`. Existing `bsc_execute_line()` remains application-only. Catalog-aware extended help rendering and pure topic pages are implemented; catalog-aware console topic grammar, completion, history, authentication, persistent settings, interactive prompts, examples, and adapters remain future staged work until each item has an approved bounded design and host-test plan.
 
 ## Generated help staging
 
-The implemented help foundation includes a pure platform-independent renderer: it validates help prose and emitted identifiers separately from ordinary registry validation, performs exact metadata-path lookup, and renders initial NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, VALID VALUES, and COMMANDS sections through `bsc_output_t`. The optional complete-line `help`, exact-path `help <path>`, and `commands` built-ins compose that renderer through `bsc_execute_line_with_builtins()`. Extended metadata sections, subtopics, examples, and adapters remain future staged work rather than abandoned product intent.
+The implemented help foundation includes a pure platform-independent renderer: it validates help prose and emitted identifiers separately from ordinary registry validation, performs exact metadata-path lookup, and renders NAME, SYNOPSIS, DESCRIPTION, ARGUMENTS, VALID VALUES, COMMANDS, NOTES, WARNINGS, EXAMPLES, TOPICS, and RELATED sections through `bsc_output_t` depending on the selected ordinary or catalog-aware API. Topic pages render NAME, DESCRIPTION, NOTES, WARNINGS, EXAMPLES, and RELATED, omit SYNOPSIS, and use static examples without prompt markers. The optional complete-line `help`, exact-path `help <path>`, and `commands` built-ins compose the ordinary renderer through `bsc_execute_line_with_builtins()`; catalog-aware console topic grammar remains future staged work rather than abandoned product intent.

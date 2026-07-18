@@ -67,7 +67,9 @@ typedef enum bsc_status {
   /** The core detected an invalid internal state or invalid API use. */
   BSC_STATUS_INTERNAL_ERROR,
   /** A string argument was shorter than its accepted length. */
-  BSC_STATUS_ARGUMENT_TOO_SHORT
+  BSC_STATUS_ARGUMENT_TOO_SHORT,
+  /** A visible help parent was found, but no flat help topic matched. */
+  BSC_STATUS_UNKNOWN_TOPIC
 } bsc_status_t;
 
 /**

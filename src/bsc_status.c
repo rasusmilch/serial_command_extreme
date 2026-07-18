@@ -53,6 +53,8 @@ const char *bsc_status_name(bsc_status_t status) {
     return "BSC_STATUS_INTERNAL_ERROR";
   case BSC_STATUS_ARGUMENT_TOO_SHORT:
     return "BSC_STATUS_ARGUMENT_TOO_SHORT";
+  case BSC_STATUS_UNKNOWN_TOPIC:
+    return "BSC_STATUS_UNKNOWN_TOPIC";
   default:
     return "BSC_STATUS_UNKNOWN";
   }
