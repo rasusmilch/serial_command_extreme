@@ -499,6 +499,33 @@ static size_t ext_count_occurrences(const char *haystack, size_t haystack_len, c
   return count;
 }
 
+
+/** @brief Count item lines in one named section of captured output. */
+static size_t ext_count_section_lines(const ext_capture_t *capture, const char *heading, const char *line_prefix) {
+  size_t heading_len = strlen(heading);
+  size_t prefix_len = strlen(line_prefix);
+  size_t start = ext_find_offset(capture->buffer, capture->used, heading);
+  size_t end;
+  size_t count = 0u;
+  size_t offset;
+  if (start == (size_t)-1) return 0u;
+  start += heading_len;
+  end = start;
+  while (end + 1u < capture->used) {
+    if (capture->buffer[end] == '\n' && capture->buffer[end + 1u] == '\n') break;
+    end += 1u;
+  }
+  offset = start;
+  while (offset < end) {
+    if ((offset == start || capture->buffer[offset - 1u] == '\n') &&
+        offset + prefix_len <= end && memcmp(&capture->buffer[offset], line_prefix, prefix_len) == 0) {
+      count += 1u;
+    }
+    offset += 1u;
+  }
+  return count;
+}
+
 /** @brief Assert one byte sequence appears before another in captured output. */
 static int ext_assert_order(const char *test_name, const ext_capture_t *capture, const char *first, const char *second) {
   size_t first_offset = ext_find_offset(capture->buffer, capture->used, first);
@@ -924,6 +951,7 @@ static int test_extended_render_configured_maximum_counts(const char *test_name)
   };
 #endif
   bsc_help_catalog_t catalog = extended_valid_catalog();
+  bsc_help_options_t options;
   bsc_help_target_t target = {&extended_commands[0], {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u};
 #if BSC_MAX_HELP_TEXT_ITEMS > 0u
   target.notes.items = max_notes;
@@ -939,6 +967,9 @@ static int test_extended_render_configured_maximum_counts(const char *test_name)
   target.related = max_related;
   target.related_count = BSC_MAX_HELP_RELATED;
 #endif
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  options.include_locked = true;
   catalog.targets = &target;
   catalog.target_count = 1u;
 #if BSC_MAX_HELP_TOPICS > 0u && BSC_MAX_HELP_TOPICS <= 16u
@@ -948,19 +979,57 @@ static int test_extended_render_configured_maximum_counts(const char *test_name)
   catalog.topics = NULL;
   catalog.topic_count = 0u;
 #endif
-  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_status, 1u, NULL, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_status, 1u, &options, &capture));
 #if BSC_MAX_HELP_TEXT_ITEMS > 0u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "NOTES\n") == 0);
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "WARNINGS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note0\n") == 0);
+  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "NOTES\n", "  - ") == BSC_MAX_HELP_TEXT_ITEMS);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning0\n") == 0);
+  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "WARNINGS\n", "  - ") == BSC_MAX_HELP_TEXT_ITEMS);
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 1u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note1\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning1\n") == 0);
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 2u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note2\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning2\n") == 0);
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 3u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note3\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning3\n") == 0);
 #endif
 #if BSC_MAX_HELP_EXAMPLES > 0u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "EXAMPLES\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  status\n") == 0);
+  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "EXAMPLES\n", "  status") == BSC_MAX_HELP_EXAMPLES);
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 1u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "    example1\n") == 0);
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 3u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "    example3\n") == 0);
 #endif
 #if BSC_MAX_HELP_RELATED > 0u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "RELATED\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  wifi - WiFi\n") == 0);
+  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "RELATED\n", "  ") == BSC_MAX_HELP_RELATED);
+#endif
+#if BSC_MAX_HELP_RELATED > 1u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  advanced - Advanced\n") == 0);
+#endif
+#if BSC_MAX_HELP_RELATED > 2u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  factory - Factory\n") == 0);
+#endif
+#if BSC_MAX_HELP_RELATED > 3u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  locked - Locked\n") == 0);
 #endif
 #if BSC_MAX_HELP_TOPICS > 0u && BSC_MAX_HELP_TOPICS <= 16u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "TOPICS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  t0 - Topic 0\n") == 0);
+  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "TOPICS\n", "  t") == BSC_MAX_HELP_TOPICS);
+#endif
+#if BSC_MAX_HELP_TOPICS > 1u && BSC_MAX_HELP_TOPICS <= 16u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  t1 - Topic 1\n") == 0);
+#endif
+#if BSC_MAX_HELP_TOPICS > 15u && BSC_MAX_HELP_TOPICS <= 16u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  t15 - Topic 15\n") == 0);
 #endif
   return 0;
 }

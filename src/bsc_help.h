@@ -103,7 +103,7 @@ typedef struct bsc_help_lookup_result {
  *
  * The list owns no storage. When count is zero, items may be NULL or non-NULL and is ignored. When count is nonzero,
  * items must point at count borrowed NUL-terminated strings, each bounded by BSC_MAX_HELP_TEXT_LEN and free of CR, LF,
- * ASCII control bytes, and DEL. Used for distinct NOTES and WARNINGS sections by future renderers.
+ * ASCII control bytes, and DEL. Catalog-aware command/group and topic renderers emit these lists as distinct NOTES and WARNINGS sections.
  */
 typedef struct bsc_help_text_list {
   /** Borrowed array of borrowed help text items. Ignored when count is zero. */
@@ -113,10 +113,10 @@ typedef struct bsc_help_text_list {
 } bsc_help_text_list_t;
 
 /**
- * @brief Borrowed presentation-only example metadata for future help rendering.
+ * @brief Borrowed presentation-only example metadata for catalog-aware help rendering.
  *
  * The required line and optional description are static/caller-owned text. Catalog validation bounds and checks them for
- * presentation safety but never tokenizes, parses, matches, executes, or scans them for credential-like content. Secret
+ * presentation safety; renderers emit it as static text but never tokenize, parse, match, execute, or scan it for credential-like content. Secret
  * examples must use application-authored placeholders such as <new-password>, ********, or <secret>.
  */
 typedef struct bsc_help_example {
@@ -141,15 +141,15 @@ typedef struct bsc_help_related {
  * @brief Borrowed extended metadata attached to one command or group descriptor.
  *
  * The target pointer must equal one element in the owning catalog command table. Notes, warnings, examples, and related
- * references are optional pointer/count arrays; zero counts ignore their pointers. Target metadata is structural and does
- * not affect tokenizer, matcher, argument parsing, access, dispatch, or existing help rendering in Task 11C-1.
+ * references are optional pointer/count arrays; zero counts ignore their pointers. Target metadata is structural and
+ * extends ordinary command/group help pages through catalog-aware renderers without affecting tokenizer, matcher, argument parsing, access, dispatch, handlers, execution access callbacks, or ordinary help rendering.
  */
 typedef struct bsc_help_target {
   /** Required borrowed descriptor pointer for the command or group receiving extended metadata. */
   const bsc_command_t *target;
-  /** Optional borrowed note prose entries rendered in metadata order by future renderers. */
+  /** Optional borrowed note prose entries rendered in metadata order by catalog-aware renderers. */
   bsc_help_text_list_t notes;
-  /** Optional borrowed warning prose entries rendered in metadata order by future renderers. */
+  /** Optional borrowed warning prose entries rendered in metadata order by catalog-aware renderers. */
   bsc_help_text_list_t warnings;
   /** Optional borrowed presentation examples. Ignored when example_count is zero. */
   const bsc_help_example_t *examples;
@@ -164,12 +164,13 @@ typedef struct bsc_help_target {
 /**
  * @brief Borrowed flat non-executable topic metadata under one command or group descriptor.
  *
- * Topics are single-token records in Task 11C-1. They inherit future rendering visibility from their parent descriptor,
- * have no access levels or visibility flags, cannot contain child topics, and cannot reference other topic records. The
- * optional description is validated when present and must be non-empty. Topic metadata never affects execution.
+ * Topics are single-token Task 11C records. They inherit their parent descriptor's current static help visibility,
+ * can be rendered through #bsc_help_render_topic, have no access levels or visibility flags, cannot contain child topics,
+ * and cannot reference other topic records. The optional description is validated when present and must be non-empty. Topic
+ * metadata never affects execution, and console topic grammar remains deferred to Task 11C-3.
  */
 typedef struct bsc_help_topic {
-  /** Required borrowed parent descriptor pointer; topics inherit this descriptor's future rendering visibility. */
+  /** Required borrowed parent descriptor pointer; topics inherit this descriptor's current static help visibility. */
   const bsc_command_t *parent;
   /** Required borrowed single-token topic identifier; topics are flat and non-executable in Task 11C. */
   const char *id;
@@ -392,8 +393,9 @@ void bsc_help_topic_lookup_result_clear(bsc_help_topic_lookup_result_t *result);
  * metadata remain caller-owned or static and need only outlive this synchronous call. Relationship pointers must equal
  * exact elements of catalog->commands; metadata never affects tokenizer, matcher, parser, dispatch, aliases, handlers,
  * execution access callbacks, or runtime argument values. Topics are flat single-token non-executable records that
- * inherit their parent descriptor visibility in future renderers; Task 11C adds no nested topics, topic visibility flags,
- * topic access levels, or topic-to-topic relationships. Static examples are presentation text only and should use
+ * inherit their parent descriptor visibility in catalog-aware renderers and can be rendered through
+ * #bsc_help_render_topic. Task 11C adds no console topic grammar, nested topics, topic visibility flags, topic access
+ * levels, or topic-to-topic relationships. Static examples are presentation text only and should use
  * application-authored placeholders such as <new-password>, ********, or <secret> for secret arguments.
  *
  * The function emits no output, allocates no heap, uses no hidden workspace, retains no pointers after return, and is
