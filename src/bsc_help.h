@@ -485,6 +485,62 @@ bsc_status_t bsc_help_find_path(const bsc_command_t *commands,
  * Emits LF-only deterministic descriptor-order text, retains no pointers, invokes no handlers/access callbacks,
  * and never reads runtime parsed arguments or secret values.
  */
+
+/**
+ * @brief Render a command or group page with catalog-owned extended sections.
+ * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are authoritative.
+ * @param path_tokens Required explicit-length descriptor path tokens when path_token_count is nonzero.
+ * @param path_token_count Number of descriptor path tokens; zero returns #BSC_STATUS_NO_INPUT.
+ * @param options Optional borrowed visibility options; NULL means defaults.
+ * @param output Required caller-owned output sink after validation and lookup succeed.
+ * @retval BSC_STATUS_OK Output completed.
+ * @retval BSC_STATUS_NO_INPUT No path tokens were supplied.
+ * @retval BSC_STATUS_UNKNOWN_COMMAND The path was absent or filtered by visibility.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Catalog, registry, duplicate topic, related, or visible help validation failed.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped immediately.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required pointers or output target were invalid.
+ *
+ * The renderer validates and resolves all metadata before emitting bytes, derives the registry only from the catalog,
+ * streams LF-only output without a full-page buffer, owns no storage, retains no pointers after return, allocates no heap,
+ * uses no hidden workspace, and never invokes handlers, access callbacks, matcher, parser, dispatcher, console routing,
+ * runtime parsed arguments, or runtime secret values. Shared output sinks require caller serialization; this API is intended
+ * for synchronous task/thread or host-test use rather than ISR use.
+ */
+bsc_status_t bsc_help_render_catalog_path(const bsc_help_catalog_t *catalog,
+                                          const bsc_string_view_t *path_tokens,
+                                          size_t path_token_count,
+                                          const bsc_help_options_t *options,
+                                          bsc_output_t *output);
+
+/**
+ * @brief Render a flat non-executable catalog topic page.
+ * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are authoritative.
+ * @param parent_path_tokens Required explicit-length parent path tokens when parent_path_token_count is nonzero.
+ * @param parent_path_token_count Number of parent path tokens; zero returns #BSC_STATUS_NO_INPUT.
+ * @param topic_id Explicit-length topic identifier; zero length returns #BSC_STATUS_NO_INPUT.
+ * @param options Optional borrowed visibility options; NULL means defaults.
+ * @param output Required caller-owned output sink after validation and lookup succeed.
+ * @retval BSC_STATUS_OK Output completed.
+ * @retval BSC_STATUS_NO_INPUT No parent path tokens or an empty topic id was supplied.
+ * @retval BSC_STATUS_UNKNOWN_COMMAND Parent path was absent or filtered by visibility.
+ * @retval BSC_STATUS_UNKNOWN_TOPIC Parent was visible, but no topic under it matched.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Catalog, registry, duplicate topic, related, or visible help validation failed.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped immediately.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required pointers or output target were invalid.
+ *
+ * The renderer validates and resolves all metadata before emitting bytes, renders no SYNOPSIS for topic pages, derives the
+ * registry only from the catalog, streams LF-only output without a full-page buffer, owns no storage, retains no pointers
+ * after return, allocates no heap, uses no hidden workspace, and never invokes handlers, access callbacks, matcher, parser,
+ * dispatcher, console routing, runtime parsed arguments, or runtime secret values. Static examples are presentation text
+ * only and are never parsed or executed.
+ */
+bsc_status_t bsc_help_render_topic(const bsc_help_catalog_t *catalog,
+                                   const bsc_string_view_t *parent_path_tokens,
+                                   size_t parent_path_token_count,
+                                   bsc_string_view_t topic_id,
+                                   const bsc_help_options_t *options,
+                                   bsc_output_t *output);
+
 bsc_status_t bsc_help_render_index(const bsc_command_t *commands,
                                    size_t command_count,
                                    const bsc_help_options_t *options,

@@ -84,11 +84,11 @@ Hardware validation
 Unverified items
 ```
 
-Do not claim hardware validation unless hardware was actually used and evidence is provided. Extended generated-help, adapter compile, and hardware tests remain deferred.
+Do not claim hardware validation unless hardware was actually used and evidence is provided. Catalog-aware extended generated-help tests now cover current core output; adapter compile and hardware tests remain deferred.
 
 ## Golden tests
 
-Generated help index, command-list output, group pages, and executable-command pages have byte-exact LF golden-output tests. Future redacted echo/status output and representative error messages should add golden-output tests once formatting is approved.
+Generated help index, command-list output, ordinary group pages, ordinary executable-command pages, catalog-aware extended command/group pages, pure topic pages, and no-metadata compatibility pages have byte-exact LF golden-output tests. Future redacted echo/status output and representative error messages should add golden-output tests once formatting is approved.
 
 Golden files should live under:
 
@@ -113,4 +113,4 @@ The current CTest path includes a first-pass forbidden-pattern check for the cor
 See `docs/test_strategy.md` for the canonical test policy.
 
 
-`test_bsc_help_catalog.c` covers Task 11C-1 extended-help catalog structural validation, including zero-count pointer policy, exact descriptor-pointer membership, flat topics, deterministic example validation, related-command rules, visibility independence, and callback non-invocation. `test_bsc_help_extended.c` covers Task 11C-2A pure flat-topic lookup, topic-specific statuses, parent visibility inheritance, result clearing, validation precedence, and preservation of ordinary generated-help fixtures without adding extended rendering.
+`test_bsc_help_catalog.c` covers Task 11C-1 extended-help catalog structural validation, including zero-count pointer policy, exact descriptor-pointer membership, flat topics, deterministic example validation, related-command rules, visibility independence, and callback non-invocation. `test_bsc_help_extended.c` covers Task 11C-2 pure flat-topic lookup, topic-specific statuses, parent visibility inheritance, result clearing, validation precedence, catalog-aware command/group rendering, pure topic-page rendering, extended golden fixtures, no-metadata compatibility, visibility filtering, and exhaustive short-write termination.

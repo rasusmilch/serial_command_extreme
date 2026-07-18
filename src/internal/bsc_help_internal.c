@@ -1,5 +1,7 @@
 #include "internal/bsc_help_internal.h"
 
+#include "bsc_config.h"
+#include "bsc_output.h"
 #include "bsc_string_view.h"
 
 /** @brief Compare one validated descriptor path to explicit-length lookup tokens. */
@@ -86,4 +88,84 @@ bsc_status_t bsc_help_internal_find_path_validated(const bsc_command_t *commands
   result->command = found;
   result->command_index = found_index;
   return BSC_STATUS_OK;
+}
+
+size_t bsc_help_internal_prose_length(const char *text) {
+  size_t length = 0u;
+  while (length <= (size_t)BSC_MAX_HELP_TEXT_LEN && text[length] != '\0') {
+    length += 1u;
+  }
+  return length;
+}
+
+size_t bsc_help_internal_identifier_length(const char *text) {
+  size_t length = 0u;
+  while (length <= (size_t)BSC_MAX_TOKEN_LEN && text[length] != '\0') {
+    length += 1u;
+  }
+  return length;
+}
+
+bsc_status_t bsc_help_internal_write(bsc_output_t *output, const char *data, size_t length) {
+  return bsc_out_write_bytes(output, data, length);
+}
+
+bsc_status_t bsc_help_internal_write_path(bsc_output_t *output, const bsc_command_t *command) {
+  size_t index;
+  bsc_status_t status;
+  for (index = 0u; index < command->path_len; ++index) {
+    if (index != 0u) {
+      status = bsc_help_internal_write(output, " ", 1u);
+      if (status != BSC_STATUS_OK) {
+        return status;
+      }
+    }
+    status = bsc_help_internal_write(output,
+                                     command->path[index],
+                                     bsc_help_internal_identifier_length(command->path[index]));
+    if (status != BSC_STATUS_OK) {
+      return status;
+    }
+  }
+  return BSC_STATUS_OK;
+}
+
+bsc_status_t bsc_help_internal_section(bsc_output_t *output, const char *heading, size_t heading_length, int *sections) {
+  int section_started = sections != NULL && *sections != 0;
+  bsc_status_t status;
+  if (section_started) {
+    status = bsc_help_internal_write(output, "\n", 1u);
+    if (status != BSC_STATUS_OK) {
+      return status;
+    }
+  }
+  if (sections != NULL) {
+    *sections = 1;
+  }
+  status = bsc_help_internal_write(output, heading, heading_length);
+  if (status != BSC_STATUS_OK) {
+    return status;
+  }
+  return bsc_help_internal_write(output, "\n", 1u);
+}
+
+bsc_status_t bsc_help_internal_entry(bsc_output_t *output, const bsc_command_t *command) {
+  bsc_status_t status;
+  status = bsc_help_internal_write(output, "  ", 2u);
+  if (status != BSC_STATUS_OK) {
+    return status;
+  }
+  status = bsc_help_internal_write_path(output, command);
+  if (status != BSC_STATUS_OK) {
+    return status;
+  }
+  status = bsc_help_internal_write(output, " - ", 3u);
+  if (status != BSC_STATUS_OK) {
+    return status;
+  }
+  status = bsc_help_internal_write(output, command->summary, bsc_help_internal_prose_length(command->summary));
+  if (status != BSC_STATUS_OK) {
+    return status;
+  }
+  return bsc_help_internal_write(output, "\n", 1u);
 }

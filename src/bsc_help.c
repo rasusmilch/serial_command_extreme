@@ -278,102 +278,38 @@ bsc_status_t bsc_help_find_path(const bsc_command_t *commands,
 
 /** @brief Write one fragment and immediately propagate output failure. */
 static bsc_status_t bsc_help_write(bsc_output_t *output, const char *data, size_t length) {
-  return bsc_out_write_bytes(output, data, length);
+  return bsc_help_internal_write(output, data, length);
 }
 
 /** @brief Write one compile-time string literal without runtime length scanning. */
 #define BSC_HELP_WRITE_LITERAL(output, literal) bsc_help_write((output), (literal), BSC_HELP_LITERAL_LEN(literal))
 
-/**
- * @brief Return the length of previously validated help prose.
- *
- * Precondition: bsc_help_validate_text() has already accepted the prose under
- * BSC_MAX_HELP_TEXT_LEN. The helper therefore scans only within that prose
- * bound and is never used for identifiers or internal literals.
- */
+/** @brief Return the length of previously validated help prose. */
 static size_t bsc_help_prose_length(const char *text) {
-  size_t length = 0u;
-  while (length <= (size_t)BSC_MAX_HELP_TEXT_LEN && text[length] != '\0') {
-    length += 1u;
-  }
-  return length;
+  return bsc_help_internal_prose_length(text);
 }
 
-/**
- * @brief Return the length of a registry-validated emitted identifier.
- *
- * Precondition: ordinary registry validation has accepted the identifier under
- * BSC_MAX_TOKEN_LEN and help validation has rejected presentation control bytes.
- * The helper never uses BSC_MAX_HELP_TEXT_LEN, so small prose limits cannot
- * truncate path tokens, argument names, or enum choice names.
- */
+/** @brief Return the length of a registry-validated emitted identifier. */
 static size_t bsc_help_identifier_length(const char *text) {
-  size_t length = 0u;
-  while (length <= (size_t)BSC_MAX_TOKEN_LEN && text[length] != '\0') {
-    length += 1u;
-  }
-  return length;
+  return bsc_help_internal_identifier_length(text);
 }
 
 /** @brief Emit a descriptor path token-by-token without a path buffer. */
 static bsc_status_t bsc_help_write_path(bsc_output_t *output, const bsc_command_t *command) {
-  size_t index;
-  bsc_status_t status;
-  for (index = 0u; index < command->path_len; ++index) {
-    if (index != 0u) {
-      status = BSC_HELP_WRITE_LITERAL(output, " ");
-      if (status != BSC_STATUS_OK) {
-        return status;
-      }
-    }
-    status = bsc_help_write(output, command->path[index], bsc_help_identifier_length(command->path[index]));
-    if (status != BSC_STATUS_OK) {
-      return status;
-    }
-  }
-  return BSC_STATUS_OK;
+  return bsc_help_internal_write_path(output, command);
 }
 
-/** @brief Emit a section separator before all but the first rendered section. */
+/** @brief Emit a section heading with the existing blank-line separation rule. */
 static bsc_status_t bsc_help_section(bsc_output_t *output,
                                      const char *heading,
                                      size_t heading_length,
-                                     int *section_started) {
-  bsc_status_t status;
-  if (*section_started) {
-    status = BSC_HELP_WRITE_LITERAL(output, "\n");
-    if (status != BSC_STATUS_OK) {
-      return status;
-    }
-  }
-  *section_started = 1;
-  status = bsc_help_write(output, heading, heading_length);
-  if (status != BSC_STATUS_OK) {
-    return status;
-  }
-  return BSC_HELP_WRITE_LITERAL(output, "\n");
+                                     int *sections) {
+  return bsc_help_internal_section(output, heading, heading_length, sections);
 }
 
 /** @brief Emit one COMMANDS entry in the approved descriptor-order grammar. */
 static bsc_status_t bsc_help_entry(bsc_output_t *output, const bsc_command_t *command) {
-  bsc_status_t status;
-  status = BSC_HELP_WRITE_LITERAL(output, "  ");
-  if (status != BSC_STATUS_OK) {
-    return status;
-  }
-  status = bsc_help_write_path(output, command);
-  if (status != BSC_STATUS_OK) {
-    return status;
-  }
-  status = BSC_HELP_WRITE_LITERAL(output, " - ");
-  if (status != BSC_STATUS_OK) {
-    return status;
-  }
-  status = bsc_help_write(output, command->summary, bsc_help_prose_length(command->summary));
-  if (status != BSC_STATUS_OK) {
-    return status;
-  }
-  return BSC_HELP_WRITE_LITERAL(output, "\n");
+  return bsc_help_internal_entry(output, command);
 }
 
 /** @brief Return whether child is an immediate visible child of group. */
@@ -780,6 +716,29 @@ static bsc_status_t bsc_help_render_group_children(bsc_output_t *output,
   return BSC_STATUS_OK;
 }
 
+bsc_status_t bsc_help_internal_render_resolved_path(const bsc_command_t *commands,
+                                                    size_t command_count,
+                                                    const bsc_command_t *command,
+                                                    const bsc_help_options_t *options,
+                                                    bsc_output_t *output,
+                                                    int *sections) {
+  bsc_status_t status;
+  status = bsc_help_render_name(output, command, sections);
+  if (status != BSC_STATUS_OK) return status;
+  if (command->node_type == BSC_NODE_GROUP) {
+    status = bsc_help_render_description(output, command->description, sections);
+    if (status != BSC_STATUS_OK) return status;
+    return bsc_help_render_group_children(output, commands, command_count, command, options, sections);
+  }
+  status = bsc_help_render_synopsis(output, command, sections);
+  if (status != BSC_STATUS_OK) return status;
+  status = bsc_help_render_description(output, command->description, sections);
+  if (status != BSC_STATUS_OK) return status;
+  status = bsc_help_render_arguments(output, command, sections);
+  if (status != BSC_STATUS_OK) return status;
+  return bsc_help_render_valid_values(output, command, sections);
+}
+
 bsc_status_t bsc_help_render_path(const bsc_command_t *commands,
                                   size_t command_count,
                                   const bsc_string_view_t *path_tokens,
@@ -797,18 +756,5 @@ bsc_status_t bsc_help_render_path(const bsc_command_t *commands,
   if (output == NULL || output->write == NULL) {
     return BSC_STATUS_INTERNAL_ERROR;
   }
-  status = bsc_help_render_name(output, result.command, &sections);
-  if (status != BSC_STATUS_OK) return status;
-  if (result.command->node_type == BSC_NODE_GROUP) {
-    status = bsc_help_render_description(output, result.command->description, &sections);
-    if (status != BSC_STATUS_OK) return status;
-    return bsc_help_render_group_children(output, commands, command_count, result.command, options, &sections);
-  }
-  status = bsc_help_render_synopsis(output, result.command, &sections);
-  if (status != BSC_STATUS_OK) return status;
-  status = bsc_help_render_description(output, result.command->description, &sections);
-  if (status != BSC_STATUS_OK) return status;
-  status = bsc_help_render_arguments(output, result.command, &sections);
-  if (status != BSC_STATUS_OK) return status;
-  return bsc_help_render_valid_values(output, result.command, &sections);
+  return bsc_help_internal_render_resolved_path(commands, command_count, result.command, options, output, &sections);
 }

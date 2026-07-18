@@ -75,6 +75,59 @@ bsc_status_t bsc_help_internal_find_path_validated(const bsc_command_t *commands
                                                    const bsc_help_options_t *options,
                                                    bsc_help_lookup_result_t *result);
 
+/**
+ * @brief Return the length of previously validated help prose.
+ * @param text Required prose accepted by help/catalog validation.
+ * @return Length in bytes up to the configured prose bound.
+ */
+size_t bsc_help_internal_prose_length(const char *text);
+
+/**
+ * @brief Return the length of a registry/help validated emitted identifier.
+ * @param text Required identifier accepted by registry/help/catalog validation.
+ * @return Length in bytes up to the configured token bound.
+ */
+size_t bsc_help_internal_identifier_length(const char *text);
+
+/**
+ * @brief Write an explicit byte span through the output sink.
+ * @param output Required caller-owned output sink.
+ * @param data Required bytes when length is nonzero.
+ * @param length Number of bytes to write.
+ * @retval BSC_STATUS_OK All bytes were accepted.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The sink accepted a short write.
+ * @retval BSC_STATUS_INTERNAL_ERROR Output input was invalid.
+ */
+bsc_status_t bsc_help_internal_write(bsc_output_t *output, const char *data, size_t length);
+
+/**
+ * @brief Emit a descriptor path with single spaces between tokens.
+ */
+bsc_status_t bsc_help_internal_write_path(bsc_output_t *output, const bsc_command_t *command);
+
+/**
+ * @brief Emit a section heading with ordinary help blank-line separation.
+ */
+bsc_status_t bsc_help_internal_section(bsc_output_t *output, const char *heading, size_t heading_length, int *sections);
+
+/**
+ * @brief Emit a full descriptor-path entry as two spaces, path, summary, and LF.
+ */
+bsc_status_t bsc_help_internal_entry(bsc_output_t *output, const bsc_command_t *command);
+
+/**
+ * @brief Render an already validated and resolved ordinary command or group page.
+ *
+ * The caller must complete registry/help validation and exact visible lookup
+ * before calling. The helper preserves existing ordinary renderer bytes.
+ */
+bsc_status_t bsc_help_internal_render_resolved_path(const bsc_command_t *commands,
+                                                    size_t command_count,
+                                                    const bsc_command_t *command,
+                                                    const bsc_help_options_t *options,
+                                                    bsc_output_t *output,
+                                                    int *sections);
+
 #ifdef __cplusplus
 }
 #endif

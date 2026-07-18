@@ -26,8 +26,8 @@ Current implemented repository state:
 - Selected-command dispatch: access enforcement, typed parsing handoff, handler invocation, and handler-status normalization are implemented in `src/bsc_dispatch.*`.
 - Complete-line console orchestration: output-neutral orchestration is implemented in `src/bsc_console.*` using lightweight console configuration plus caller-owned execution workspace.
 - Host tests: module-specific host tests cover foundational helpers, tokenizer, descriptor types, registry validation, matcher, typed parser, dispatch/access, complete-line console orchestration, optional built-in help/commands routing, and pure generated-help validation/rendering with byte-exact golden fixtures.
-- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, executable-command pages, pure flat-topic lookup, and optional complete-line `help`/`commands` routing are implemented in `src/bsc_help.*`, `src/bsc_help_extended.c`, `src/internal/bsc_help_internal.*`, and `src/bsc_console.*`; extended section rendering and topic-page rendering remain future work.
-- Extended-help catalog foundation: Task 11C-1 schema and visibility-independent structural validation are implemented in `src/bsc_help.h` and `src/bsc_help_catalog.c`; Task 11C-2A pure flat-topic lookup is implemented in `src/bsc_help_extended.c`; pure topic-page rendering, extended command/group rendering, and catalog-aware console grammar are not implemented.
+- Generated help/manpages: pure metadata validation, exact descriptor-path lookup, index rendering, command-list rendering, group pages, executable-command pages, pure flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, and optional complete-line `help`/`commands` routing are implemented in `src/bsc_help.*`, `src/bsc_help_extended.c`, `src/internal/bsc_help_internal.*`, and `src/bsc_console.*`; catalog-aware console topic grammar remains future work.
+- Extended-help catalog foundation: Task 11C-1 schema and visibility-independent structural validation are implemented in `src/bsc_help.h` and `src/bsc_help_catalog.c`; Task 11C-2 pure flat-topic lookup, catalog-aware command/group rendering, and pure topic-page rendering are implemented in `src/bsc_help_extended.c`; catalog-aware console grammar is not implemented.
 - Examples: not implemented.
 - Arduino adapter: not implemented.
 - ESP-IDF adapter: not implemented.
@@ -88,7 +88,7 @@ Implements Task 11C-1 extended-help catalog structural validation for public typ
 
 ### `src/bsc_help_extended.c`
 
-Implements Task 11C-2A pure flat-topic lookup for public catalog topic metadata. The module owns `bsc_help_topic_lookup_result_clear()` and `bsc_help_find_topic()`, derives the authoritative registry only from `bsc_help_catalog_t`, validates catalog structure and visibility-dependent ordinary help metadata before lookup, resolves exact visible parent paths through the shared internal helper, and scans flat topics by exact parent pointer plus ASCII case-insensitive topic id. It does not render extended sections or topic pages, add console grammar, invoke handlers/access callbacks, allocate heap, retain pointers, or use matcher/parser/dispatcher/console behavior.
+Implements Task 11C-2 pure flat-topic lookup, catalog-aware command/group rendering, and pure topic-page rendering for public catalog metadata. The module owns `bsc_help_topic_lookup_result_clear()`, `bsc_help_find_topic()`, `bsc_help_render_catalog_path()`, and `bsc_help_render_topic()`, derives the authoritative registry only from `bsc_help_catalog_t`, validates catalog structure and visibility-dependent ordinary help metadata before lookup/output, filters related descriptors by static help visibility, preserves catalog metadata order, and emits no bytes before metadata resolution succeeds. It does not add console grammar, invoke handlers/access callbacks, allocate heap, retain pointers, or use matcher/parser/dispatcher/console behavior.
 
 ### `src/internal/bsc_help_internal.h/.c`
 
@@ -201,16 +201,16 @@ The implemented boundary is lightweight validated console configuration plus cal
 
 Implemented in `src/bsc_help.*`, with host and byte-exact LF golden coverage in `test/test_bsc_help.c` and `test/golden/`. The pure help core validates help-specific metadata separately from ordinary registry validation, first verifies the underlying registry schema, resolves exact descriptor paths for groups and executable commands without using the dispatch matcher, and renders top-level indexes, complete visible command lists, group pages, and executable-command pages through `bsc_output_t`. It never invokes command handlers or `command->access_fn`. Output uses descriptor-table order, generated synopsis text, generated valid-value text, LF line endings, no heap allocation, no public help workspace, no full-manpage buffer, and immediate propagation of the first output failure.
 
-Task 11B2 optional console built-ins are implemented through the separate `bsc_execute_line_with_builtins()` composition boundary. Task 11C-1 extended-help catalog schema and structural validation and Task 11C-2A pure flat-topic lookup are implemented without changing existing console APIs. Extended section rendering, pure topic pages, and catalog-aware console grammar remain future Task 11C-2B and Task 11C-3 work.
+Task 11B2 optional console built-ins are implemented through the separate `bsc_execute_line_with_builtins()` composition boundary. Task 11C-1 extended-help catalog schema and structural validation and Task 11C-2 extended rendering/topic APIs are implemented without changing existing console APIs. Catalog-aware console grammar remains future Task 11C-3 work.
 Implemented Task 11B2 policy is settled: `bsc_execute_line()` remains application-only, while `bsc_execute_line_with_builtins()` is the separate built-in-aware API. Built-in routing uses exact help paths after tokenization, per-invoked-built-in first-token collision rejection, existing console output only, existing `bsc_status_t` values, and separate static `bsc_help_options_t` visibility.
 
 ### Task 11C-1 — Extended-help catalog schema and structural validation: implemented
 
 Implemented in `src/bsc_help_catalog.c`, with public borrowed metadata types and diagnostics in `src/bsc_help.h` and host coverage in `test/test_bsc_help_catalog.c`. The catalog wraps one authoritative command table, validates exact descriptor-pointer references by element equality, checks notes, warnings, presentation examples, related descriptors, and flat single-token topic records, and remains independent of help visibility. It emits no output, allocates no heap, retains no pointers, and never invokes handlers or access callbacks.
 
-### Task 11C-2A — Pure topic API and shared help internals: implemented
+### Task 11C-2 — Extended rendering and pure topic APIs: implemented
 
-Implemented in `src/bsc_help_extended.c` and `src/internal/bsc_help_internal.*`, with the minimal public `bsc_help_topic_lookup_result_t`, `bsc_help_topic_lookup_result_clear()`, `bsc_help_find_topic()`, and append-only `BSC_STATUS_UNKNOWN_TOPIC`. Existing ordinary help renderers and console built-ins remain byte-compatible and catalog-aware rendering/topic pages remain Task 11C-2B future work.
+Implemented in `src/bsc_help_extended.c` and `src/internal/bsc_help_internal.*`, with the minimal public `bsc_help_topic_lookup_result_t`, `bsc_help_topic_lookup_result_clear()`, `bsc_help_find_topic()`, append-only `BSC_STATUS_UNKNOWN_TOPIC`, `bsc_help_render_catalog_path()`, and `bsc_help_render_topic()`. Existing ordinary help renderers and console built-ins remain byte-compatible; no-metadata catalog-aware rendering is byte-identical to ordinary path rendering, and catalog-aware console grammar remains Task 11C-3 future work.
 
 
 ### Phase 4A — Host examples: future
@@ -327,4 +327,4 @@ Generated-help work has byte-exact LF golden-output tests for the pure renderer.
 
 ## Current non-goals
 
-The current MVP implements pure generated help/manpages through explicit APIs and optional complete-line `help`/`commands` routing, but does not implement extended section rendering, pure topic-page rendering, catalog-aware console grammar, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.
+The current MVP implements pure generated help/manpages through explicit APIs and optional complete-line `help`/`commands` routing, but does not implement catalog-aware console grammar, examples, adapters, history, completion, line editing, aliases, optional positional arguments, runtime registration, authentication, platform locks, automatic diagnostics, automatic final-result output, packaging, license selection, or CI workflows.
