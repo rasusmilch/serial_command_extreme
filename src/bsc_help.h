@@ -213,6 +213,26 @@ typedef struct bsc_help_catalog {
   /** Number of active entries in topics; must not exceed BSC_MAX_HELP_TOPICS. */
   size_t topic_count;
 } bsc_help_catalog_t;
+/**
+ * @brief Caller-owned result for pure flat-topic lookup.
+ *
+ * The result owns no storage. On success, topic borrows the exact element in
+ * catalog->topics at topic_index, and parent_command_index identifies
+ * topic->parent within catalog->commands. The parent descriptor pointer is
+ * available through topic->parent and is intentionally not duplicated here. All
+ * borrowed pointers remain valid only while the catalog, command table, metadata
+ * arrays, and pointed-to strings remain alive and unchanged. The core never
+ * retains this result or its pointers after return.
+ */
+typedef struct bsc_help_topic_lookup_result {
+  /** Borrowed matching topic, or NULL after clear/failure. */
+  const bsc_help_topic_t *topic;
+  /** Zero-based index of topic in catalog->topics, or zero after clear/failure. */
+  size_t topic_index;
+  /** Zero-based index of topic->parent in catalog->commands, or zero after clear/failure. */
+  size_t parent_command_index;
+} bsc_help_topic_lookup_result_t;
+
 
 /**
  * @brief Catalog structural validation failure reasons.
@@ -352,6 +372,14 @@ void bsc_help_lookup_result_clear(bsc_help_lookup_result_t *result);
 void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t *error);
 
 /**
+ * @brief Clear a caller-owned pure topic lookup result.
+ * @param result Optional result storage; NULL is accepted.
+ * Sets the borrowed topic pointer to NULL and scalar indexes to zero, retains no pointers, and performs no allocation or
+ * I/O.
+ */
+void bsc_help_topic_lookup_result_clear(bsc_help_topic_lookup_result_t *result);
+
+/**
  * @brief Validate borrowed extended-help catalog structure independently of rendering visibility.
  * @param catalog Required borrowed catalog whose commands/command_count are the authoritative registry.
  * @param error Optional caller-owned diagnostic cleared on entry and filled on failure.
@@ -374,6 +402,34 @@ void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t
  */
 bsc_status_t bsc_help_catalog_validate(const bsc_help_catalog_t *catalog,
                                         bsc_help_catalog_validation_error_t *error);
+
+/**
+ * @brief Find a flat non-executable help topic under an exact visible parent path.
+ * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are the authoritative registry.
+ * @param parent_path_tokens Required explicit-length parent path token array when parent_path_token_count is nonzero.
+ * @param parent_path_token_count Number of parent path tokens; zero returns #BSC_STATUS_NO_INPUT.
+ * @param topic_id Explicit-length topic identifier; zero length returns #BSC_STATUS_NO_INPUT.
+ * @param options Optional borrowed visibility options; NULL means defaults. Topics inherit parent descriptor visibility.
+ * @param result Required caller-owned result storage; cleared on entry and on every failure.
+ * @retval BSC_STATUS_OK One topic matched under the visible parent; result borrows catalog metadata.
+ * @retval BSC_STATUS_NO_INPUT No parent path tokens or an empty topic id was supplied.
+ * @retval BSC_STATUS_UNKNOWN_COMMAND Parent path was absent or filtered by help visibility.
+ * @retval BSC_STATUS_UNKNOWN_TOPIC Parent path was visible, but no topic under that parent matched.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Catalog, registry, duplicate topic, or visible help metadata validation failed.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required API pointers were invalid, including nonempty topic_id with NULL data.
+ *
+ * The function validates before lookup, derives the registry only from the catalog, matches topic ids with ASCII
+ * case-insensitive comparison, owns no storage, retains no pointers internally after return, allocates no heap, uses no
+ * hidden workspace, emits no output, and never invokes handlers, access callbacks, matcher, parser, dispatcher, console
+ * routing, runtime parsed arguments, or runtime secret values. It is reentrant for immutable metadata and independent
+ * result objects, and is intended for synchronous task/thread or host-test use rather than ISR use.
+ */
+bsc_status_t bsc_help_find_topic(const bsc_help_catalog_t *catalog,
+                                 const bsc_string_view_t *parent_path_tokens,
+                                 size_t parent_path_token_count,
+                                 bsc_string_view_t topic_id,
+                                 const bsc_help_options_t *options,
+                                 bsc_help_topic_lookup_result_t *result);
 
 
 /**

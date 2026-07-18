@@ -98,9 +98,9 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, and dispatch are implemented; extended help sections, adapters, and examples remain future work.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, dispatch, catalog validation, and pure flat-topic lookup are implemented; extended rendering, topic-page rendering, adapters, and examples remain future work.
 
 
 ## Extended-help catalog source
 
-`bsc_help_catalog.c` implements Task 11C-1 structural validation for optional borrowed extended-help catalogs declared in `bsc_help.h`. It validates catalog pointer/count pairs, authoritative descriptor references, notes, warnings, presentation examples, related descriptors, and flat topics without rendering, allocation, handler invocation, access callbacks, or matcher/parser participation.
+`bsc_help_catalog.c` implements Task 11C-1 structural validation for optional borrowed extended-help catalogs declared in `bsc_help.h`. It validates catalog pointer/count pairs, authoritative descriptor references, notes, warnings, presentation examples, related descriptors, and flat topics without rendering, allocation, handler invocation, access callbacks, or matcher/parser participation. `bsc_help_extended.c` implements Task 11C-2A pure flat-topic lookup; `internal/bsc_help_internal.*` contains the narrow shared default-option, static-visibility, and already-validated exact-path lookup rules used by ordinary help and topic lookup.

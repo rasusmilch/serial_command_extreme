@@ -139,8 +139,8 @@ Implemented capabilities:
 
 Task 11C is split into approved checkpoints so the catalog schema, rendering behavior, and console grammar remain separately reviewable:
 
-- Task 11C-1 catalog schema and structural validation: implemented on this branch. The optional borrowed catalog stores notes, warnings, presentation examples, related descriptor references, and flat non-executable topic metadata outside `bsc_command_t`; structural validation is visibility-independent and invokes no handlers or access callbacks.
-- Task 11C-2 extended rendering and pure topic APIs: future. This task will add byte-exact extended sections, pure topic lookup, and pure topic pages after output bytes are approved.
+- Task 11C-1 catalog schema and structural validation: implemented in the current repository. The optional borrowed catalog stores notes, warnings, presentation examples, related descriptor references, and flat non-executable topic metadata outside `bsc_command_t`; structural validation is visibility-independent and invokes no handlers or access callbacks.
+- Task 11C-2A pure topic API and shared help internals: implemented. This checkpoint adds pure flat-topic lookup, `BSC_STATUS_UNKNOWN_TOPIC`, and narrow shared visibility/exact-path internals while preserving existing help output. Task 11C-2B extended rendering and topic pages remain future work.
 - Task 11C-3 catalog-aware console integration: future after explicit grammar approval. Existing `bsc_execute_line()` and `bsc_execute_line_with_builtins()` behavior remains unchanged until then.
 
 Phase 4 runnable example applications remain separate from Task 11C. Sensitive arguments and static examples must continue to avoid runtime secret disclosure.

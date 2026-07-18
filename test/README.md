@@ -40,6 +40,7 @@ test/
   test_bsc_console.c
   test_bsc_help.c
   test_bsc_help_catalog.c
+  test_bsc_help_extended.c
   golden/
 ```
 
@@ -112,4 +113,4 @@ The current CTest path includes a first-pass forbidden-pattern check for the cor
 See `docs/test_strategy.md` for the canonical test policy.
 
 
-`test_bsc_help_catalog.c` covers Task 11C-1 extended-help catalog structural validation, including zero-count pointer policy, exact descriptor-pointer membership, flat topics, deterministic example validation, related-command rules, visibility independence, and callback non-invocation.
+`test_bsc_help_catalog.c` covers Task 11C-1 extended-help catalog structural validation, including zero-count pointer policy, exact descriptor-pointer membership, flat topics, deterministic example validation, related-command rules, visibility independence, and callback non-invocation. `test_bsc_help_extended.c` covers Task 11C-2A pure flat-topic lookup, topic-specific statuses, parent visibility inheritance, result clearing, validation precedence, and preservation of ordinary generated-help fixtures without adding extended rendering.

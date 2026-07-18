@@ -26,7 +26,7 @@ Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 ```
 
-Implementation code and host tests exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. Task 11C-1 catalog schema and structural validation are implemented on this branch without extended rendering, pure topic pages, or catalog-aware console grammar. Task 11C-2 remains future work for extended rendering and pure topic pages. Task 11C-3 remains future work for catalog-aware console integration after explicit grammar approval. This file remains the durable testing-policy anchor and distinguishes current host coverage from future extended help rendering, adapter, golden-output expansion, and hardware validation.
+Implementation code and host tests exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. Task 11C-1 catalog schema and structural validation and Task 11C-2A pure flat-topic lookup are implemented in the current repository without extended rendering, pure topic pages, or catalog-aware console grammar. Task 11C-2B remains future work for extended rendering and pure topic pages. Task 11C-3 remains future work for catalog-aware console integration after explicit grammar approval. This file remains the durable testing-policy anchor and distinguishes current host coverage from future extended help rendering, pure topic-page rendering, adapter, golden-output expansion, and hardware validation.
 
 ## Testing goals
 
