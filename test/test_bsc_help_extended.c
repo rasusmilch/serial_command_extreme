@@ -423,6 +423,548 @@ static int ext_assert_all_short_writes(const char *test_name, ext_render_fn_t re
   }
   return 0;
 }
+
+/** @brief Render one explicit descriptor path from a catalog while capturing bytes. */
+static bsc_status_t ext_render_catalog_capture(const bsc_help_catalog_t *catalog,
+                                               const char *const *tokens,
+                                               size_t token_count,
+                                               const bsc_help_options_t *options,
+                                               ext_capture_t *capture) {
+  bsc_string_view_t path[BSC_MAX_PATH_TOKENS];
+  size_t index;
+  bsc_output_t output = {ext_capture_write, capture};
+  for (index = 0u; index < token_count; ++index) {
+    path[index] = extended_token(tokens[index]);
+  }
+  ext_capture_init(capture);
+  return bsc_help_render_catalog_path(catalog, path, token_count, options, &output);
+}
+
+/** @brief Render one explicit topic path from a catalog while capturing bytes. */
+static bsc_status_t ext_render_topic_capture(const bsc_help_catalog_t *catalog,
+                                             const char *const *tokens,
+                                             size_t token_count,
+                                             const char *topic_id,
+                                             const bsc_help_options_t *options,
+                                             ext_capture_t *capture) {
+  bsc_string_view_t path[BSC_MAX_PATH_TOKENS];
+  size_t index;
+  bsc_output_t output = {ext_capture_write, capture};
+  for (index = 0u; index < token_count; ++index) {
+    path[index] = extended_token(tokens[index]);
+  }
+  ext_capture_init(capture);
+  return bsc_help_render_topic(catalog, path, token_count, extended_token(topic_id), options, &output);
+}
+
+/** @brief Return the first byte offset of a needle or SIZE_MAX when absent. */
+static size_t ext_find_offset(const char *haystack, size_t haystack_len, const char *needle) {
+  size_t needle_len = strlen(needle);
+  size_t index;
+  if (needle_len == 0u) return 0u;
+  if (haystack_len < needle_len) return (size_t)-1;
+  for (index = 0u; index <= haystack_len - needle_len; ++index) {
+    if (memcmp(&haystack[index], needle, needle_len) == 0) return index;
+  }
+  return (size_t)-1;
+}
+
+/** @brief Assert a captured output contains one expected byte sequence. */
+static int ext_assert_contains(const char *test_name, const ext_capture_t *capture, const char *needle) {
+  EXT_ASSERT_TRUE(ext_find_offset(capture->buffer, capture->used, needle) != (size_t)-1);
+  return 0;
+}
+
+/** @brief Assert a captured output omits one byte sequence. */
+static int ext_assert_omits(const char *test_name, const ext_capture_t *capture, const char *needle) {
+  EXT_ASSERT_TRUE(ext_find_offset(capture->buffer, capture->used, needle) == (size_t)-1);
+  return 0;
+}
+
+
+/** @brief Count non-overlapping occurrences of a byte sequence in captured output. */
+static size_t ext_count_occurrences(const char *haystack, size_t haystack_len, const char *needle) {
+  size_t needle_len = strlen(needle);
+  size_t count = 0u;
+  size_t offset = 0u;
+  if (needle_len == 0u) return 0u;
+  while (offset + needle_len <= haystack_len) {
+    if (memcmp(&haystack[offset], needle, needle_len) == 0) {
+      count += 1u;
+      offset += needle_len;
+    } else {
+      offset += 1u;
+    }
+  }
+  return count;
+}
+
+/** @brief Assert one byte sequence appears before another in captured output. */
+static int ext_assert_order(const char *test_name, const ext_capture_t *capture, const char *first, const char *second) {
+  size_t first_offset = ext_find_offset(capture->buffer, capture->used, first);
+  size_t second_offset = ext_find_offset(capture->buffer, capture->used, second);
+  EXT_ASSERT_TRUE(first_offset != (size_t)-1);
+  EXT_ASSERT_TRUE(second_offset != (size_t)-1);
+  EXT_ASSERT_TRUE(first_offset < second_offset);
+  return 0;
+}
+
+/** @brief Assert a catalog path renderer returns a status before any output callback. */
+static int ext_expect_catalog_no_output(const char *test_name,
+                                        bsc_status_t expected,
+                                        const bsc_help_catalog_t *catalog,
+                                        const char *const *tokens,
+                                        size_t token_count,
+                                        const bsc_help_options_t *options) {
+  ext_capture_t capture;
+  EXT_ASSERT_STATUS(expected, ext_render_catalog_capture(catalog, tokens, token_count, options, &capture));
+  EXT_ASSERT_TRUE(capture.calls == 0u);
+  return 0;
+}
+
+/** @brief Assert a topic renderer returns a status before any output callback. */
+static int ext_expect_topic_no_output(const char *test_name,
+                                      bsc_status_t expected,
+                                      const bsc_help_catalog_t *catalog,
+                                      const char *const *tokens,
+                                      size_t token_count,
+                                      const char *topic_id,
+                                      const bsc_help_options_t *options) {
+  ext_capture_t capture;
+  EXT_ASSERT_STATUS(expected, ext_render_topic_capture(catalog, tokens, token_count, topic_id, options, &capture));
+  EXT_ASSERT_TRUE(capture.calls == 0u);
+  return 0;
+}
+
+/** @brief Verify catalog and topic renderers obey all static visibility combinations without access callbacks. */
+static int test_extended_render_visibility_options(const char *test_name) {
+  bsc_help_catalog_t catalog = extended_valid_catalog();
+  bsc_help_options_t options;
+  ext_capture_t capture;
+  extended_handler_calls = 0;
+  extended_access_calls = 0;
+
+  bsc_help_options_init(&options);
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_status, 1u, NULL, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_status, 1u, "overview", NULL, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_advanced, 1u, NULL, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_advanced, 1u, "advanced", NULL, &capture));
+  options.include_advanced = false;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_advanced, 1u,
+                                               &options) == 0);
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_advanced, 1u,
+                                             "advanced", &options) == 0);
+
+  bsc_help_options_init(&options);
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_factory, 1u,
+                                               &options) == 0);
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_factory, 1u,
+                                             "factory", &options) == 0);
+  options.include_factory = true;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_factory, 1u, &options, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_factory, 1u, "factory", &options, &capture));
+
+  bsc_help_options_init(&options);
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_locked, 1u,
+                                               &options) == 0);
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_locked, 1u,
+                                             "locked", &options) == 0);
+  options.include_locked = true;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_locked, 1u, &options, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_locked, 1u, "locked", &options, &capture));
+
+  bsc_help_options_init(&options);
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_hidden, 1u,
+                                               &options) == 0);
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_hidden, 1u,
+                                             "hidden", &options) == 0);
+  options.include_hidden = true;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_hidden, 1u, &options, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_hidden, 1u, "hidden", &options, &capture));
+
+  bsc_help_options_init(&options);
+  options.include_hidden = true;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_hidden_factory, 1u,
+                                               &options) == 0);
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, path_hidden_factory, 1u,
+                                             "service", &options) == 0);
+  options.include_factory = true;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_hidden_factory, 1u, &options, &capture));
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_hidden_factory, 1u, "service", &options,
+                                                            &capture));
+  EXT_ASSERT_TRUE(extended_handler_calls == 0);
+  EXT_ASSERT_TRUE(extended_access_calls == 0);
+  return 0;
+}
+
+/** @brief Verify validation failures, including target and related metadata defects, occur before output. */
+static int test_extended_render_validation_before_output_gaps(const char *test_name) {
+  bsc_help_catalog_t catalog = ext2_render_catalog();
+  bsc_command_t outside_command = ext2_commands[0];
+  bsc_help_target_t target;
+  bsc_help_related_t related;
+  bsc_help_topic_t topic;
+  bsc_help_topic_t duplicate_topics[2];
+  const char *const unknown_path[] = {"settings", "wifi", "missing"};
+
+  catalog.commands = NULL;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_INVALID_DESCRIPTOR, &catalog,
+                                               ext2_path_settings_wifi_set_ssid, 4u, NULL) == 0);
+
+  catalog = ext2_render_catalog();
+  target = ext2_targets[0];
+  target.target = &outside_command;
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_INVALID_DESCRIPTOR, &catalog,
+                                               ext2_path_settings_wifi_set_ssid, 4u, NULL) == 0);
+
+  catalog = ext2_render_catalog();
+  related.target = &outside_command;
+  target = ext2_targets[0];
+  target.related = &related;
+  target.related_count = 1u;
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_INVALID_DESCRIPTOR, &catalog,
+                                               ext2_path_settings_wifi_set_ssid, 4u, NULL) == 0);
+
+  catalog = ext2_render_catalog();
+  related.target = &outside_command;
+  topic = ext2_topics[0];
+  topic.related = &related;
+  topic.related_count = 1u;
+  catalog.topics = &topic;
+  catalog.topic_count = 1u;
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_INVALID_DESCRIPTOR, &catalog,
+                                             ext2_path_settings_wifi_set_ssid, 4u, "security", NULL) == 0);
+
+  catalog = ext2_render_catalog();
+  duplicate_topics[0] = ext2_topics[0];
+  duplicate_topics[1] = ext2_topics[0];
+  duplicate_topics[1].id = "Security";
+  catalog.topics = duplicate_topics;
+  catalog.topic_count = 2u;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_INVALID_DESCRIPTOR, &catalog,
+                                               ext2_path_settings_wifi_set_ssid, 4u, NULL) == 0);
+
+  catalog = ext2_render_catalog();
+  ext2_commands[5].description = NULL;
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_INVALID_DESCRIPTOR, &catalog,
+                                               ext2_path_settings_wifi_set_ssid, 4u, NULL) == 0);
+  ext2_commands[5].description = "WiFi set";
+
+  catalog = ext2_render_catalog();
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, unknown_path, 3u,
+                                               NULL) == 0);
+  EXT_ASSERT_TRUE(ext_expect_catalog_no_output(test_name, BSC_STATUS_UNKNOWN_COMMAND, &catalog, ext2_path_factory_reset,
+                                               3u, NULL) == 0);
+  EXT_ASSERT_TRUE(ext_expect_topic_no_output(test_name, BSC_STATUS_UNKNOWN_TOPIC, &catalog,
+                                             ext2_path_settings_wifi_set_ssid, 4u, "missing", NULL) == 0);
+  EXT_ASSERT_TRUE(extended_handler_calls == 0);
+  EXT_ASSERT_TRUE(extended_access_calls == 0);
+  return 0;
+}
+
+/** @brief Verify invalid sinks lose to prior metadata/lookup failures but fail for valid render requests. */
+static int test_extended_render_invalid_sink_precedence(const char *test_name) {
+  bsc_help_catalog_t catalog = ext2_render_catalog();
+  bsc_output_t invalid_output = {NULL, NULL};
+  bsc_string_view_t path[] = {extended_token("settings"), extended_token("wifi"), extended_token("set"),
+                              extended_token("ssid")};
+  bsc_string_view_t unknown[] = {extended_token("settings"), extended_token("wifi"), extended_token("missing")};
+  bsc_string_view_t factory[] = {extended_token("factory"), extended_token("wifi"), extended_token("reset")};
+
+  catalog.commands = NULL;
+  EXT_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_help_render_catalog_path(&catalog, path, 4u, NULL, NULL));
+  catalog = ext2_render_catalog();
+  EXT_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_help_render_catalog_path(&catalog, unknown, 3u, NULL, NULL));
+  EXT_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_help_render_catalog_path(&catalog, factory, 3u, NULL, NULL));
+  EXT_ASSERT_STATUS(BSC_STATUS_UNKNOWN_TOPIC,
+                    bsc_help_render_topic(&catalog, path, 4u, extended_token("missing"), NULL, NULL));
+  EXT_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_help_render_catalog_path(&catalog, path, 4u, NULL, NULL));
+  EXT_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_help_render_catalog_path(&catalog, path, 4u, NULL, &invalid_output));
+  EXT_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR,
+                    bsc_help_render_topic(&catalog, path, 4u, extended_token("security"), NULL, NULL));
+  EXT_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR,
+                    bsc_help_render_topic(&catalog, path, 4u, extended_token("security"), NULL, &invalid_output));
+  EXT_ASSERT_TRUE(extended_handler_calls == 0);
+  EXT_ASSERT_TRUE(extended_access_calls == 0);
+  return 0;
+}
+
+/** @brief Verify optional extended sections and structural edge cases render or omit deterministically. */
+static int test_extended_render_optional_sections_and_edges(const char *test_name) {
+  bsc_help_catalog_t catalog = ext2_render_catalog();
+  ext_capture_t capture;
+  bsc_help_target_t target;
+  bsc_help_topic_t topic;
+  bsc_help_topic_t topics[1];
+  bsc_help_target_t cycle_targets[2];
+  bsc_help_related_t status_to_wifi[] = {{&extended_commands[1]}};
+  bsc_help_related_t wifi_to_status[] = {{&extended_commands[0]}};
+  bsc_help_related_t self_parent[] = {{&extended_commands[0]}};
+  const char *const solo_path[] = {"solo"};
+  static const char *const solo_group_path[] = {"solo"};
+  static const bsc_command_t solo_group[] = {
+      {solo_group_path, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL,
+       BSC_COMMAND_FLAG_NONE, NULL, "Solo", NULL},
+  };
+
+  catalog.targets = NULL;
+  catalog.target_count = 0u;
+  catalog.topics = &ext2_topics[0];
+  catalog.topic_count = 1u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, ext2_path_settings_wifi_set_ssid, 4u, NULL,
+                                                              &capture));
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "TOPICS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "NOTES\n") == 0);
+
+  catalog = ext2_render_catalog();
+  target = ext2_targets[0];
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, ext2_path_settings_wifi_set_ssid, 4u, NULL,
+                                                              &capture));
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "NOTES\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "TOPICS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_order(test_name, &capture, "NOTES\n", "WARNINGS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_order(test_name, &capture, "WARNINGS\n", "EXAMPLES\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_order(test_name, &capture, "EXAMPLES\n", "RELATED\n") == 0);
+
+  catalog = ext2_render_catalog();
+  catalog.targets = NULL;
+  catalog.target_count = 0u;
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, ext2_path_status, 1u, NULL, &capture));
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "ARGUMENTS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "VALID VALUES\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "NOTES\n") == 0);
+
+  catalog = ext2_render_catalog();
+  topics[0] = ext2_topics[1];
+  catalog.topics = topics;
+  catalog.topic_count = 1u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, ext2_path_settings_wifi_set_ssid, 4u, "reconnect",
+                                                            NULL, &capture));
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "SYNOPSIS\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "DESCRIPTION\n") == 0);
+
+  catalog = ext2_render_catalog();
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, ext2_path_settings_wifi, 2u, NULL, &capture));
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "DESCRIPTION\n") == 0);
+
+  catalog.commands = solo_group;
+  catalog.command_count = sizeof(solo_group) / sizeof(solo_group[0]);
+  catalog.targets = NULL;
+  catalog.target_count = 0u;
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, solo_path, 1u, NULL, &capture));
+  EXT_ASSERT_TRUE(ext_assert_omits(test_name, &capture, "COMMANDS\n") == 0);
+
+  cycle_targets[0].target = &extended_commands[0];
+  cycle_targets[0].notes.items = NULL;
+  cycle_targets[0].notes.count = 0u;
+  cycle_targets[0].warnings.items = NULL;
+  cycle_targets[0].warnings.count = 0u;
+  cycle_targets[0].examples = NULL;
+  cycle_targets[0].example_count = 0u;
+  cycle_targets[0].related = status_to_wifi;
+  cycle_targets[0].related_count = 1u;
+  cycle_targets[1].target = &extended_commands[1];
+  cycle_targets[1].notes.items = NULL;
+  cycle_targets[1].notes.count = 0u;
+  cycle_targets[1].warnings.items = NULL;
+  cycle_targets[1].warnings.count = 0u;
+  cycle_targets[1].examples = NULL;
+  cycle_targets[1].example_count = 0u;
+  cycle_targets[1].related = wifi_to_status;
+  cycle_targets[1].related_count = 1u;
+  catalog = extended_valid_catalog();
+  catalog.targets = cycle_targets;
+  catalog.target_count = 2u;
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_status, 1u, NULL, &capture));
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "RELATED\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  wifi - WiFi\n") == 0);
+  EXT_ASSERT_TRUE(ext_count_occurrences(capture.buffer, capture.used, "RELATED\n") == 1u);
+
+  topic = extended_topics[0];
+  topic.related = self_parent;
+  topic.related_count = 1u;
+  catalog = extended_valid_catalog();
+  catalog.topics = &topic;
+  catalog.topic_count = 1u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_topic_capture(&catalog, path_status, 1u, "overview", NULL, &capture));
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "RELATED\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  status - Status\n") == 0);
+  return 0;
+}
+
+/** @brief Verify configured maximum extended metadata counts stream successfully. */
+static int test_extended_render_configured_maximum_counts(const char *test_name) {
+  ext_capture_t capture;
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u
+  static const char *const max_notes[BSC_MAX_HELP_TEXT_ITEMS] = {
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u
+      "note0",
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 1u
+      "note1",
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 2u
+      "note2",
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 3u
+      "note3",
+#endif
+  };
+  static const char *const max_warnings[BSC_MAX_HELP_TEXT_ITEMS] = {
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u
+      "warning0",
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 1u
+      "warning1",
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 2u
+      "warning2",
+#endif
+#if BSC_MAX_HELP_TEXT_ITEMS > 3u
+      "warning3",
+#endif
+  };
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 0u
+  static const bsc_help_example_t max_examples[BSC_MAX_HELP_EXAMPLES] = {
+#if BSC_MAX_HELP_EXAMPLES > 0u
+      {"status", NULL},
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 1u
+      {"status", "example1"},
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 2u
+      {"status", NULL},
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 3u
+      {"status", "example3"},
+#endif
+  };
+#endif
+#if BSC_MAX_HELP_RELATED > 0u
+  static const bsc_help_related_t max_related[BSC_MAX_HELP_RELATED] = {
+#if BSC_MAX_HELP_RELATED > 0u
+      {&extended_commands[1]},
+#endif
+#if BSC_MAX_HELP_RELATED > 1u
+      {&extended_commands[2]},
+#endif
+#if BSC_MAX_HELP_RELATED > 2u
+      {&extended_commands[3]},
+#endif
+#if BSC_MAX_HELP_RELATED > 3u
+      {&extended_commands[4]},
+#endif
+  };
+#endif
+#if BSC_MAX_HELP_TOPICS > 0u
+  static const bsc_help_topic_t max_topics[BSC_MAX_HELP_TOPICS] = {
+#if BSC_MAX_HELP_TOPICS > 0u
+      {&extended_commands[0], "t0", "Topic 0", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 1u
+      {&extended_commands[0], "t1", "Topic 1", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 2u
+      {&extended_commands[0], "t2", "Topic 2", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 3u
+      {&extended_commands[0], "t3", "Topic 3", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 4u
+      {&extended_commands[0], "t4", "Topic 4", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 5u
+      {&extended_commands[0], "t5", "Topic 5", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 6u
+      {&extended_commands[0], "t6", "Topic 6", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 7u
+      {&extended_commands[0], "t7", "Topic 7", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 8u
+      {&extended_commands[0], "t8", "Topic 8", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 9u
+      {&extended_commands[0], "t9", "Topic 9", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 10u
+      {&extended_commands[0], "t10", "Topic 10", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 11u
+      {&extended_commands[0], "t11", "Topic 11", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 12u
+      {&extended_commands[0], "t12", "Topic 12", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 13u
+      {&extended_commands[0], "t13", "Topic 13", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 14u
+      {&extended_commands[0], "t14", "Topic 14", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+#if BSC_MAX_HELP_TOPICS > 15u
+      {&extended_commands[0], "t15", "Topic 15", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+#endif
+  };
+#endif
+  bsc_help_catalog_t catalog = extended_valid_catalog();
+  bsc_help_target_t target = {&extended_commands[0], {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u};
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u
+  target.notes.items = max_notes;
+  target.notes.count = BSC_MAX_HELP_TEXT_ITEMS;
+  target.warnings.items = max_warnings;
+  target.warnings.count = BSC_MAX_HELP_TEXT_ITEMS;
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 0u
+  target.examples = max_examples;
+  target.example_count = BSC_MAX_HELP_EXAMPLES;
+#endif
+#if BSC_MAX_HELP_RELATED > 0u
+  target.related = max_related;
+  target.related_count = BSC_MAX_HELP_RELATED;
+#endif
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+#if BSC_MAX_HELP_TOPICS > 0u && BSC_MAX_HELP_TOPICS <= 16u
+  catalog.topics = max_topics;
+  catalog.topic_count = BSC_MAX_HELP_TOPICS;
+#else
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+#endif
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_status, 1u, NULL, &capture));
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "NOTES\n") == 0);
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "WARNINGS\n") == 0);
+#endif
+#if BSC_MAX_HELP_EXAMPLES > 0u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "EXAMPLES\n") == 0);
+#endif
+#if BSC_MAX_HELP_RELATED > 0u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "RELATED\n") == 0);
+#endif
+#if BSC_MAX_HELP_TOPICS > 0u && BSC_MAX_HELP_TOPICS <= 16u
+  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "TOPICS\n") == 0);
+#endif
+  return 0;
+}
+
 /** @brief Verify topic result clearing resets borrowed pointers and indexes and accepts NULL. */
 static int test_topic_result_clear(const char *test_name) {
   bsc_help_topic_lookup_result_t result;
@@ -727,6 +1269,11 @@ int bsc_run_help_extended_tests(void) {
   EXT_RUN_TEST(test_extended_render_golden_outputs);
   EXT_RUN_TEST(test_extended_no_metadata_matches_ordinary);
   EXT_RUN_TEST(test_extended_render_precedence_and_failures);
+  EXT_RUN_TEST(test_extended_render_visibility_options);
+  EXT_RUN_TEST(test_extended_render_validation_before_output_gaps);
+  EXT_RUN_TEST(test_extended_render_invalid_sink_precedence);
+  EXT_RUN_TEST(test_extended_render_optional_sections_and_edges);
+  EXT_RUN_TEST(test_extended_render_configured_maximum_counts);
   EXT_RUN_TEST(test_extended_all_filtered_related_omission);
   EXT_RUN_TEST(test_extended_render_short_writes);
   return failures;

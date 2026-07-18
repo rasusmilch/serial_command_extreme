@@ -168,14 +168,21 @@ These should be implemented as validators or application-defined custom types af
 
 Help is generated from command metadata.
 
-Required commands:
+Implemented console help commands remain:
 
 ```text
 help
 help <path>
-help <path> <subtopic>
 commands
 ```
+
+Future Task 11C-3 console grammar, not current built-in behavior, owns:
+
+```text
+help <path> <topic>
+```
+
+The pure help API already supports extended metadata without exposing that console grammar: `bsc_help_find_topic()` resolves flat catalog topics, `bsc_help_render_catalog_path()` renders catalog-aware command/group pages, and `bsc_help_render_topic()` renders pure topic pages. Visibility filtering is presentation policy and must not invoke execution access callbacks.
 
 `help` should list top-level commands/groups with one-line summaries.
 
@@ -183,9 +190,9 @@ commands
 
 `help settings wifi` should show Wi-Fi group description and children.
 
-`help settings wifi set ssid` should show a full manpage with name, synopsis, description, arguments, accepted values/bounds, examples, warnings, and related commands.
+`help settings wifi set ssid` should show a full manpage with name, synopsis, description, arguments, accepted values/bounds, notes, warnings, static examples, topics, and related commands.
 
-Manpage sections should be predictable:
+Implemented command-page sections are predictable:
 
 ```text
 NAME
@@ -194,9 +201,37 @@ DESCRIPTION
 ARGUMENTS
 VALID VALUES
 NOTES
+WARNINGS
+EXAMPLES
+TOPICS
+RELATED
+```
+
+Implemented group-page sections are predictable:
+
+```text
+NAME
+DESCRIPTION
+COMMANDS
+NOTES
+WARNINGS
+EXAMPLES
+TOPICS
+RELATED
+```
+
+Implemented topic-page sections are predictable:
+
+```text
+NAME
+DESCRIPTION
+NOTES
+WARNINGS
 EXAMPLES
 RELATED
 ```
+
+Topic pages omit SYNOPSIS, and static examples have no shell prompt marker.
 
 Every executable command must have enough metadata to produce a useful manpage. The library should fail validation or return an error if a public command lacks a required help field.
 

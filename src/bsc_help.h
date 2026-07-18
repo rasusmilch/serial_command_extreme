@@ -473,20 +473,6 @@ bsc_status_t bsc_help_find_path(const bsc_command_t *commands,
                                 bsc_help_lookup_result_t *result);
 
 /**
- * @brief Render the top-level visible help index under a COMMANDS heading.
- * @param commands Borrowed descriptor table.
- * @param command_count Number of descriptors.
- * @param options Optional borrowed visibility options; NULL means defaults.
- * @param output Required caller-owned output sink; callback blocking/ISR behavior is sink-defined.
- * @retval BSC_STATUS_OK Output completed.
- * @retval BSC_STATUS_INVALID_DESCRIPTOR Validation failed before any output was emitted.
- * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped immediately.
- * @retval BSC_STATUS_INTERNAL_ERROR Output target or required API input was invalid.
- * Emits LF-only deterministic descriptor-order text, retains no pointers, invokes no handlers/access callbacks,
- * and never reads runtime parsed arguments or secret values.
- */
-
-/**
  * @brief Render a command or group page with catalog-owned extended sections.
  * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are authoritative.
  * @param path_tokens Required explicit-length descriptor path tokens when path_token_count is nonzero.
@@ -540,6 +526,20 @@ bsc_status_t bsc_help_render_topic(const bsc_help_catalog_t *catalog,
                                    bsc_string_view_t topic_id,
                                    const bsc_help_options_t *options,
                                    bsc_output_t *output);
+
+/**
+ * @brief Render the top-level visible help index under a COMMANDS heading.
+ * @param commands Borrowed descriptor table.
+ * @param command_count Number of descriptors.
+ * @param options Optional borrowed visibility options; NULL means defaults.
+ * @param output Required caller-owned output sink; callback blocking/ISR behavior is sink-defined.
+ * @retval BSC_STATUS_OK Output completed.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Validation failed before any output was emitted.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped immediately.
+ * @retval BSC_STATUS_INTERNAL_ERROR Output target or required API input was invalid.
+ * Emits LF-only deterministic descriptor-order text, retains no pointers, invokes no handlers/access callbacks,
+ * and never reads runtime parsed arguments or secret values.
+ */
 
 bsc_status_t bsc_help_render_index(const bsc_command_t *commands,
                                    size_t command_count,

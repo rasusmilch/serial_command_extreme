@@ -716,6 +716,23 @@ static bsc_status_t bsc_help_render_group_children(bsc_output_t *output,
   return BSC_STATUS_OK;
 }
 
+/**
+ * @brief Render one already validated and resolved ordinary command or group page.
+ *
+ * @param commands Borrowed descriptor table that was already validated by the caller.
+ * @param command_count Number of descriptors in @p commands.
+ * @param command Required borrowed visible descriptor selected from @p commands.
+ * @param options Optional borrowed visibility options for group child filtering.
+ * @param output Required caller-owned sink.
+ * @param sections Required caller-owned emitted-section counter shared with extended renderers.
+ * @retval BSC_STATUS_OK The base page was fully written.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped.
+ * @retval BSC_STATUS_INTERNAL_ERROR Output helper inputs were invalid.
+ *
+ * The helper preserves the ordinary renderer byte sequence, owns no storage,
+ * retains no pointers after return, and never invokes handlers or access
+ * callbacks.
+ */
 bsc_status_t bsc_help_internal_render_resolved_path(const bsc_command_t *commands,
                                                     size_t command_count,
                                                     const bsc_command_t *command,
