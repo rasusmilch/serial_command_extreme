@@ -35,7 +35,7 @@ src/bsc_matcher.h
 src/bsc_matcher.c
 ```
 
-Optional console built-in routing is implemented in `bsc_console.*`; planned future modules still include catalog-aware console grammar, adapters, and examples. Exact future names may change, but the core constraints must remain intact.
+Optional console built-in routing is implemented in `bsc_console.*`; planned future modules still include adapters, and examples. Exact future names may change, but the core constraints must remain intact.
 
 
 ## Compact float parser boundary
@@ -65,7 +65,7 @@ The core must remain:
 
 ## Expected responsibilities
 
-Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, typed positional argument parsing with structured diagnostics, selected-command dispatch/access enforcement, output helpers, and status diagnostics. Implemented responsibilities now include output-neutral complete-line orchestration over tokenizer, matcher, and selected-command dispatch, pure generated-help validation, exact metadata-path lookup, deterministic help rendering, and optional complete-line `help`/`commands` routing. Planned responsibilities still include catalog-aware console grammar and broader redaction:
+Core source should implement only the reusable command subsystem. Current responsibilities include bounded token handling, static descriptor metadata, registry validation, longest-path matching, typed positional argument parsing with structured diagnostics, selected-command dispatch/access enforcement, output helpers, and status diagnostics. Implemented responsibilities now include output-neutral complete-line orchestration over tokenizer, matcher, and selected-command dispatch, pure generated-help validation, exact metadata-path lookup, deterministic help rendering, and optional complete-line `help`/`commands` routing. Planned responsibilities still include broader redaction:
 
 - Bounded line/token handling.
 - Bounded tokenizer with quotes and escapes.
@@ -98,7 +98,7 @@ docs/test_strategy.md
 
 New public C APIs, structs, enums, callbacks, and macros that behave like APIs must receive Doxygen-compatible documentation.
 
-Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, dispatch, catalog validation, pure flat-topic lookup, catalog-aware command/group rendering, and pure topic-page rendering are implemented; catalog-aware console grammar, adapters, and examples remain future work.
+Every source-code task must include host tests for new or changed parser, tokenizer, registry, validation, matcher, dispatch, output, redaction, help, or access behavior. The typed positional parser, compact-float diagnostics, selected-command access enforcement, dispatch, catalog validation, pure flat-topic lookup, catalog-aware command/group rendering, and pure topic-page rendering are implemented; adapters, and examples remain future work.
 
 
 ## Extended-help catalog source

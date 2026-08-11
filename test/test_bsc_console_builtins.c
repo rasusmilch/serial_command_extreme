@@ -57,6 +57,8 @@ typedef struct builtin_recursive_output {
   int mutate_once;
 } builtin_recursive_output_t;
 
+static int builtin_workspace_clean(const bsc_console_workspace_t *workspace);
+
 static const char *const path_status[] = {"status"};
 static const char *const path_settings[] = {"settings"};
 static const char *const path_settings_wifi[] = {"settings", "wifi"};
@@ -259,8 +261,143 @@ static bsc_status_t builtin_init_console(bsc_console_t *console,
   config.command_count = command_count;
   config.app_context = fixture;
   config.output = output;
+  config.help_catalog = NULL;
   return bsc_console_init(console, &config, NULL);
 }
+
+/** @brief Initialize a console with an optional catalog for catalog-routing tests. */
+static bsc_status_t builtin_init_catalog_console(bsc_console_t *console,
+                                                 builtin_fixture_t *fixture,
+                                                 const bsc_command_t *commands,
+                                                 size_t command_count,
+                                                 const bsc_help_catalog_t *catalog,
+                                                 const bsc_output_t *output) {
+  bsc_console_config_t config;
+  config.commands = commands;
+  config.command_count = command_count;
+  config.help_catalog = catalog;
+  config.app_context = fixture;
+  config.output = output;
+  return bsc_console_init(console, &config, NULL);
+}
+
+/** @brief Verify initialization enforces exact catalog registry identity and remains inert on failure. */
+static int test_catalog_initialization(const char *test_name) {
+  bsc_console_t console;
+  builtin_fixture_t fixture;
+  bsc_help_catalog_t catalog = {base_commands, sizeof(base_commands) / sizeof(base_commands[0]), NULL, 0u, NULL, 0u};
+  bsc_help_catalog_t bad_catalog = catalog;
+  bsc_command_t copied_commands[sizeof(base_commands) / sizeof(base_commands[0])];
+  memset(&fixture, 0, sizeof(fixture));
+  memcpy(copied_commands, base_commands, sizeof(base_commands));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &catalog, NULL));
+  BUILTIN_ASSERT_TRUE(console.help_catalog == &catalog);
+  bad_catalog.commands = copied_commands;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &bad_catalog, NULL));
+  BUILTIN_ASSERT_TRUE(!console.initialized && console.help_catalog == NULL && console.commands == NULL);
+  bad_catalog = catalog;
+  bad_catalog.command_count -= 1u;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &bad_catalog, NULL));
+  bad_catalog = catalog;
+  bad_catalog.topic_count = 1u;
+  bad_catalog.topics = NULL;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &bad_catalog, NULL));
+  BUILTIN_ASSERT_TRUE(!console.initialized && console.help_catalog == NULL);
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0 && fixture.access_calls == 0);
+  return 0;
+}
+
+#if BSC_MAX_HELP_TOPICS > 0
+/** @brief Verify catalog pages, topic fallback/statuses, precedence, isolation, and cleanup. */
+static int test_catalog_help_and_topic_routes(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_capture_t actual;
+  builtin_capture_t expected;
+  bsc_output_t actual_output = {builtin_capture_write, &actual};
+  bsc_output_t expected_output = {builtin_capture_write, &expected};
+  builtin_fixture_t fixture;
+  bsc_help_options_t options;
+  const bsc_help_topic_t topics[] = {
+      {&base_commands[2], "set", "Topic named set", "Presentation only.", {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+      {&base_commands[2], "security", "Security topic", "Security details.", {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+      {&base_commands[5], "reset", "Factory reset topic", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+  };
+  bsc_help_catalog_t catalog = {base_commands, sizeof(base_commands) / sizeof(base_commands[0]), NULL, 0u,
+                                topics, sizeof(topics) / sizeof(topics[0])};
+  bsc_string_view_t path[] = {bsc_string_view_from_cstr("settings"), bsc_string_view_from_cstr("wifi")};
+  memset(&fixture, 0, sizeof(fixture));
+  builtin_capture_init(&actual, sizeof(actual.buffer));
+  builtin_capture_init(&expected, sizeof(expected.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &catalog, &actual_output));
+  bsc_console_workspace_init(&workspace);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                      "help settings wifi", 18u, &result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_catalog_path(&catalog, path, 2u, NULL, &expected_output));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_TRUE(actual.used == expected.used && memcmp(actual.buffer, expected.buffer, actual.used) == 0);
+
+  builtin_capture_init(&actual, sizeof(actual.buffer));
+  builtin_capture_init(&expected, sizeof(expected.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                      "help settings wifi security", 27u, &result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_topic(&catalog, path, 2u,
+                                                             bsc_string_view_from_cstr("security"), NULL,
+                                                             &expected_output));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_TRUE(actual.used == expected.used && memcmp(actual.buffer, expected.buffer, actual.used) == 0);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                      "help settings wifi SeCuRiTy", 27u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                      "help settings wifi set", 22u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_TOPIC, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                 "help settings wifi missing", 26u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                   "help absent missing", 19u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                   "help factory reset", 18u, &result));
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                      "help factory reset", 18u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  builtin_capture_init(&actual, sizeof(actual.buffer));
+  actual.fail_after = 2u;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                   "help settings wifi", 18u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  builtin_capture_init(&actual, sizeof(actual.buffer));
+  actual.fail_after = 2u;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                   "help settings wifi security", 27u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &catalog, NULL));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_TOPIC, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                 "help settings wifi missing", 26u, &result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                  "help settings wifi security", 27u, &result));
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0 && fixture.access_calls == 0);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+#endif
 
 /** @brief Return true when workspace transient storage is inactive and cleared. */
 static int builtin_workspace_clean(const bsc_console_workspace_t *workspace) {
@@ -851,6 +988,10 @@ static int test_secret_non_disclosure(const char *test_name) {
 int bsc_run_console_builtins_tests(void) {
   int failures = 0;
   BUILTIN_RUN_TEST(test_builtins_result_clear);
+  BUILTIN_RUN_TEST(test_catalog_initialization);
+#if BSC_MAX_HELP_TOPICS > 0
+  BUILTIN_RUN_TEST(test_catalog_help_and_topic_routes);
+#endif
   BUILTIN_RUN_TEST(test_existing_api_dispatches_help_and_commands);
   BUILTIN_RUN_TEST(test_ordinary_route_equivalence);
   BUILTIN_RUN_TEST(test_help_index_routes_to_pure_renderer);

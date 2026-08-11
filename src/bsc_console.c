@@ -262,6 +262,23 @@ static bsc_status_t bsc_console_execute_builtin_tokens(const bsc_console_t *cons
   if (workspace->token_count == 1u) {
     return bsc_help_render_index(console->commands, console->command_count, &options_copy, output);
   }
+  if (console->help_catalog != NULL) {
+    bsc_status_t status = bsc_help_render_catalog_path(console->help_catalog,
+                                                       &workspace->tokens[1],
+                                                       workspace->token_count - 1u,
+                                                       &options_copy,
+                                                       output);
+    if (status != BSC_STATUS_UNKNOWN_COMMAND || workspace->token_count < 3u) {
+      return status;
+    }
+    bsc_console_builtins_set_builtin(result, BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+    return bsc_help_render_topic(console->help_catalog,
+                                 &workspace->tokens[1],
+                                 workspace->token_count - 2u,
+                                 workspace->tokens[workspace->token_count - 1u],
+                                 &options_copy,
+                                 output);
+  }
   return bsc_help_render_path(console->commands,
                               console->command_count,
                               &workspace->tokens[1],
@@ -416,9 +433,20 @@ bsc_status_t bsc_console_init(bsc_console_t *console,
   if (status != BSC_STATUS_OK) {
     return status;
   }
+  if (config->help_catalog != NULL) {
+    if (config->help_catalog->commands != config->commands ||
+        config->help_catalog->command_count != config->command_count) {
+      return BSC_STATUS_INVALID_DESCRIPTOR;
+    }
+    status = bsc_help_catalog_validate(config->help_catalog, NULL);
+    if (status != BSC_STATUS_OK) {
+      return status;
+    }
+  }
 
   console->commands = config->commands;
   console->command_count = config->command_count;
+  console->help_catalog = config->help_catalog;
   console->app_context = config->app_context;
   if (config->output != NULL) {
     console->output = *config->output;

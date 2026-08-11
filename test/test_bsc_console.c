@@ -244,6 +244,7 @@ static bsc_status_t init_console(bsc_console_t *console, console_fixture_t *fixt
   config.command_count = sizeof(k_commands) / sizeof(k_commands[0]);
   config.app_context = fixture;
   config.output = output;
+  config.help_catalog = NULL;
   return bsc_console_init(console, &config, NULL);
 }
 
@@ -275,6 +276,7 @@ static int test_console_initialization_failures(const char *test_name) {
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, &error));
   CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
   CONSOLE_TEST_ASSERT_TRUE(error.reason == BSC_REGISTRY_ERROR_NULL_COMMANDS);
@@ -323,6 +325,7 @@ static int test_console_initialization_success_and_reinit(const char *test_name)
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, NULL));
   CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_execute_line(&console, &workspace, "status", 6u, NULL));
@@ -524,12 +527,14 @@ static int test_output_passing_and_truncation(const char *test_name) {
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = &output;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   bsc_console_workspace_init(&workspace);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line(&console, &workspace, "status", 6u, &result));
   CONSOLE_TEST_ASSERT_TRUE(result.phase == BSC_CONSOLE_PHASE_DISPATCH);
   CONSOLE_TEST_ASSERT_TRUE(sink.used == sizeof(sink.bytes));
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_execute_line(&console, &workspace, "status", 6u, &result));
   return 0;
@@ -584,6 +589,7 @@ static int test_same_workspace_recursion_guard(const char *test_name) {
   config.command_count = 2u;
   config.app_context = &fixture;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   bsc_console_workspace_init(&workspace);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console, &workspace, "set name abc", 12u, &result));
@@ -626,6 +632,7 @@ static int test_float_enabled_console_execution(const char *test_name) {
   config.command_count = 1u;
   config.app_context = &fixture;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   bsc_console_workspace_init(&workspace);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console, &workspace, "set float 1.5", 13u, NULL));
@@ -644,6 +651,7 @@ static int test_float_disabled_console_initialization(const char *test_name) {
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, &error));
   CONSOLE_TEST_ASSERT_TRUE(error.reason == BSC_REGISTRY_ERROR_FLOAT_DISABLED);
   return 0;
