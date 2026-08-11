@@ -10,17 +10,17 @@ The test strategy is host-first by design. Firmware and hardware testing remain 
 
 ## Current status
 
-Last updated: 2026-07-18.
+Last updated: 2026-08-11.
 
 Current repository state:
 
 ```text
 Repository: rasusmilch/serial_command_extreme
 Product branch: main
-Stage: bounded C99 core through output-neutral complete-line console orchestration, pure generated help, optional complete-line help/commands built-in routing, and Task 11C-1 extended-help catalog schema plus structural validation
-Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, built-in-aware complete-line routing, and extended-help catalog structural validation
+Stage: bounded C99 core through output-neutral complete-line console orchestration, pure generated help, optional complete-line help/commands built-in routing, Task 11C-1 extended-help catalog schema and structural validation, and Task 11C-2 pure topic lookup plus catalog-aware extended rendering; Task 11C-3 catalog-aware console integration remains deferred
+Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, built-in-aware complete-line routing, extended-help catalog structural validation, flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, and shared bounded help internals
 Build system: CMake builds the core library and host tests
-Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, built-in-aware help/commands routing, generated help, extended-help catalog validation, default float-enabled behavior, float-disabled behavior, focused catalog capacity overrides, and forbidden-pattern scanning
+Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, built-in-aware help/commands routing, generated help, extended-help catalog validation, flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, byte-exact extended golden output, validation/visibility/output-failure behavior, configurable capacities, expanded/asymmetric/zero extended-metadata overrides, float-enabled and float-disabled behavior, and forbidden-pattern scanning
 Examples: not added yet; runnable example applications remain Phase 4 work
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
