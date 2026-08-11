@@ -31,6 +31,19 @@
     }                                                                                             \
   } while (0)
 
+#define EXT_ARRAY_FLOOR(value) ((value) == 0u ? 1u : (value))
+#define EXT_LOOKUP_FIXTURE_SUPPORTED (BSC_MAX_HELP_TOPICS >= 8u)
+#define EXT_RENDER_FIXTURE_SUPPORTED                                                                 \
+  (BSC_MAX_HELP_TEXT_ITEMS >= 2u && BSC_MAX_HELP_EXAMPLES >= 2u && BSC_MAX_HELP_RELATED >= 3u &&    \
+   BSC_MAX_HELP_TOPICS >= 3u)
+#define EXT_CAPACITY_LINE_LEN                                                                        \
+  ((size_t)BSC_MAX_LINE_LEN + ((size_t)BSC_MAX_PATH_TOKENS * ((size_t)BSC_MAX_TOKEN_LEN + 1u)) +     \
+   (size_t)BSC_MAX_HELP_TEXT_LEN + 32u)
+
+#if BSC_MAX_HELP_RELATED > BSC_MAX_COMMANDS
+#error "extended-help related capacity tests require BSC_MAX_HELP_RELATED <= BSC_MAX_COMMANDS"
+#endif
+
 static const char *const path_status[] = {"status"};
 static const char *const path_wifi[] = {"wifi"};
 static const char *const path_advanced[] = {"advanced"};
@@ -264,11 +277,21 @@ static void ext_capture_init(ext_capture_t *capture) {
 /** @brief Capture output bytes for exact renderer tests. */
 static size_t ext_capture_write(void *user, const char *data, size_t length) {
   ext_capture_t *capture = (ext_capture_t *)user;
+  size_t available;
   capture->calls += 1u;
-  if (data != NULL && length > 0u) {
-    memcpy(&capture->buffer[capture->used], data, length);
-    capture->used += length;
+  if (data == NULL || length == 0u) {
+    return length;
   }
+  available = sizeof(capture->buffer) - capture->used;
+  if (length > available) {
+    if (available > 0u) {
+      memcpy(&capture->buffer[capture->used], data, available);
+      capture->used += available;
+    }
+    return available;
+  }
+  memcpy(&capture->buffer[capture->used], data, length);
+  capture->used += length;
   return length;
 }
 
@@ -495,33 +518,6 @@ static size_t ext_count_occurrences(const char *haystack, size_t haystack_len, c
     } else {
       offset += 1u;
     }
-  }
-  return count;
-}
-
-
-/** @brief Count item lines in one named section of captured output. */
-static size_t ext_count_section_lines(const ext_capture_t *capture, const char *heading, const char *line_prefix) {
-  size_t heading_len = strlen(heading);
-  size_t prefix_len = strlen(line_prefix);
-  size_t start = ext_find_offset(capture->buffer, capture->used, heading);
-  size_t end;
-  size_t count = 0u;
-  size_t offset;
-  if (start == (size_t)-1) return 0u;
-  start += heading_len;
-  end = start;
-  while (end + 1u < capture->used) {
-    if (capture->buffer[end] == '\n' && capture->buffer[end + 1u] == '\n') break;
-    end += 1u;
-  }
-  offset = start;
-  while (offset < end) {
-    if ((offset == start || capture->buffer[offset - 1u] == '\n') &&
-        offset + prefix_len <= end && memcmp(&capture->buffer[offset], line_prefix, prefix_len) == 0) {
-      count += 1u;
-    }
-    offset += 1u;
   }
   return count;
 }
@@ -833,203 +829,399 @@ static int test_extended_render_optional_sections_and_edges(const char *test_nam
   return 0;
 }
 
-/** @brief Verify configured maximum extended metadata counts stream successfully. */
-static int test_extended_render_configured_maximum_counts(const char *test_name) {
-  ext_capture_t capture;
+static char cap_note_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TEXT_ITEMS)][16u];
+static const char *cap_note_items[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TEXT_ITEMS)];
+static char cap_warning_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TEXT_ITEMS)][16u];
+static const char *cap_warning_items[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TEXT_ITEMS)];
+static char cap_example_line_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_EXAMPLES)][16u];
+static char cap_example_desc_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_EXAMPLES)][16u];
+static bsc_help_example_t cap_examples[EXT_ARRAY_FLOOR(BSC_MAX_HELP_EXAMPLES)];
+static char cap_related_path_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_RELATED)][16u];
+static const char *cap_related_paths[EXT_ARRAY_FLOOR(BSC_MAX_HELP_RELATED)][1u];
+static char cap_related_summary_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_RELATED)][24u];
+static bsc_command_t cap_related_commands[EXT_ARRAY_FLOOR(BSC_MAX_HELP_RELATED)];
+static bsc_help_related_t cap_related[EXT_ARRAY_FLOOR(BSC_MAX_HELP_RELATED)];
+static char cap_topic_id_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TOPICS)][16u];
+static char cap_topic_summary_storage[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TOPICS)][24u];
+static bsc_help_topic_t cap_topics[EXT_ARRAY_FLOOR(BSC_MAX_HELP_TOPICS)];
+
+typedef enum ext_capacity_section {
+  EXT_CAP_SECTION_NONE = 0,
+  EXT_CAP_SECTION_NOTES,
+  EXT_CAP_SECTION_WARNINGS,
+  EXT_CAP_SECTION_EXAMPLES,
+  EXT_CAP_SECTION_TOPICS,
+  EXT_CAP_SECTION_RELATED
+} ext_capacity_section_t;
+
+typedef struct ext_capacity_sink {
+  char line[EXT_CAPACITY_LINE_LEN];
+  size_t line_used;
+  int overflow;
+  ext_capacity_section_t section;
+  size_t notes;
+  size_t warnings;
+  size_t examples;
+  size_t topics;
+  size_t related;
+  int saw_first_note;
+  int saw_last_note;
+  int saw_first_warning;
+  int saw_last_warning;
+  int saw_first_example;
+  int saw_last_example;
+  int saw_first_topic;
+  int saw_last_topic;
+  int saw_first_related;
+  int saw_last_related;
+} ext_capacity_sink_t;
+
+static ext_capacity_sink_t cap_sink;
+
+/** @brief Append an unsigned decimal index to a bounded test prefix. */
+static int ext_make_indexed_text(char *buffer, size_t capacity, const char *prefix, size_t index) {
+  char digits[24];
+  size_t prefix_len = strlen(prefix);
+  size_t digit_count = 0u;
+  size_t value = index;
+  if (capacity == 0u || prefix_len + 1u >= capacity) return 0;
+  do {
+    digits[digit_count] = (char)('0' + (value % 10u));
+    digit_count += 1u;
+    value /= 10u;
+  } while (value != 0u && digit_count < sizeof(digits));
+  if (value != 0u || prefix_len + digit_count + 1u > capacity) return 0;
+  memcpy(buffer, prefix, prefix_len);
+  while (digit_count > 0u) {
+    digit_count -= 1u;
+    buffer[prefix_len] = digits[digit_count];
+    prefix_len += 1u;
+  }
+  buffer[prefix_len] = '\0';
+  return 1;
+}
+
+/** @brief Initialize generated prose lists for the configured text-item capacity. */
+static int ext_capacity_init_text_items(void) {
+  size_t index;
+  for (index = 0u; index < (size_t)BSC_MAX_HELP_TEXT_ITEMS; ++index) {
+    if (!ext_make_indexed_text(cap_note_storage[index], sizeof(cap_note_storage[index]), "note", index)) return 0;
+    if (!ext_make_indexed_text(cap_warning_storage[index], sizeof(cap_warning_storage[index]), "warning", index)) return 0;
+    cap_note_items[index] = cap_note_storage[index];
+    cap_warning_items[index] = cap_warning_storage[index];
+  }
+  return 1;
+}
+
+/** @brief Initialize generated examples for the configured example capacity. */
+static int ext_capacity_init_examples(void) {
+  size_t index;
+  for (index = 0u; index < (size_t)BSC_MAX_HELP_EXAMPLES; ++index) {
+    if (!ext_make_indexed_text(cap_example_line_storage[index], sizeof(cap_example_line_storage[index]), "ex", index)) {
+      return 0;
+    }
+    cap_examples[index].line = cap_example_line_storage[index];
+    if ((index % 2u) == 1u) {
+      if (!ext_make_indexed_text(cap_example_desc_storage[index], sizeof(cap_example_desc_storage[index]), "desc", index)) {
+        return 0;
+      }
+      cap_examples[index].description = cap_example_desc_storage[index];
+    } else {
+      cap_examples[index].description = NULL;
+    }
+  }
+  return 1;
+}
+
+/** @brief Initialize a generated visible command table and exact related references. */
+static int ext_capacity_init_related(void) {
+  size_t index;
+  for (index = 0u; index < (size_t)BSC_MAX_HELP_RELATED; ++index) {
+    if (!ext_make_indexed_text(cap_related_path_storage[index], sizeof(cap_related_path_storage[index]), "rel", index)) {
+      return 0;
+    }
+    if (!ext_make_indexed_text(cap_related_summary_storage[index], sizeof(cap_related_summary_storage[index]), "Related ", index)) {
+      return 0;
+    }
+    cap_related_paths[index][0] = cap_related_path_storage[index];
+    cap_related_commands[index].path = cap_related_paths[index];
+    cap_related_commands[index].path_len = 1u;
+    cap_related_commands[index].node_type = BSC_NODE_COMMAND;
+    cap_related_commands[index].args = NULL;
+    cap_related_commands[index].arg_count = 0u;
+    cap_related_commands[index].handler = extended_forbidden_handler;
+    cap_related_commands[index].command_context = NULL;
+    cap_related_commands[index].access = BSC_ACCESS_NORMAL;
+    cap_related_commands[index].flags = BSC_COMMAND_FLAG_NONE;
+    cap_related_commands[index].access_fn = extended_forbidden_access;
+    cap_related_commands[index].summary = cap_related_summary_storage[index];
+    cap_related_commands[index].description = "Related command.";
+    cap_related[index].target = &cap_related_commands[index];
+  }
+  return 1;
+}
+
+/** @brief Initialize generated unique topics under one visible parent. */
+static int ext_capacity_init_topics(const bsc_command_t *parent) {
+  size_t index;
+  for (index = 0u; index < (size_t)BSC_MAX_HELP_TOPICS; ++index) {
+    if (!ext_make_indexed_text(cap_topic_id_storage[index], sizeof(cap_topic_id_storage[index]), "t", index)) return 0;
+    if (!ext_make_indexed_text(cap_topic_summary_storage[index], sizeof(cap_topic_summary_storage[index]), "Topic ", index)) {
+      return 0;
+    }
+    cap_topics[index].parent = parent;
+    cap_topics[index].id = cap_topic_id_storage[index];
+    cap_topics[index].summary = cap_topic_summary_storage[index];
+    cap_topics[index].description = NULL;
+    cap_topics[index].notes.items = NULL;
+    cap_topics[index].notes.count = 0u;
+    cap_topics[index].warnings.items = NULL;
+    cap_topics[index].warnings.count = 0u;
+    cap_topics[index].examples = NULL;
+    cap_topics[index].example_count = 0u;
+    cap_topics[index].related = NULL;
+    cap_topics[index].related_count = 0u;
+  }
+  return 1;
+}
+
+/** @brief Reset the streaming capacity sink before one render. */
+static void ext_capacity_sink_init(ext_capacity_sink_t *sink) {
+  memset(sink, 0, sizeof(*sink));
+}
+
+/** @brief Return nonzero when the current line equals a generated two-space item line. */
+static int ext_capacity_line_matches_item(const ext_capacity_sink_t *sink, const char *value) {
+  size_t value_len = strlen(value);
+  return sink->line_used == value_len + 2u && sink->line[0] == ' ' && sink->line[1] == ' ' &&
+         memcmp(&sink->line[2], value, value_len) == 0;
+}
+
+/** @brief Return nonzero when the current line equals a generated bullet item line. */
+static int ext_capacity_line_matches_bullet(const ext_capacity_sink_t *sink, const char *value) {
+  size_t value_len = strlen(value);
+  return sink->line_used == value_len + 4u && memcmp(sink->line, "  - ", 4u) == 0 &&
+         memcmp(&sink->line[4], value, value_len) == 0;
+}
+
+/** @brief Return nonzero when the current line equals one generated descriptor entry. */
+static int ext_capacity_line_matches_entry(const ext_capacity_sink_t *sink, size_t index) {
+  size_t path_len = strlen(cap_related_path_storage[index]);
+  size_t summary_len = strlen(cap_related_summary_storage[index]);
+  return sink->line_used == 2u + path_len + 3u + summary_len && memcmp(sink->line, "  ", 2u) == 0 &&
+         memcmp(&sink->line[2], cap_related_path_storage[index], path_len) == 0 &&
+         memcmp(&sink->line[2u + path_len], " - ", 3u) == 0 &&
+         memcmp(&sink->line[2u + path_len + 3u], cap_related_summary_storage[index], summary_len) == 0;
+}
+
+/** @brief Return nonzero when the current line equals one generated topic entry. */
+static int ext_capacity_line_matches_topic(const ext_capacity_sink_t *sink, size_t index) {
+  size_t id_len = strlen(cap_topic_id_storage[index]);
+  size_t summary_len = strlen(cap_topic_summary_storage[index]);
+  return sink->line_used == 2u + id_len + 3u + summary_len && memcmp(sink->line, "  ", 2u) == 0 &&
+         memcmp(&sink->line[2], cap_topic_id_storage[index], id_len) == 0 &&
+         memcmp(&sink->line[2u + id_len], " - ", 3u) == 0 &&
+         memcmp(&sink->line[2u + id_len + 3u], cap_topic_summary_storage[index], summary_len) == 0;
+}
+
+/** @brief Update capacity counters for one completed LF-terminated output line. */
+static void ext_capacity_sink_process_line(ext_capacity_sink_t *sink) {
+  sink->line[sink->line_used] = '\0';
+  if (strcmp(sink->line, "NOTES") == 0) sink->section = EXT_CAP_SECTION_NOTES;
+  else if (strcmp(sink->line, "WARNINGS") == 0) sink->section = EXT_CAP_SECTION_WARNINGS;
+  else if (strcmp(sink->line, "EXAMPLES") == 0) sink->section = EXT_CAP_SECTION_EXAMPLES;
+  else if (strcmp(sink->line, "TOPICS") == 0) sink->section = EXT_CAP_SECTION_TOPICS;
+  else if (strcmp(sink->line, "RELATED") == 0) sink->section = EXT_CAP_SECTION_RELATED;
+  else if (sink->line_used == 0u) sink->section = EXT_CAP_SECTION_NONE;
+  else if (sink->section == EXT_CAP_SECTION_NOTES && memcmp(sink->line, "  - ", 4u) == 0) {
 #if BSC_MAX_HELP_TEXT_ITEMS > 0u
-  static const char *const max_notes[BSC_MAX_HELP_TEXT_ITEMS] = {
+    if (ext_capacity_line_matches_bullet(sink, cap_note_storage[0])) sink->saw_first_note = 1;
+    if (ext_capacity_line_matches_bullet(sink, cap_note_storage[BSC_MAX_HELP_TEXT_ITEMS - 1u])) sink->saw_last_note = 1;
+#endif
+    sink->notes += 1u;
+  } else if (sink->section == EXT_CAP_SECTION_WARNINGS && memcmp(sink->line, "  - ", 4u) == 0) {
 #if BSC_MAX_HELP_TEXT_ITEMS > 0u
-      "note0",
+    if (ext_capacity_line_matches_bullet(sink, cap_warning_storage[0])) sink->saw_first_warning = 1;
+    if (ext_capacity_line_matches_bullet(sink, cap_warning_storage[BSC_MAX_HELP_TEXT_ITEMS - 1u])) sink->saw_last_warning = 1;
 #endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 1u
-      "note1",
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 2u
-      "note2",
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 3u
-      "note3",
-#endif
-  };
-  static const char *const max_warnings[BSC_MAX_HELP_TEXT_ITEMS] = {
-#if BSC_MAX_HELP_TEXT_ITEMS > 0u
-      "warning0",
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 1u
-      "warning1",
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 2u
-      "warning2",
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 3u
-      "warning3",
-#endif
-  };
-#endif
+    sink->warnings += 1u;
+  } else if (sink->section == EXT_CAP_SECTION_EXAMPLES && sink->line_used >= 2u &&
+             sink->line[0] == ' ' && sink->line[1] == ' ' && (sink->line_used < 4u || sink->line[2] != ' ' || sink->line[3] != ' ')) {
 #if BSC_MAX_HELP_EXAMPLES > 0u
-  static const bsc_help_example_t max_examples[BSC_MAX_HELP_EXAMPLES] = {
-#if BSC_MAX_HELP_EXAMPLES > 0u
-      {"status", NULL},
+    if (ext_capacity_line_matches_item(sink, cap_example_line_storage[0])) sink->saw_first_example = 1;
+    if (ext_capacity_line_matches_item(sink, cap_example_line_storage[BSC_MAX_HELP_EXAMPLES - 1u])) sink->saw_last_example = 1;
 #endif
-#if BSC_MAX_HELP_EXAMPLES > 1u
-      {"status", "example1"},
-#endif
-#if BSC_MAX_HELP_EXAMPLES > 2u
-      {"status", NULL},
-#endif
-#if BSC_MAX_HELP_EXAMPLES > 3u
-      {"status", "example3"},
-#endif
-  };
-#endif
-#if BSC_MAX_HELP_RELATED > 0u
-  static const bsc_help_related_t max_related[BSC_MAX_HELP_RELATED] = {
-#if BSC_MAX_HELP_RELATED > 0u
-      {&extended_commands[1]},
-#endif
-#if BSC_MAX_HELP_RELATED > 1u
-      {&extended_commands[2]},
-#endif
-#if BSC_MAX_HELP_RELATED > 2u
-      {&extended_commands[3]},
-#endif
-#if BSC_MAX_HELP_RELATED > 3u
-      {&extended_commands[4]},
-#endif
-  };
-#endif
+    sink->examples += 1u;
+  } else if (sink->section == EXT_CAP_SECTION_TOPICS && sink->line_used >= 2u && sink->line[0] == ' ' && sink->line[1] == ' ') {
 #if BSC_MAX_HELP_TOPICS > 0u
-  static const bsc_help_topic_t max_topics[BSC_MAX_HELP_TOPICS] = {
-#if BSC_MAX_HELP_TOPICS > 0u
-      {&extended_commands[0], "t0", "Topic 0", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+    if (ext_capacity_line_matches_topic(sink, 0u)) sink->saw_first_topic = 1;
+    if (ext_capacity_line_matches_topic(sink, BSC_MAX_HELP_TOPICS - 1u)) sink->saw_last_topic = 1;
 #endif
-#if BSC_MAX_HELP_TOPICS > 1u
-      {&extended_commands[0], "t1", "Topic 1", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+    sink->topics += 1u;
+  } else if (sink->section == EXT_CAP_SECTION_RELATED && sink->line_used >= 2u && sink->line[0] == ' ' && sink->line[1] == ' ') {
+#if BSC_MAX_HELP_RELATED > 0u
+    if (ext_capacity_line_matches_entry(sink, 0u)) sink->saw_first_related = 1;
+    if (ext_capacity_line_matches_entry(sink, BSC_MAX_HELP_RELATED - 1u)) sink->saw_last_related = 1;
 #endif
-#if BSC_MAX_HELP_TOPICS > 2u
-      {&extended_commands[0], "t2", "Topic 2", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 3u
-      {&extended_commands[0], "t3", "Topic 3", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 4u
-      {&extended_commands[0], "t4", "Topic 4", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 5u
-      {&extended_commands[0], "t5", "Topic 5", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 6u
-      {&extended_commands[0], "t6", "Topic 6", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 7u
-      {&extended_commands[0], "t7", "Topic 7", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 8u
-      {&extended_commands[0], "t8", "Topic 8", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 9u
-      {&extended_commands[0], "t9", "Topic 9", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 10u
-      {&extended_commands[0], "t10", "Topic 10", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 11u
-      {&extended_commands[0], "t11", "Topic 11", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 12u
-      {&extended_commands[0], "t12", "Topic 12", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 13u
-      {&extended_commands[0], "t13", "Topic 13", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 14u
-      {&extended_commands[0], "t14", "Topic 14", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-#if BSC_MAX_HELP_TOPICS > 15u
-      {&extended_commands[0], "t15", "Topic 15", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-#endif
-  };
-#endif
+    sink->related += 1u;
+  }
+  sink->line_used = 0u;
+}
+
+/** @brief Streaming sink that retains only one bounded line and capacity counters. */
+static size_t ext_capacity_write(void *user, const char *data, size_t length) {
+  ext_capacity_sink_t *sink = (ext_capacity_sink_t *)user;
+  size_t index;
+  if (data == NULL && length != 0u) return 0u;
+  for (index = 0u; index < length; ++index) {
+    char byte = data[index];
+    if (byte == '\n') {
+      ext_capacity_sink_process_line(sink);
+    } else if (sink->line_used + 1u < sizeof(sink->line)) {
+      sink->line[sink->line_used] = byte;
+      sink->line_used += 1u;
+    } else {
+      sink->overflow = 1;
+    }
+  }
+  return length;
+}
+
+/** @brief Render catalog path through the streaming capacity sink. */
+static bsc_status_t ext_capacity_render_path(const bsc_help_catalog_t *catalog, const char *const *path, size_t path_len) {
+  bsc_string_view_t tokens[BSC_MAX_PATH_TOKENS];
+  bsc_output_t output = {ext_capacity_write, &cap_sink};
+  size_t index;
+  for (index = 0u; index < path_len; ++index) tokens[index] = extended_token(path[index]);
+  ext_capacity_sink_init(&cap_sink);
+  return bsc_help_render_catalog_path(catalog, tokens, path_len, NULL, &output);
+}
+
+/** @brief Render topic page through the streaming capacity sink. */
+static bsc_status_t ext_capacity_render_topic(const bsc_help_catalog_t *catalog,
+                                              const char *const *path,
+                                              size_t path_len,
+                                              const char *topic_id) {
+  bsc_string_view_t tokens[BSC_MAX_PATH_TOKENS];
+  bsc_output_t output = {ext_capacity_write, &cap_sink};
+  size_t index;
+  for (index = 0u; index < path_len; ++index) tokens[index] = extended_token(path[index]);
+  ext_capacity_sink_init(&cap_sink);
+  return bsc_help_render_topic(catalog, tokens, path_len, extended_token(topic_id), NULL, &output);
+}
+
+/** @brief Verify configured maximum note and warning counts render exactly. */
+static int test_extended_render_maximum_text_items(const char *test_name) {
   bsc_help_catalog_t catalog = extended_valid_catalog();
-  bsc_help_options_t options;
   bsc_help_target_t target = {&extended_commands[0], {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u};
+  EXT_ASSERT_TRUE(ext_capacity_init_text_items());
 #if BSC_MAX_HELP_TEXT_ITEMS > 0u
-  target.notes.items = max_notes;
+  target.notes.items = cap_note_items;
   target.notes.count = BSC_MAX_HELP_TEXT_ITEMS;
-  target.warnings.items = max_warnings;
+  target.warnings.items = cap_warning_items;
   target.warnings.count = BSC_MAX_HELP_TEXT_ITEMS;
 #endif
-#if BSC_MAX_HELP_EXAMPLES > 0u
-  target.examples = max_examples;
-  target.example_count = BSC_MAX_HELP_EXAMPLES;
-#endif
-#if BSC_MAX_HELP_RELATED > 0u
-  target.related = max_related;
-  target.related_count = BSC_MAX_HELP_RELATED;
-#endif
-  bsc_help_options_init(&options);
-  options.include_factory = true;
-  options.include_locked = true;
   catalog.targets = &target;
   catalog.target_count = 1u;
-#if BSC_MAX_HELP_TOPICS > 0u && BSC_MAX_HELP_TOPICS <= 16u
-  catalog.topics = max_topics;
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_capacity_render_path(&catalog, path_status, 1u));
+  EXT_ASSERT_TRUE(cap_sink.overflow == 0);
+  EXT_ASSERT_TRUE(cap_sink.notes == (size_t)BSC_MAX_HELP_TEXT_ITEMS);
+  EXT_ASSERT_TRUE(cap_sink.warnings == (size_t)BSC_MAX_HELP_TEXT_ITEMS);
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u
+  EXT_ASSERT_TRUE(cap_sink.saw_first_note && cap_sink.saw_last_note);
+  EXT_ASSERT_TRUE(cap_sink.saw_first_warning && cap_sink.saw_last_warning);
+#else
+  EXT_ASSERT_TRUE(cap_sink.notes == 0u && cap_sink.warnings == 0u);
+#endif
+  return 0;
+}
+
+/** @brief Verify configured maximum presentation example count renders exactly. */
+static int test_extended_render_maximum_examples(const char *test_name) {
+  bsc_help_catalog_t catalog = extended_valid_catalog();
+  bsc_help_target_t target = {&extended_commands[0], {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u};
+  EXT_ASSERT_TRUE(ext_capacity_init_examples());
+#if BSC_MAX_HELP_EXAMPLES > 0u
+  target.examples = cap_examples;
+  target.example_count = BSC_MAX_HELP_EXAMPLES;
+#endif
+  catalog.targets = &target;
+  catalog.target_count = 1u;
+  catalog.topics = NULL;
+  catalog.topic_count = 0u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_capacity_render_path(&catalog, path_status, 1u));
+  EXT_ASSERT_TRUE(cap_sink.overflow == 0);
+  EXT_ASSERT_TRUE(cap_sink.examples == (size_t)BSC_MAX_HELP_EXAMPLES);
+#if BSC_MAX_HELP_EXAMPLES > 0u
+  EXT_ASSERT_TRUE(cap_sink.saw_first_example && cap_sink.saw_last_example);
+#else
+  EXT_ASSERT_TRUE(cap_sink.examples == 0u);
+#endif
+  return 0;
+}
+
+/** @brief Verify configured maximum related count renders exactly through topic metadata. */
+static int test_extended_render_maximum_related(const char *test_name) {
+  bsc_help_catalog_t catalog;
+  bsc_help_topic_t topic;
+  EXT_ASSERT_TRUE(ext_capacity_init_related());
+  if (BSC_MAX_HELP_RELATED == 0u) {
+    catalog = extended_valid_catalog();
+    catalog.targets = NULL;
+    catalog.target_count = 0u;
+    catalog.topics = NULL;
+    catalog.topic_count = 0u;
+    EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_capacity_render_path(&catalog, path_status, 1u));
+    EXT_ASSERT_TRUE(cap_sink.related == 0u);
+    return 0;
+  }
+  topic.parent = &cap_related_commands[0];
+  topic.id = "rel";
+  topic.summary = "Related topic";
+  topic.description = NULL;
+  topic.notes.items = NULL;
+  topic.notes.count = 0u;
+  topic.warnings.items = NULL;
+  topic.warnings.count = 0u;
+  topic.examples = NULL;
+  topic.example_count = 0u;
+  topic.related = cap_related;
+  topic.related_count = BSC_MAX_HELP_RELATED;
+  catalog.commands = cap_related_commands;
+  catalog.command_count = BSC_MAX_HELP_RELATED;
+  catalog.targets = NULL;
+  catalog.target_count = 0u;
+  catalog.topics = &topic;
+  catalog.topic_count = 1u;
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_capacity_render_topic(&catalog, cap_related_paths[0], 1u, "rel"));
+  EXT_ASSERT_TRUE(cap_sink.overflow == 0);
+  EXT_ASSERT_TRUE(cap_sink.related == (size_t)BSC_MAX_HELP_RELATED);
+  EXT_ASSERT_TRUE(cap_sink.saw_first_related && cap_sink.saw_last_related);
+  return 0;
+}
+
+/** @brief Verify configured maximum flat topic count renders exactly under one parent. */
+static int test_extended_render_maximum_topics(const char *test_name) {
+  bsc_help_catalog_t catalog = extended_valid_catalog();
+  EXT_ASSERT_TRUE(ext_capacity_init_topics(&extended_commands[0]));
+  catalog.targets = NULL;
+  catalog.target_count = 0u;
+#if BSC_MAX_HELP_TOPICS > 0u
+  catalog.topics = cap_topics;
   catalog.topic_count = BSC_MAX_HELP_TOPICS;
 #else
   catalog.topics = NULL;
   catalog.topic_count = 0u;
 #endif
-  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_render_catalog_capture(&catalog, path_status, 1u, &options, &capture));
-#if BSC_MAX_HELP_TEXT_ITEMS > 0u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note0\n") == 0);
-  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "NOTES\n", "  - ") == BSC_MAX_HELP_TEXT_ITEMS);
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning0\n") == 0);
-  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "WARNINGS\n", "  - ") == BSC_MAX_HELP_TEXT_ITEMS);
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 1u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note1\n") == 0);
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning1\n") == 0);
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 2u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note2\n") == 0);
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning2\n") == 0);
-#endif
-#if BSC_MAX_HELP_TEXT_ITEMS > 3u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - note3\n") == 0);
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  - warning3\n") == 0);
-#endif
-#if BSC_MAX_HELP_EXAMPLES > 0u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  status\n") == 0);
-  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "EXAMPLES\n", "  status") == BSC_MAX_HELP_EXAMPLES);
-#endif
-#if BSC_MAX_HELP_EXAMPLES > 1u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "    example1\n") == 0);
-#endif
-#if BSC_MAX_HELP_EXAMPLES > 3u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "    example3\n") == 0);
-#endif
-#if BSC_MAX_HELP_RELATED > 0u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  wifi - WiFi\n") == 0);
-  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "RELATED\n", "  ") == BSC_MAX_HELP_RELATED);
-#endif
-#if BSC_MAX_HELP_RELATED > 1u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  advanced - Advanced\n") == 0);
-#endif
-#if BSC_MAX_HELP_RELATED > 2u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  factory - Factory\n") == 0);
-#endif
-#if BSC_MAX_HELP_RELATED > 3u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  locked - Locked\n") == 0);
-#endif
-#if BSC_MAX_HELP_TOPICS > 0u && BSC_MAX_HELP_TOPICS <= 16u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  t0 - Topic 0\n") == 0);
-  EXT_ASSERT_TRUE(ext_count_section_lines(&capture, "TOPICS\n", "  t") == BSC_MAX_HELP_TOPICS);
-#endif
-#if BSC_MAX_HELP_TOPICS > 1u && BSC_MAX_HELP_TOPICS <= 16u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  t1 - Topic 1\n") == 0);
-#endif
-#if BSC_MAX_HELP_TOPICS > 15u && BSC_MAX_HELP_TOPICS <= 16u
-  EXT_ASSERT_TRUE(ext_assert_contains(test_name, &capture, "  t15 - Topic 15\n") == 0);
+  EXT_ASSERT_STATUS(BSC_STATUS_OK, ext_capacity_render_path(&catalog, path_status, 1u));
+  EXT_ASSERT_TRUE(cap_sink.overflow == 0);
+  EXT_ASSERT_TRUE(cap_sink.topics == (size_t)BSC_MAX_HELP_TOPICS);
+#if BSC_MAX_HELP_TOPICS > 0u
+  EXT_ASSERT_TRUE(cap_sink.saw_first_topic && cap_sink.saw_last_topic);
+#else
+  EXT_ASSERT_TRUE(cap_sink.topics == 0u);
 #endif
   return 0;
 }
@@ -1330,20 +1522,31 @@ static int test_extended_render_short_writes(const char *test_name) {
 int bsc_run_help_extended_tests(void) {
   int failures = 0;
   EXT_RUN_TEST(test_topic_result_clear);
+#if EXT_LOOKUP_FIXTURE_SUPPORTED
   EXT_RUN_TEST(test_topic_lookup_success_and_identity);
   EXT_RUN_TEST(test_topic_lookup_same_id_under_different_parents);
   EXT_RUN_TEST(test_topic_lookup_visibility_options);
   EXT_RUN_TEST(test_topic_lookup_failure_statuses_and_precedence);
   EXT_RUN_TEST(test_topic_lookup_validation_failures);
+#endif
+#if EXT_RENDER_FIXTURE_SUPPORTED
   EXT_RUN_TEST(test_extended_render_golden_outputs);
+#endif
   EXT_RUN_TEST(test_extended_no_metadata_matches_ordinary);
+#if EXT_RENDER_FIXTURE_SUPPORTED
   EXT_RUN_TEST(test_extended_render_precedence_and_failures);
   EXT_RUN_TEST(test_extended_render_visibility_options);
   EXT_RUN_TEST(test_extended_render_validation_before_output_gaps);
   EXT_RUN_TEST(test_extended_render_invalid_sink_precedence);
   EXT_RUN_TEST(test_extended_render_optional_sections_and_edges);
-  EXT_RUN_TEST(test_extended_render_configured_maximum_counts);
+#endif
+  EXT_RUN_TEST(test_extended_render_maximum_text_items);
+  EXT_RUN_TEST(test_extended_render_maximum_examples);
+  EXT_RUN_TEST(test_extended_render_maximum_related);
+  EXT_RUN_TEST(test_extended_render_maximum_topics);
+#if EXT_RENDER_FIXTURE_SUPPORTED
   EXT_RUN_TEST(test_extended_all_filtered_related_omission);
   EXT_RUN_TEST(test_extended_render_short_writes);
+#endif
   return failures;
 }

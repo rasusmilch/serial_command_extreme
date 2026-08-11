@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "bsc_config.h"
 #include "bsc_output.h"
 #include "bsc_status.h"
 #include "bsc_string_view.h"
@@ -263,9 +264,13 @@ int main(void) {
   failures += bsc_run_matcher_tests();
   failures += bsc_run_args_tests();
   failures += bsc_run_dispatch_tests();
+#if BSC_MAX_COMMANDS >= 16u
   failures += bsc_run_console_tests();
   failures += bsc_run_console_builtins_tests();
   failures += bsc_run_help_tests();
+#else
+  printf("SKIP: command-heavy console/help suites require BSC_MAX_COMMANDS >= 16 for their fixed fixtures\n");
+#endif
   failures += bsc_run_help_catalog_tests();
   failures += bsc_run_help_extended_tests();
 

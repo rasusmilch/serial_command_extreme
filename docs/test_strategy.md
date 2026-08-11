@@ -28,6 +28,8 @@ ESP-IDF adapter: not added yet
 
 Implementation code and host tests exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. Task 11C-1 catalog schema and structural validation and Task 11C-2 extended rendering/topic APIs are implemented in the current repository without catalog-aware console grammar. Task 11C-3 remains future work for catalog-aware console integration after explicit grammar approval. This file remains the durable testing-policy anchor and distinguishes current host coverage from future console topic grammar, adapter, and hardware validation.
 
+Task 11C-2 extended-help capacity tests are expected to compile under default capacities, expanded extended-help capacities, small asymmetric extended-help capacities, and zero extended-metadata capacities. Override builds may skip unrelated fixed-fixture suites when `BSC_MAX_COMMANDS` is intentionally below those fixtures' documented needs; they must not silently clamp extended-help metadata counts.
+
 ## Testing goals
 
 The main testing goal is to make Codex and human reviewers able to validate core behavior automatically without target hardware.

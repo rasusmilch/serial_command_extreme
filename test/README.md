@@ -90,6 +90,8 @@ Do not claim hardware validation unless hardware was actually used and evidence 
 
 Generated help index, command-list output, ordinary group pages, ordinary executable-command pages, catalog-aware extended command/group pages, pure topic pages, and no-metadata compatibility pages have byte-exact LF golden-output tests. Future redacted echo/status output and representative error messages should add golden-output tests once formatting is approved.
 
+Extended-help capacity validation should also be run with representative compile-time overrides: an expanded warning-strict build (`BSC_MAX_COMMANDS=32`, `BSC_MAX_HELP_TEXT_ITEMS=7`, `BSC_MAX_HELP_EXAMPLES=9`, `BSC_MAX_HELP_RELATED=12`, `BSC_MAX_HELP_TOPICS=23`), a small asymmetric build (`BSC_MAX_COMMANDS=8`, `BSC_MAX_HELP_TEXT_ITEMS=1`, `BSC_MAX_HELP_EXAMPLES=2`, `BSC_MAX_HELP_RELATED=3`, `BSC_MAX_HELP_TOPICS=5`), and a zero extended-metadata build (`BSC_MAX_HELP_TEXT_ITEMS=0`, `BSC_MAX_HELP_EXAMPLES=0`, `BSC_MAX_HELP_RELATED=0`, `BSC_MAX_HELP_TOPICS=0`). The small command-count override skips command-heavy console/help fixtures that intentionally require the default command capacity while still running the extended-help capacity tests.
+
 Golden files should live under:
 
 ```text
