@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "bsc_config.h"
 #include "bsc_output.h"
 #include "bsc_status.h"
 #include "bsc_string_view.h"
@@ -45,6 +46,10 @@ int bsc_run_help_tests(void);
  * @brief Run extended-help catalog validation tests supplied by the help catalog module.
  */
 int bsc_run_help_catalog_tests(void);
+/**
+ * @brief Run pure extended-help topic lookup tests supplied by the extended help module.
+ */
+int bsc_run_help_extended_tests(void);
 
 /**
  * @brief Fail the current host test when a condition is false.
@@ -122,6 +127,30 @@ static int test_status_names(const char *test_name) {
   TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_SYNTAX", bsc_status_name(BSC_STATUS_INVALID_SYNTAX));
   TEST_ASSERT_STR_EQ("BSC_STATUS_INVALID_DESCRIPTOR", bsc_status_name(BSC_STATUS_INVALID_DESCRIPTOR));
   TEST_ASSERT_STR_EQ("BSC_STATUS_ARGUMENT_TOO_SHORT", bsc_status_name(BSC_STATUS_ARGUMENT_TOO_SHORT));
+  TEST_ASSERT_STR_EQ("BSC_STATUS_UNKNOWN_TOPIC", bsc_status_name(BSC_STATUS_UNKNOWN_TOPIC));
+  TEST_ASSERT_TRUE((int)BSC_STATUS_OK == 0);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_NO_INPUT == 1);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_LINE_TOO_LONG == 2);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_TOKEN_TOO_LONG == 3);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_TOO_MANY_TOKENS == 4);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_UNTERMINATED_QUOTE == 5);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_INVALID_SYNTAX == 6);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_UNKNOWN_COMMAND == 7);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_AMBIGUOUS_COMMAND == 8);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_GROUP_REQUIRES_SUBCOMMAND == 9);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_MISSING_ARGUMENT == 10);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_EXTRA_ARGUMENT == 11);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_INVALID_ARGUMENT_TYPE == 12);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_ARGUMENT_OUT_OF_RANGE == 13);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_ARGUMENT_TOO_LONG == 14);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_INVALID_ENUM_VALUE == 15);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_INVALID_DESCRIPTOR == 16);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_ACCESS_DENIED == 17);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_OUTPUT_TRUNCATED == 18);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_APP_ERROR == 19);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_INTERNAL_ERROR == 20);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_ARGUMENT_TOO_SHORT == 21);
+  TEST_ASSERT_TRUE((int)BSC_STATUS_UNKNOWN_TOPIC == 22);
   TEST_ASSERT_STR_EQ("BSC_STATUS_UNKNOWN", bsc_status_name((bsc_status_t)999));
   return 0;
 }
@@ -235,10 +264,15 @@ int main(void) {
   failures += bsc_run_matcher_tests();
   failures += bsc_run_args_tests();
   failures += bsc_run_dispatch_tests();
+#if BSC_MAX_COMMANDS >= 16u
   failures += bsc_run_console_tests();
   failures += bsc_run_console_builtins_tests();
   failures += bsc_run_help_tests();
+#else
+  printf("SKIP: command-heavy console/help suites require BSC_MAX_COMMANDS >= 16 for their fixed fixtures\n");
+#endif
   failures += bsc_run_help_catalog_tests();
+  failures += bsc_run_help_extended_tests();
 
   if (failures != 0) {
     printf("FAIL: %d test(s) failed\n", failures);

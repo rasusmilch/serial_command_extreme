@@ -11,6 +11,7 @@ add_executable(
   test_bsc_console_builtins.c
   test_bsc_help.c
   test_bsc_help_catalog.c
+  test_bsc_help_extended.c
 )
 
 target_link_libraries(sce_host_tests PRIVATE serial_command_extreme::serial_command_extreme)

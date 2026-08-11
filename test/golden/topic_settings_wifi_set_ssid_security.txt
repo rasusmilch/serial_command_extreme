@@ -1,0 +1,20 @@
+NAME
+  settings wifi set ssid: security - Password handling and safe examples
+
+DESCRIPTION
+  Use static example placeholders for secrets and avoid copying real credentials into logs.
+
+NOTES
+  - Secret argument values are runtime input and are never read by help rendering.
+
+WARNINGS
+  - Help examples must not contain production credentials.
+
+EXAMPLES
+  settings wifi set ssid "Shop AP" <new-password> 6 10 on sta 1.0
+    Demonstrates quoting an SSID while redacting the secret.
+  settings wifi set ssid Lab <secret> 1 0 on ap 0.5
+
+RELATED
+  settings wifi set ssid - SSID
+  status - Status

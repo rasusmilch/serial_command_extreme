@@ -103,7 +103,7 @@ typedef struct bsc_help_lookup_result {
  *
  * The list owns no storage. When count is zero, items may be NULL or non-NULL and is ignored. When count is nonzero,
  * items must point at count borrowed NUL-terminated strings, each bounded by BSC_MAX_HELP_TEXT_LEN and free of CR, LF,
- * ASCII control bytes, and DEL. Used for distinct NOTES and WARNINGS sections by future renderers.
+ * ASCII control bytes, and DEL. Catalog-aware command/group and topic renderers emit these lists as distinct NOTES and WARNINGS sections.
  */
 typedef struct bsc_help_text_list {
   /** Borrowed array of borrowed help text items. Ignored when count is zero. */
@@ -113,10 +113,10 @@ typedef struct bsc_help_text_list {
 } bsc_help_text_list_t;
 
 /**
- * @brief Borrowed presentation-only example metadata for future help rendering.
+ * @brief Borrowed presentation-only example metadata for catalog-aware help rendering.
  *
  * The required line and optional description are static/caller-owned text. Catalog validation bounds and checks them for
- * presentation safety but never tokenizes, parses, matches, executes, or scans them for credential-like content. Secret
+ * presentation safety; renderers emit it as static text but never tokenize, parse, match, execute, or scan it for credential-like content. Secret
  * examples must use application-authored placeholders such as <new-password>, ********, or <secret>.
  */
 typedef struct bsc_help_example {
@@ -141,15 +141,15 @@ typedef struct bsc_help_related {
  * @brief Borrowed extended metadata attached to one command or group descriptor.
  *
  * The target pointer must equal one element in the owning catalog command table. Notes, warnings, examples, and related
- * references are optional pointer/count arrays; zero counts ignore their pointers. Target metadata is structural and does
- * not affect tokenizer, matcher, argument parsing, access, dispatch, or existing help rendering in Task 11C-1.
+ * references are optional pointer/count arrays; zero counts ignore their pointers. Target metadata is structural and
+ * extends ordinary command/group help pages through catalog-aware renderers without affecting tokenizer, matcher, argument parsing, access, dispatch, handlers, execution access callbacks, or ordinary help rendering.
  */
 typedef struct bsc_help_target {
   /** Required borrowed descriptor pointer for the command or group receiving extended metadata. */
   const bsc_command_t *target;
-  /** Optional borrowed note prose entries rendered in metadata order by future renderers. */
+  /** Optional borrowed note prose entries rendered in metadata order by catalog-aware renderers. */
   bsc_help_text_list_t notes;
-  /** Optional borrowed warning prose entries rendered in metadata order by future renderers. */
+  /** Optional borrowed warning prose entries rendered in metadata order by catalog-aware renderers. */
   bsc_help_text_list_t warnings;
   /** Optional borrowed presentation examples. Ignored when example_count is zero. */
   const bsc_help_example_t *examples;
@@ -164,12 +164,13 @@ typedef struct bsc_help_target {
 /**
  * @brief Borrowed flat non-executable topic metadata under one command or group descriptor.
  *
- * Topics are single-token records in Task 11C-1. They inherit future rendering visibility from their parent descriptor,
- * have no access levels or visibility flags, cannot contain child topics, and cannot reference other topic records. The
- * optional description is validated when present and must be non-empty. Topic metadata never affects execution.
+ * Topics are single-token Task 11C records. They inherit their parent descriptor's current static help visibility,
+ * can be rendered through #bsc_help_render_topic, have no access levels or visibility flags, cannot contain child topics,
+ * and cannot reference other topic records. The optional description is validated when present and must be non-empty. Topic
+ * metadata never affects execution, and console topic grammar remains deferred to Task 11C-3.
  */
 typedef struct bsc_help_topic {
-  /** Required borrowed parent descriptor pointer; topics inherit this descriptor's future rendering visibility. */
+  /** Required borrowed parent descriptor pointer; topics inherit this descriptor's current static help visibility. */
   const bsc_command_t *parent;
   /** Required borrowed single-token topic identifier; topics are flat and non-executable in Task 11C. */
   const char *id;
@@ -213,6 +214,26 @@ typedef struct bsc_help_catalog {
   /** Number of active entries in topics; must not exceed BSC_MAX_HELP_TOPICS. */
   size_t topic_count;
 } bsc_help_catalog_t;
+/**
+ * @brief Caller-owned result for pure flat-topic lookup.
+ *
+ * The result owns no storage. On success, topic borrows the exact element in
+ * catalog->topics at topic_index, and parent_command_index identifies
+ * topic->parent within catalog->commands. The parent descriptor pointer is
+ * available through topic->parent and is intentionally not duplicated here. All
+ * borrowed pointers remain valid only while the catalog, command table, metadata
+ * arrays, and pointed-to strings remain alive and unchanged. The core never
+ * retains this result or its pointers after return.
+ */
+typedef struct bsc_help_topic_lookup_result {
+  /** Borrowed matching topic, or NULL after clear/failure. */
+  const bsc_help_topic_t *topic;
+  /** Zero-based index of topic in catalog->topics, or zero after clear/failure. */
+  size_t topic_index;
+  /** Zero-based index of topic->parent in catalog->commands, or zero after clear/failure. */
+  size_t parent_command_index;
+} bsc_help_topic_lookup_result_t;
+
 
 /**
  * @brief Catalog structural validation failure reasons.
@@ -352,6 +373,14 @@ void bsc_help_lookup_result_clear(bsc_help_lookup_result_t *result);
 void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t *error);
 
 /**
+ * @brief Clear a caller-owned pure topic lookup result.
+ * @param result Optional result storage; NULL is accepted.
+ * Sets the borrowed topic pointer to NULL and scalar indexes to zero, retains no pointers, and performs no allocation or
+ * I/O.
+ */
+void bsc_help_topic_lookup_result_clear(bsc_help_topic_lookup_result_t *result);
+
+/**
  * @brief Validate borrowed extended-help catalog structure independently of rendering visibility.
  * @param catalog Required borrowed catalog whose commands/command_count are the authoritative registry.
  * @param error Optional caller-owned diagnostic cleared on entry and filled on failure.
@@ -364,8 +393,9 @@ void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t
  * metadata remain caller-owned or static and need only outlive this synchronous call. Relationship pointers must equal
  * exact elements of catalog->commands; metadata never affects tokenizer, matcher, parser, dispatch, aliases, handlers,
  * execution access callbacks, or runtime argument values. Topics are flat single-token non-executable records that
- * inherit their parent descriptor visibility in future renderers; Task 11C adds no nested topics, topic visibility flags,
- * topic access levels, or topic-to-topic relationships. Static examples are presentation text only and should use
+ * inherit their parent descriptor visibility in catalog-aware renderers and can be rendered through
+ * #bsc_help_render_topic. Task 11C adds no console topic grammar, nested topics, topic visibility flags, topic access
+ * levels, or topic-to-topic relationships. Static examples are presentation text only and should use
  * application-authored placeholders such as <new-password>, ********, or <secret> for secret arguments.
  *
  * The function emits no output, allocates no heap, uses no hidden workspace, retains no pointers after return, and is
@@ -374,6 +404,34 @@ void bsc_help_catalog_validation_error_clear(bsc_help_catalog_validation_error_t
  */
 bsc_status_t bsc_help_catalog_validate(const bsc_help_catalog_t *catalog,
                                         bsc_help_catalog_validation_error_t *error);
+
+/**
+ * @brief Find a flat non-executable help topic under an exact visible parent path.
+ * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are the authoritative registry.
+ * @param parent_path_tokens Required explicit-length parent path token array when parent_path_token_count is nonzero.
+ * @param parent_path_token_count Number of parent path tokens; zero returns #BSC_STATUS_NO_INPUT.
+ * @param topic_id Explicit-length topic identifier; zero length returns #BSC_STATUS_NO_INPUT.
+ * @param options Optional borrowed visibility options; NULL means defaults. Topics inherit parent descriptor visibility.
+ * @param result Required caller-owned result storage; cleared on entry and on every failure.
+ * @retval BSC_STATUS_OK One topic matched under the visible parent; result borrows catalog metadata.
+ * @retval BSC_STATUS_NO_INPUT No parent path tokens or an empty topic id was supplied.
+ * @retval BSC_STATUS_UNKNOWN_COMMAND Parent path was absent or filtered by help visibility.
+ * @retval BSC_STATUS_UNKNOWN_TOPIC Parent path was visible, but no topic under that parent matched.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Catalog, registry, duplicate topic, or visible help metadata validation failed.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required API pointers were invalid, including nonempty topic_id with NULL data.
+ *
+ * The function validates before lookup, derives the registry only from the catalog, matches topic ids with ASCII
+ * case-insensitive comparison, owns no storage, retains no pointers internally after return, allocates no heap, uses no
+ * hidden workspace, emits no output, and never invokes handlers, access callbacks, matcher, parser, dispatcher, console
+ * routing, runtime parsed arguments, or runtime secret values. It is reentrant for immutable metadata and independent
+ * result objects, and is intended for synchronous task/thread or host-test use rather than ISR use.
+ */
+bsc_status_t bsc_help_find_topic(const bsc_help_catalog_t *catalog,
+                                 const bsc_string_view_t *parent_path_tokens,
+                                 size_t parent_path_token_count,
+                                 bsc_string_view_t topic_id,
+                                 const bsc_help_options_t *options,
+                                 bsc_help_topic_lookup_result_t *result);
 
 
 /**
@@ -417,6 +475,61 @@ bsc_status_t bsc_help_find_path(const bsc_command_t *commands,
                                 bsc_help_lookup_result_t *result);
 
 /**
+ * @brief Render a command or group page with catalog-owned extended sections.
+ * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are authoritative.
+ * @param path_tokens Required explicit-length descriptor path tokens when path_token_count is nonzero.
+ * @param path_token_count Number of descriptor path tokens; zero returns #BSC_STATUS_NO_INPUT.
+ * @param options Optional borrowed visibility options; NULL means defaults.
+ * @param output Required caller-owned output sink after validation and lookup succeed.
+ * @retval BSC_STATUS_OK Output completed.
+ * @retval BSC_STATUS_NO_INPUT No path tokens were supplied.
+ * @retval BSC_STATUS_UNKNOWN_COMMAND The path was absent or filtered by visibility.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Catalog, registry, duplicate topic, related, or visible help validation failed.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped immediately.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required pointers or output target were invalid.
+ *
+ * The renderer validates and resolves all metadata before emitting bytes, derives the registry only from the catalog,
+ * streams LF-only output without a full-page buffer, owns no storage, retains no pointers after return, allocates no heap,
+ * uses no hidden workspace, and never invokes handlers, access callbacks, matcher, parser, dispatcher, console routing,
+ * runtime parsed arguments, or runtime secret values. Shared output sinks require caller serialization; this API is intended
+ * for synchronous task/thread or host-test use rather than ISR use.
+ */
+bsc_status_t bsc_help_render_catalog_path(const bsc_help_catalog_t *catalog,
+                                          const bsc_string_view_t *path_tokens,
+                                          size_t path_token_count,
+                                          const bsc_help_options_t *options,
+                                          bsc_output_t *output);
+
+/**
+ * @brief Render a flat non-executable catalog topic page.
+ * @param catalog Required borrowed catalog; catalog->commands and catalog->command_count are authoritative.
+ * @param parent_path_tokens Required explicit-length parent path tokens when parent_path_token_count is nonzero.
+ * @param parent_path_token_count Number of parent path tokens; zero returns #BSC_STATUS_NO_INPUT.
+ * @param topic_id Explicit-length topic identifier; zero length returns #BSC_STATUS_NO_INPUT.
+ * @param options Optional borrowed visibility options; NULL means defaults.
+ * @param output Required caller-owned output sink after validation and lookup succeed.
+ * @retval BSC_STATUS_OK Output completed.
+ * @retval BSC_STATUS_NO_INPUT No parent path tokens or an empty topic id was supplied.
+ * @retval BSC_STATUS_UNKNOWN_COMMAND Parent path was absent or filtered by visibility.
+ * @retval BSC_STATUS_UNKNOWN_TOPIC Parent was visible, but no topic under it matched.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Catalog, registry, duplicate topic, related, or visible help validation failed.
+ * @retval BSC_STATUS_OUTPUT_TRUNCATED The first short write occurred and rendering stopped immediately.
+ * @retval BSC_STATUS_INTERNAL_ERROR Required pointers or output target were invalid.
+ *
+ * The renderer validates and resolves all metadata before emitting bytes, renders no SYNOPSIS for topic pages, derives the
+ * registry only from the catalog, streams LF-only output without a full-page buffer, owns no storage, retains no pointers
+ * after return, allocates no heap, uses no hidden workspace, and never invokes handlers, access callbacks, matcher, parser,
+ * dispatcher, console routing, runtime parsed arguments, or runtime secret values. Static examples are presentation text
+ * only and are never parsed or executed.
+ */
+bsc_status_t bsc_help_render_topic(const bsc_help_catalog_t *catalog,
+                                   const bsc_string_view_t *parent_path_tokens,
+                                   size_t parent_path_token_count,
+                                   bsc_string_view_t topic_id,
+                                   const bsc_help_options_t *options,
+                                   bsc_output_t *output);
+
+/**
  * @brief Render the top-level visible help index under a COMMANDS heading.
  * @param commands Borrowed descriptor table.
  * @param command_count Number of descriptors.
@@ -429,6 +542,7 @@ bsc_status_t bsc_help_find_path(const bsc_command_t *commands,
  * Emits LF-only deterministic descriptor-order text, retains no pointers, invokes no handlers/access callbacks,
  * and never reads runtime parsed arguments or secret values.
  */
+
 bsc_status_t bsc_help_render_index(const bsc_command_t *commands,
                                    size_t command_count,
                                    const bsc_help_options_t *options,
