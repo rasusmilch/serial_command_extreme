@@ -45,6 +45,9 @@ extern "C" {
  * is borrowed unchanged and may be NULL. `output` is borrowed only during
  * #bsc_console_init; when non-NULL, the complete #bsc_output_t wrapper is copied
  * into the console while its callback and user pointer remain caller-owned.
+ * `help_catalog` is optional borrowed immutable storage. When present, its
+ * command pointer and count must exactly equal `commands` and `command_count`,
+ * and its complete structure is validated during initialization.
  */
 typedef struct bsc_console_config {
   /** Borrowed command descriptor table validated during initialization. */
@@ -55,6 +58,8 @@ typedef struct bsc_console_config {
   void *app_context;
   /** Optional borrowed output wrapper copied by value during initialization. */
   const bsc_output_t *output;
+  /** Optional borrowed immutable extended-help catalog retained after validation. */
+  const bsc_help_catalog_t *help_catalog;
 } bsc_console_config_t;
 
 /**
@@ -76,6 +81,8 @@ typedef struct bsc_console {
   bsc_output_t output;
   /** True when `output` contains a configured wrapper to pass to handlers. */
   bool has_output;
+  /** Optional borrowed immutable catalog sharing the exact authoritative command table. */
+  const bsc_help_catalog_t *help_catalog;
   /** True only after registry validation succeeds. */
   bool initialized;
 } bsc_console_t;
@@ -138,6 +145,8 @@ typedef enum bsc_console_builtin {
   BSC_CONSOLE_BUILTIN_HELP_INDEX,
   /** The input was `help <path...>` and requested exact descriptor-path help. */
   BSC_CONSOLE_BUILTIN_HELP_PATH,
+  /** A failed full path was retried as `help <parent path> <topic>`. */
+  BSC_CONSOLE_BUILTIN_HELP_TOPIC,
   /** The input was `commands` and requested the generated executable-command list. */
   BSC_CONSOLE_BUILTIN_COMMANDS
 } bsc_console_builtin_t;
@@ -235,11 +244,15 @@ void bsc_console_builtins_result_clear(bsc_console_builtins_result_t *result);
  * @param validation_error Optional registry diagnostic, cleared on entry.
  * @retval BSC_STATUS_OK Registry validation succeeded and the console is usable.
  * @retval BSC_STATUS_INTERNAL_ERROR Required API pointers were NULL.
- * @retval BSC_STATUS_INVALID_DESCRIPTOR The registry failed validation.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR The registry, optional catalog, or exact
+ *   catalog/console command-table identity requirement failed validation.
  *
  * Failed initialization leaves `console` in a deterministic inert state with
- * initialized false and no partially active configuration. No deinitialization
- * function is required because the core owns no resources.
+ * initialized false and no partially active configuration or retained catalog.
+ * A successful console borrows the optional catalog and all nested metadata for
+ * its lifetime. Initialization emits no output and invokes no command handler or
+ * execution access callback. No deinitialization function is required because
+ * the core owns no resources.
  */
 bsc_status_t bsc_console_init(bsc_console_t *console,
                               const bsc_console_config_t *config,
@@ -294,9 +307,15 @@ bsc_status_t bsc_execute_line(const bsc_console_t *console,
  * longest-prefix command dispatch. Application matcher, access callbacks, typed
  * parsing, dispatch, and handlers are not called for recognized built-ins.
  *
- * `help` renders the existing generated top-level index. `help <path...>` passes
- * every token after `help` as the complete exact help descriptor path.
- * `commands` renders the existing complete visible executable-command list.
+ * `help` renders the existing generated top-level index. Without a configured
+ * catalog, `help <path...>` passes every token after `help` as the ordinary exact
+ * descriptor path. With a catalog, the complete visible path is tried first
+ * through #bsc_help_render_catalog_path. Only #BSC_STATUS_UNKNOWN_COMMAND with at
+ * least two following tokens retries the final token as a flat topic id through
+ * #bsc_help_render_topic, so a real visible full path always wins. A visible
+ * parent with no matching topic returns #BSC_STATUS_UNKNOWN_TOPIC; a missing or
+ * filtered parent returns #BSC_STATUS_UNKNOWN_COMMAND. `commands` renders the
+ * existing complete visible executable-command list.
  * `commands <anything>` returns #BSC_STATUS_EXTRA_ARGUMENT and emits no output.
  *
  * Built-in names are reserved only for the invoked built-in in this API. If a
@@ -307,7 +326,10 @@ bsc_status_t bsc_execute_line(const bsc_console_t *console,
  * and may still execute ordinary application commands named `help` or
  * `commands`.
  *
- * Built-ins use the output wrapper copied into the console by #bsc_console_init.
+ * Built-ins invoke no application matcher, parser, dispatcher, handler, or
+ * execution access callback. No transient token/topic pointer or runtime secret
+ * is exposed in result metadata or retained after the call. Built-ins use the
+ * output wrapper copied into the console by #bsc_console_init.
  * When no output was configured, NULL is passed to the pure generated-help
  * renderer so its existing validation, lookup, and output-status precedence is
  * preserved. No fallback diagnostics, prompts, echo, final OK/ERR text, heap

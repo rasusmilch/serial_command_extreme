@@ -65,6 +65,7 @@ static const char *const path_settings_wifi_set_password[] = {"settings", "wifi"
 static const char *const path_factory[] = {"factory"};
 static const char *const path_locked[] = {"locked"};
 static const char *const path_hidden[] = {"hidden"};
+static const char *const path_advanced[] = {"advanced"};
 static const char *const path_help[] = {"help"};
 static const char *const path_HELP[] = {"HELP"};
 static const char *const path_help_nested[] = {"help", "nested"};
@@ -240,6 +241,7 @@ static const bsc_command_t base_commands[] = {
     {path_factory, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_FACTORY, BSC_COMMAND_FLAG_NONE, builtin_access, "Factory", "Factory command."},
     {path_locked, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_LOCKED, BSC_COMMAND_FLAG_NONE, builtin_access, "Locked", "Locked command."},
     {path_hidden, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_HIDDEN, builtin_access, "Hidden", "Hidden command."},
+    {path_advanced, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_ADVANCED, BSC_COMMAND_FLAG_NONE, builtin_access, "Advanced", "Advanced command."},
     {path_echo, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Echo", "Echo command."},
     {path_set_group, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Set", "Set group."},
     {path_set_int, 2u, BSC_NODE_COMMAND, int_args, 1u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Set int", "Set integer."},
@@ -247,6 +249,38 @@ static const bsc_command_t base_commands[] = {
     {path_secret_group, 1u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Secret", "Secret group."},
     {path_secret, 2u, BSC_NODE_COMMAND, secret_args, 1u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Secret", "Set secret."},
 };
+
+#if BSC_MAX_HELP_TEXT_ITEMS > 0u && BSC_MAX_HELP_EXAMPLES > 0u && BSC_MAX_HELP_RELATED > 0u && \
+    BSC_MAX_HELP_TOPICS >= 6u
+#define BUILTIN_CATALOG_FIXTURE_SUPPORTED 1
+static const char *const builtin_catalog_notes[] = {"Catalog note."};
+static const char *const builtin_catalog_warnings[] = {"Catalog warning."};
+static const bsc_help_example_t builtin_catalog_examples[] = {
+    {"settings wifi set password <secret>", "Static placeholder only."},
+};
+static const bsc_help_related_t builtin_catalog_related[] = {{&base_commands[0]}};
+static const bsc_help_target_t builtin_catalog_targets[] = {
+    {&base_commands[4], {builtin_catalog_notes, 1u}, {builtin_catalog_warnings, 1u},
+     builtin_catalog_examples, 1u, builtin_catalog_related, 1u},
+};
+static const bsc_help_topic_t builtin_catalog_topics[] = {
+    {&base_commands[4], "security", "Password safety", "Use static placeholders.", {NULL, 0u}, {NULL, 0u},
+     NULL, 0u, builtin_catalog_related, 1u},
+    {&base_commands[2], "set", "Set-topic shadow", "A real descriptor path wins.", {NULL, 0u}, {NULL, 0u},
+     NULL, 0u, NULL, 0u},
+    {&base_commands[5], "guide", "Factory guide", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+    {&base_commands[6], "guide", "Locked guide", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+    {&base_commands[7], "guide", "Hidden guide", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+    {&base_commands[8], "guide", "Advanced guide", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+};
+static const bsc_help_catalog_t builtin_catalog = {
+    base_commands, sizeof(base_commands) / sizeof(base_commands[0]),
+    builtin_catalog_targets, 1u,
+    builtin_catalog_topics, sizeof(builtin_catalog_topics) / sizeof(builtin_catalog_topics[0]),
+};
+#else
+#define BUILTIN_CATALOG_FIXTURE_SUPPORTED 0
+#endif
 
 /** @brief Initialize a console over supplied descriptors and optional output. */
 static bsc_status_t builtin_init_console(bsc_console_t *console,
@@ -259,6 +293,21 @@ static bsc_status_t builtin_init_console(bsc_console_t *console,
   config.command_count = command_count;
   config.app_context = fixture;
   config.output = output;
+  config.help_catalog = NULL;
+  return bsc_console_init(console, &config, NULL);
+}
+
+/** @brief Initialize a console over one exact-identity extended-help catalog. */
+static bsc_status_t builtin_init_catalog_console(bsc_console_t *console,
+                                                 builtin_fixture_t *fixture,
+                                                 const bsc_help_catalog_t *catalog,
+                                                 const bsc_output_t *output) {
+  bsc_console_config_t config;
+  config.commands = catalog->commands;
+  config.command_count = catalog->command_count;
+  config.app_context = fixture;
+  config.output = output;
+  config.help_catalog = catalog;
   return bsc_console_init(console, &config, NULL);
 }
 
@@ -847,6 +896,257 @@ static int test_secret_non_disclosure(const char *test_name) {
   return 0;
 }
 
+#if BUILTIN_CATALOG_FIXTURE_SUPPORTED
+/** @brief Verify catalog-aware path/topic output exactly matches the pure renderers. */
+static int test_catalog_help_routes_match_pure_renderers(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_capture_t built_capture;
+  builtin_capture_t pure_capture;
+  bsc_output_t built_output = {builtin_capture_write, &built_capture};
+  bsc_output_t pure_output = {builtin_capture_write, &pure_capture};
+  builtin_fixture_t fixture;
+  bsc_string_view_t command_path[] = {
+      bsc_string_view_from_cstr("settings"), bsc_string_view_from_cstr("wifi"),
+      bsc_string_view_from_cstr("set"), bsc_string_view_from_cstr("password")};
+
+  memset(&fixture, 0, sizeof(fixture));
+  fixture.handler_status = BSC_STATUS_OK;
+  builtin_capture_init(&built_capture, sizeof(built_capture.buffer));
+  builtin_capture_init(&pure_capture, sizeof(pure_capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, &builtin_catalog, &built_output));
+  BUILTIN_ASSERT_TRUE(console.help_catalog == &builtin_catalog);
+  bsc_console_workspace_init(&workspace);
+
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password",
+                                                       strlen("help settings wifi set password"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_help_render_catalog_path(&builtin_catalog, command_path, 4u, NULL, &pure_output));
+  BUILTIN_ASSERT_TRUE(built_capture.used == pure_capture.used);
+  BUILTIN_ASSERT_TRUE(memcmp(built_capture.buffer, pure_capture.buffer, pure_capture.used) == 0);
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(built_capture.buffer, built_capture.used,
+                                         "NOTES\n  - Catalog note."));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(built_capture.buffer, built_capture.used,
+                                         "WARNINGS\n  - Catalog warning."));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(built_capture.buffer, built_capture.used,
+                                         "EXAMPLES\n  settings wifi set password <secret>"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(built_capture.buffer, built_capture.used,
+                                         "TOPICS\n  security - Password safety"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(built_capture.buffer, built_capture.used,
+                                         "RELATED\n  status - Status"));
+
+  builtin_capture_init(&built_capture, sizeof(built_capture.buffer));
+  builtin_capture_init(&pure_capture, sizeof(pure_capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password SeCuRiTy",
+                                                       strlen("help settings wifi set password SeCuRiTy"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_help_render_topic(&builtin_catalog, command_path, 4u,
+                                              bsc_string_view_from_cstr("security"), NULL, &pure_output));
+  BUILTIN_ASSERT_TRUE(built_capture.used == pure_capture.used);
+  BUILTIN_ASSERT_TRUE(memcmp(built_capture.buffer, pure_capture.buffer, pure_capture.used) == 0);
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0);
+  BUILTIN_ASSERT_TRUE(fixture.access_calls == 0);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL, "echo", 4u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_NONE);
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 1);
+  BUILTIN_ASSERT_TRUE(fixture.access_calls == 1);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+
+/** @brief Verify exact full paths win and topic fallback preserves status/visibility semantics. */
+static int test_catalog_topic_fallback_precedence_and_visibility(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_capture_t capture;
+  bsc_output_t output = {builtin_capture_write, &capture};
+  builtin_fixture_t fixture;
+  bsc_help_options_t options;
+
+  memset(&fixture, 0, sizeof(fixture));
+  fixture.handler_status = BSC_STATUS_OK;
+  builtin_capture_init(&capture, sizeof(capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, &builtin_catalog, &output));
+  bsc_console_workspace_init(&workspace);
+
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set",
+                                                       strlen("help settings wifi set"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_TRUE(!builtin_bytes_find(capture.buffer, capture.used, "Set-topic shadow"));
+
+  builtin_capture_init(&capture, sizeof(capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_TOPIC,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi missing",
+                                                       strlen("help settings wifi missing"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_TRUE(capture.used == 0u);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help missing guide", strlen("help missing guide"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+
+  bsc_help_options_init(&options);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help advanced guide", strlen("help advanced guide"), &result));
+  options.include_advanced = false;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help advanced guide", strlen("help advanced guide"), &result));
+  bsc_help_options_init(&options);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help factory guide", strlen("help factory guide"), &result));
+  options.include_factory = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help factory guide", strlen("help factory guide"), &result));
+  bsc_help_options_init(&options);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help locked guide", strlen("help locked guide"), &result));
+  options.include_locked = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help locked guide", strlen("help locked guide"), &result));
+  bsc_help_options_init(&options);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help hidden guide", strlen("help hidden guide"), &result));
+  options.include_hidden = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help hidden guide", strlen("help hidden guide"), &result));
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0);
+  BUILTIN_ASSERT_TRUE(fixture.access_calls == 0);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+
+/** @brief Verify catalog built-ins preserve pure sink precedence and cleanup on every outcome. */
+static int test_catalog_output_failures_and_cleanup(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_capture_t capture;
+  bsc_output_t output = {builtin_capture_write, &capture};
+  builtin_fixture_t fixture;
+
+  memset(&fixture, 0, sizeof(fixture));
+  fixture.handler_status = BSC_STATUS_OK;
+  bsc_console_workspace_init(&workspace);
+  builtin_capture_init(&capture, sizeof(capture.buffer));
+  capture.fail_after = 3u;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, &builtin_catalog, &output));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password",
+                                                       strlen("help settings wifi set password"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+
+  builtin_capture_init(&capture, sizeof(capture.buffer));
+  capture.fail_after = 3u;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password security",
+                                                       strlen("help settings wifi set password security"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, &builtin_catalog, NULL));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_TOPIC,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi missing",
+                                                       strlen("help settings wifi missing"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help absent", strlen("help absent"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password",
+                                                       strlen("help settings wifi set password"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password security",
+                                                       strlen("help settings wifi set password security"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0);
+  BUILTIN_ASSERT_TRUE(fixture.access_calls == 0);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+
+/** @brief Verify catalog validation failure, recursion guard, and option snapshots during output. */
+static int test_catalog_validation_recursion_and_option_snapshot(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_capture_t capture;
+  bsc_output_t capture_output = {builtin_capture_write, &capture};
+  builtin_recursive_output_t recursive;
+  bsc_output_t recursive_output = {builtin_recursive_write, &recursive};
+  builtin_fixture_t fixture;
+  bsc_help_catalog_t mutable_catalog = builtin_catalog;
+  bsc_help_options_t options;
+
+  memset(&fixture, 0, sizeof(fixture));
+  fixture.handler_status = BSC_STATUS_OK;
+  builtin_capture_init(&capture, sizeof(capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, &mutable_catalog, &capture_output));
+  bsc_console_workspace_init(&workspace);
+  mutable_catalog.targets = NULL;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR,
+                        bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                       "help settings wifi set password",
+                                                       strlen("help settings wifi set password"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_TRUE(capture.used == 0u);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+
+  memset(&recursive, 0, sizeof(recursive));
+  builtin_capture_init(&recursive.capture, sizeof(recursive.capture.buffer));
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  recursive.console = &console;
+  recursive.workspace = &workspace;
+  recursive.options_to_mutate = &options;
+  mutable_catalog = builtin_catalog;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, &mutable_catalog, &recursive_output));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                       "help factory guide", strlen("help factory guide"), &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, recursive.nested_status);
+  BUILTIN_ASSERT_TRUE(!options.include_factory);
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0);
+  BUILTIN_ASSERT_TRUE(fixture.access_calls == 0);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+#endif
+
 /** @brief Run complete-line built-in routing tests. */
 int bsc_run_console_builtins_tests(void) {
   int failures = 0;
@@ -864,5 +1164,11 @@ int bsc_run_console_builtins_tests(void) {
   BUILTIN_RUN_TEST(test_help_options_copied_during_render);
   BUILTIN_RUN_TEST(test_reentrancy_and_cleanup);
   BUILTIN_RUN_TEST(test_secret_non_disclosure);
+#if BUILTIN_CATALOG_FIXTURE_SUPPORTED
+  BUILTIN_RUN_TEST(test_catalog_help_routes_match_pure_renderers);
+  BUILTIN_RUN_TEST(test_catalog_topic_fallback_precedence_and_visibility);
+  BUILTIN_RUN_TEST(test_catalog_output_failures_and_cleanup);
+  BUILTIN_RUN_TEST(test_catalog_validation_recursion_and_option_snapshot);
+#endif
   return failures;
 }

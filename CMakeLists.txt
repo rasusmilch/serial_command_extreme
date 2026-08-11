@@ -19,10 +19,12 @@ add_library(
   STATIC
     src/bsc_args.c
     src/internal/bsc_float_parse.c
+    src/internal/bsc_help_internal.c
     src/bsc_console.c
     src/bsc_dispatch.c
     src/bsc_help.c
     src/bsc_help_catalog.c
+    src/bsc_help_extended.c
     src/bsc_output.c
     src/bsc_status.c
     src/bsc_matcher.c

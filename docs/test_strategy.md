@@ -10,23 +10,25 @@ The test strategy is host-first by design. Firmware and hardware testing remain 
 
 ## Current status
 
-Last updated: 2026-07-18.
+Last updated: 2026-08-11.
 
 Current repository state:
 
 ```text
 Repository: rasusmilch/serial_command_extreme
 Product branch: main
-Stage: bounded C99 core through output-neutral complete-line console orchestration, pure generated help, optional complete-line help/commands built-in routing, and Task 11C-1 extended-help catalog schema plus structural validation
-Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, built-in-aware complete-line routing, and extended-help catalog structural validation
+Stage: bounded C99 core through output-neutral complete-line console orchestration, pure generated help, optional catalog-aware complete-line help/commands built-in routing, and implemented Tasks 11C-1 through 11C-3
+Implementation source: C99 core modules for tokenizer, registry, matcher, typed parser, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering, catalog-aware built-in routing, extended-help catalog structural validation, flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, and shared bounded help internals
 Build system: CMake builds the core library and host tests
-Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, built-in-aware help/commands routing, generated help, extended-help catalog validation, default float-enabled behavior, float-disabled behavior, focused catalog capacity overrides, and forbidden-pattern scanning
+Tests: Host tests cover foundational helpers, tokenizer, registry, matcher, typed parser, dispatch/access enforcement, complete-line console orchestration, catalog-aware help/commands routing, full-path/topic precedence, generated help, extended-help catalog validation, flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, byte-exact extended output integration, validation/visibility/output-failure behavior, configurable capacities, expanded/asymmetric/zero extended-metadata overrides, float-enabled and float-disabled behavior, and forbidden-pattern scanning
 Examples: not added yet; runnable example applications remain Phase 4 work
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 ```
 
-Implementation code and host tests exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, exact-path `help <path>`, and `commands` routing. Task 11C-1 catalog schema and structural validation are implemented on this branch without extended rendering, pure topic pages, or catalog-aware console grammar. Task 11C-2 remains future work for extended rendering and pure topic pages. Task 11C-3 remains future work for catalog-aware console integration after explicit grammar approval. This file remains the durable testing-policy anchor and distinguishes current host coverage from future extended help rendering, adapter, golden-output expansion, and hardware validation.
+Implementation code and host tests exist for both complete-line entry points: `bsc_execute_line()` for application-only execution and `bsc_execute_line_with_builtins()` for optional `help`, catalog-aware exact-path and flat-topic fallback, and `commands` routing. Tasks 11C-1 through 11C-3 are implemented; optional catalogs require exact console registry identity and remain presentation-only. This file remains the durable testing-policy anchor and distinguishes current host coverage from future adapter and hardware validation.
+
+Task 11C-2 extended-help capacity tests are expected to compile under default capacities, expanded extended-help capacities, small asymmetric extended-help capacities, and zero extended-metadata capacities. Override builds may skip unrelated fixed-fixture suites when `BSC_MAX_COMMANDS` is intentionally below those fixtures' documented needs; they must not silently clamp extended-help metadata counts.
 
 ## Testing goals
 
@@ -663,7 +665,7 @@ A core change is not ready just because it compiles for firmware. A core change 
 
 The pure help core has byte-exact golden fixtures under `test/golden/`. CMake copies that directory to the test binary directory and provides the copied path to `sce_host_tests` with a private compile definition, so tests do not depend on the process working directory. Golden files are opened in binary mode and compared byte-for-byte with LF-only output; tests fail on CRLF, whitespace changes, missing final LF, reordered entries, or changed section headings.
 
-Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Extended-help catalog tests cover schema-level structural validation, authoritative descriptor-pointer references, visibility independence, flat topic metadata, deterministic presentation examples, and focused capacity overrides without rendering. Current console built-ins reuse the pure generated-help renderer bytes. Future extended sections and subtopics must add or update golden fixtures when their output grammar is approved.
+Generated-help tests cover separate help metadata validation, static visibility filtering, exact descriptor-path lookup, descriptor-order rendering, short-write propagation, invalid-metadata no-output behavior, secret non-disclosure, and compact-float formatting. Extended-help catalog tests cover schema-level structural validation, authoritative descriptor-pointer references, visibility independence, flat topic metadata, deterministic presentation examples, and focused capacity overrides without rendering. Catalog-aware extended rendering tests cover byte-exact command/group/topic fixtures, no-metadata compatibility, metadata ordering, visibility filtering, validation-before-output, and exhaustive short-write boundaries. Console integration tests compare built-in catalog path/topic bytes with the pure renderers and cover full-path precedence, topic statuses, visibility, short writes, cleanup, and execution-callback isolation.
 
 Generated-help validation also separates help prose bounds from identifier bounds. Summaries, descriptions, argument help, and enum-choice help use `BSC_MAX_HELP_TEXT_LEN`; command path tokens, argument names, and enum-choice names remain governed by registry token/name bounds and are not truncated by small prose limits. Help validation rejects CR, LF, other ASCII control bytes, and DEL in every emitted metadata string, including identifiers and prose, while preserving printable non-ASCII bytes.
 

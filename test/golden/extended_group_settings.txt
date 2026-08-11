@@ -1,0 +1,17 @@
+NAME
+  settings - Settings
+
+DESCRIPTION
+  Settings
+
+COMMANDS
+  settings wifi - WiFi
+
+NOTES
+  - Settings changes are stored by the application.
+
+WARNINGS
+  - Some settings can affect active connections.
+
+TOPICS
+  profiles - How saved settings profiles are selected

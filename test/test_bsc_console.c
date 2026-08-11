@@ -237,6 +237,16 @@ static const bsc_command_t k_commands[] = {
     {k_settings_path, 3u, BSC_NODE_COMMAND, NULL, 0u, console_record_handler, &g_command_context, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, NULL, NULL, NULL},
 };
 
+/** Distinct same-content registries used to enforce exact catalog identity. */
+static const bsc_command_t k_catalog_identity_commands[] = {
+    {k_status_path, 1u, BSC_NODE_COMMAND, NULL, 0u, console_record_handler, NULL, BSC_ACCESS_NORMAL,
+     BSC_COMMAND_FLAG_NONE, NULL, "Status", "Show status."},
+};
+static const bsc_command_t k_catalog_identity_copy[] = {
+    {k_status_path, 1u, BSC_NODE_COMMAND, NULL, 0u, console_record_handler, NULL, BSC_ACCESS_NORMAL,
+     BSC_COMMAND_FLAG_NONE, NULL, "Status", "Show status."},
+};
+
 /** @brief Build a console around the standard descriptor table and supplied fixture/output. */
 static bsc_status_t init_console(bsc_console_t *console, console_fixture_t *fixture, const bsc_output_t *output) {
   bsc_console_config_t config;
@@ -244,6 +254,7 @@ static bsc_status_t init_console(bsc_console_t *console, console_fixture_t *fixt
   config.command_count = sizeof(k_commands) / sizeof(k_commands[0]);
   config.app_context = fixture;
   config.output = output;
+  config.help_catalog = NULL;
   return bsc_console_init(console, &config, NULL);
 }
 
@@ -275,6 +286,7 @@ static int test_console_initialization_failures(const char *test_name) {
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, &error));
   CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
   CONSOLE_TEST_ASSERT_TRUE(error.reason == BSC_REGISTRY_ERROR_NULL_COMMANDS);
@@ -323,6 +335,7 @@ static int test_console_initialization_success_and_reinit(const char *test_name)
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, NULL));
   CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_execute_line(&console, &workspace, "status", 6u, NULL));
@@ -331,6 +344,40 @@ static int test_console_initialization_success_and_reinit(const char *test_name)
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   CONSOLE_TEST_ASSERT_TRUE(console.initialized);
   CONSOLE_TEST_ASSERT_TRUE(!console.has_output);
+  return 0;
+}
+
+/** @brief Verify optional catalog identity, validation, borrowing, and inert failures. */
+static int test_console_catalog_initialization(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_config_t config;
+  bsc_help_catalog_t catalog = {k_catalog_identity_commands, 1u, NULL, 0u, NULL, 0u};
+  bsc_help_catalog_t invalid_catalog = {k_catalog_identity_commands, 1u, NULL, 1u, NULL, 0u};
+
+  config.commands = k_catalog_identity_commands;
+  config.command_count = 1u;
+  config.app_context = NULL;
+  config.output = NULL;
+  config.help_catalog = &catalog;
+  CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
+  CONSOLE_TEST_ASSERT_TRUE(console.initialized);
+  CONSOLE_TEST_ASSERT_TRUE(console.help_catalog == &catalog);
+
+  catalog.commands = k_catalog_identity_copy;
+  CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, NULL));
+  CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
+  CONSOLE_TEST_ASSERT_TRUE(console.help_catalog == NULL);
+
+  catalog.commands = k_catalog_identity_commands;
+  catalog.command_count = 0u;
+  CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, NULL));
+  CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
+  CONSOLE_TEST_ASSERT_TRUE(console.help_catalog == NULL);
+
+  config.help_catalog = &invalid_catalog;
+  CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, NULL));
+  CONSOLE_TEST_ASSERT_TRUE(!console.initialized);
+  CONSOLE_TEST_ASSERT_TRUE(console.help_catalog == NULL);
   return 0;
 }
 
@@ -524,12 +571,14 @@ static int test_output_passing_and_truncation(const char *test_name) {
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = &output;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   bsc_console_workspace_init(&workspace);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line(&console, &workspace, "status", 6u, &result));
   CONSOLE_TEST_ASSERT_TRUE(result.phase == BSC_CONSOLE_PHASE_DISPATCH);
   CONSOLE_TEST_ASSERT_TRUE(sink.used == sizeof(sink.bytes));
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_execute_line(&console, &workspace, "status", 6u, &result));
   return 0;
@@ -584,6 +633,7 @@ static int test_same_workspace_recursion_guard(const char *test_name) {
   config.command_count = 2u;
   config.app_context = &fixture;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   bsc_console_workspace_init(&workspace);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console, &workspace, "set name abc", 12u, &result));
@@ -626,6 +676,7 @@ static int test_float_enabled_console_execution(const char *test_name) {
   config.command_count = 1u;
   config.app_context = &fixture;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_console_init(&console, &config, NULL));
   bsc_console_workspace_init(&workspace);
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line(&console, &workspace, "set float 1.5", 13u, NULL));
@@ -644,6 +695,7 @@ static int test_float_disabled_console_initialization(const char *test_name) {
   config.command_count = 1u;
   config.app_context = NULL;
   config.output = NULL;
+  config.help_catalog = NULL;
   CONSOLE_TEST_ASSERT_STATUS(BSC_STATUS_INVALID_DESCRIPTOR, bsc_console_init(&console, &config, &error));
   CONSOLE_TEST_ASSERT_TRUE(error.reason == BSC_REGISTRY_ERROR_FLOAT_DISABLED);
   return 0;
@@ -655,6 +707,7 @@ int bsc_run_console_tests(void) {
   int failures = 0;
   RUN_CONSOLE_TEST(test_console_initialization_failures);
   RUN_CONSOLE_TEST(test_console_initialization_success_and_reinit);
+  RUN_CONSOLE_TEST(test_console_catalog_initialization);
   RUN_CONSOLE_TEST(test_workspace_and_result_initialization);
   RUN_CONSOLE_TEST(test_input_validation_and_boundaries);
   RUN_CONSOLE_TEST(test_tokenizer_statuses_and_spacing);
