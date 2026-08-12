@@ -80,7 +80,7 @@ typedef struct bsc_console {
   bsc_output_t output;
   /** True when `output` contains a configured wrapper to pass to handlers. */
   bool has_output;
-  /** True only after registry validation succeeds. */
+  /** True only after registry and configured catalog identity/structure validation succeed. */
   bool initialized;
 } bsc_console_t;
 
@@ -241,7 +241,8 @@ void bsc_console_builtins_result_clear(bsc_console_builtins_result_t *result);
  * @param validation_error Optional registry diagnostic, cleared on entry.
  * @retval BSC_STATUS_OK Registry and optional catalog validation succeeded.
  * @retval BSC_STATUS_INTERNAL_ERROR Required API pointers were NULL.
- * @retval BSC_STATUS_INVALID_DESCRIPTOR The registry failed validation.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Registry validation, catalog registry
+ *   identity, or configured catalog structural validation failed.
  *
  * A non-NULL catalog is borrowed for the console lifetime, must remain immutable
  * with all nested storage alive, and must use exactly the same `commands` pointer

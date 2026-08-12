@@ -65,6 +65,7 @@ static const char *const path_settings_wifi[] = {"settings", "wifi"};
 static const char *const path_settings_wifi_set[] = {"settings", "wifi", "set"};
 static const char *const path_settings_wifi_set_password[] = {"settings", "wifi", "set", "password"};
 static const char *const path_factory[] = {"factory"};
+static const char *const path_advanced[] = {"advanced"};
 static const char *const path_locked[] = {"locked"};
 static const char *const path_hidden[] = {"hidden"};
 static const char *const path_help[] = {"help"};
@@ -240,6 +241,7 @@ static const bsc_command_t base_commands[] = {
     {path_settings_wifi_set, 3u, BSC_NODE_GROUP, NULL, 0u, NULL, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Set", "Set group."},
     {path_settings_wifi_set_password, 4u, BSC_NODE_COMMAND, secret_args, 1u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Password", "Set password."},
     {path_factory, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_FACTORY, BSC_COMMAND_FLAG_NONE, builtin_access, "Factory", "Factory command."},
+    {path_advanced, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_ADVANCED, BSC_COMMAND_FLAG_NONE, builtin_access, "Advanced", "Advanced command."},
     {path_locked, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_LOCKED, BSC_COMMAND_FLAG_NONE, builtin_access, "Locked", "Locked command."},
     {path_hidden, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_HIDDEN, builtin_access, "Hidden", "Hidden command."},
     {path_echo, 1u, BSC_NODE_COMMAND, NULL, 0u, builtin_handler, NULL, BSC_ACCESS_NORMAL, BSC_COMMAND_FLAG_NONE, builtin_access, "Echo", "Echo command."},
@@ -315,7 +317,7 @@ static int test_catalog_initialization(const char *test_name) {
   return 0;
 }
 
-#if BSC_MAX_HELP_TOPICS > 0
+#if BSC_MAX_HELP_TOPICS >= 5
 /** @brief Verify catalog pages, topic fallback/statuses, precedence, isolation, and cleanup. */
 static int test_catalog_help_and_topic_routes(const char *test_name) {
   bsc_console_t console;
@@ -329,11 +331,25 @@ static int test_catalog_help_and_topic_routes(const char *test_name) {
   bsc_help_options_t options;
   const bsc_help_topic_t topics[] = {
       {&base_commands[2], "set", "Topic named set", "Presentation only.", {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
-      {&base_commands[2], "security", "Security topic", "Security details.", {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
       {&base_commands[5], "reset", "Factory reset topic", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+      {&base_commands[6], "details", "Advanced topic", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+      {&base_commands[7], "details", "Locked topic", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+      {&base_commands[8], "details", "Hidden topic", NULL, {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
   };
+#if BSC_MAX_HELP_TEXT_ITEMS > 0 && BSC_MAX_HELP_EXAMPLES > 0 && BSC_MAX_HELP_RELATED > 0
+  const char *const notes[] = {"Catalog note."};
+  const char *const warnings[] = {"Catalog warning."};
+  const bsc_help_example_t examples[] = {{"settings wifi set password <secret>", "Placeholder only."}};
+  const bsc_help_related_t related[] = {{&base_commands[0]}};
+  const bsc_help_target_t targets[] = {
+      {&base_commands[2], {notes, 1u}, {warnings, 1u}, examples, 1u, related, 1u},
+  };
+  bsc_help_catalog_t catalog = {base_commands, sizeof(base_commands) / sizeof(base_commands[0]), targets, 1u,
+                                topics, sizeof(topics) / sizeof(topics[0])};
+#else
   bsc_help_catalog_t catalog = {base_commands, sizeof(base_commands) / sizeof(base_commands[0]), NULL, 0u,
                                 topics, sizeof(topics) / sizeof(topics[0])};
+#endif
   bsc_string_view_t path[] = {bsc_string_view_from_cstr("settings"), bsc_string_view_from_cstr("wifi")};
   memset(&fixture, 0, sizeof(fixture));
   builtin_capture_init(&actual, sizeof(actual.buffer));
@@ -347,18 +363,31 @@ static int test_catalog_help_and_topic_routes(const char *test_name) {
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_catalog_path(&catalog, path, 2u, NULL, &expected_output));
   BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
   BUILTIN_ASSERT_TRUE(actual.used == expected.used && memcmp(actual.buffer, expected.buffer, actual.used) == 0);
+#if BSC_MAX_HELP_TEXT_ITEMS > 0 && BSC_MAX_HELP_EXAMPLES > 0 && BSC_MAX_HELP_RELATED > 0
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(actual.buffer, actual.used, "NOTES\n"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(actual.buffer, actual.used, "WARNINGS\n"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(actual.buffer, actual.used, "EXAMPLES\n"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(actual.buffer, actual.used, "TOPICS\n"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(actual.buffer, actual.used, "RELATED\n"));
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(actual.buffer, actual.used, "<secret>"));
+#endif
 
   builtin_capture_init(&actual, sizeof(actual.buffer));
   builtin_capture_init(&expected, sizeof(expected.buffer));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
-                                                                      "help settings wifi security", 27u, &result));
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_topic(&catalog, path, 2u,
-                                                             bsc_string_view_from_cstr("security"), NULL,
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                                   "help factory reset", 18u, &result));
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                      "help factory reset", 18u, &result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_help_render_topic(&catalog,
+                                                             (bsc_string_view_t[]){bsc_string_view_from_cstr("factory")},
+                                                             1u, bsc_string_view_from_cstr("reset"), &options,
                                                              &expected_output));
   BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
   BUILTIN_ASSERT_TRUE(actual.used == expected.used && memcmp(actual.buffer, expected.buffer, actual.used) == 0);
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
-                                                                      "help settings wifi SeCuRiTy", 27u, &result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                      "help factory ReSeT", 18u, &result));
   BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
                                                                       "help settings wifi set", 22u, &result));
@@ -369,12 +398,26 @@ static int test_catalog_help_and_topic_routes(const char *test_name) {
   BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL,
                                                                                    "help absent missing", 19u, &result));
   BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
-  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, NULL,
-                                                                                   "help factory reset", 18u, &result));
   bsc_help_options_init(&options);
-  options.include_factory = true;
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
-                                                                      "help factory reset", 18u, &result));
+                                                                      "help advanced details", 21u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  options.include_advanced = false;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                                   "help advanced details", 21u, &result));
+  bsc_help_options_init(&options);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                                   "help locked details", 19u, &result));
+  options.include_locked = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                      "help locked details", 19u, &result));
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  bsc_help_options_init(&options);
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_COMMAND, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                                   "help hidden details", 19u, &result));
+  options.include_hidden = true;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                      "help hidden details", 19u, &result));
   BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
   builtin_capture_init(&actual, sizeof(actual.buffer));
   actual.fail_after = 2u;
@@ -384,7 +427,7 @@ static int test_catalog_help_and_topic_routes(const char *test_name) {
   builtin_capture_init(&actual, sizeof(actual.buffer));
   actual.fail_after = 2u;
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OUTPUT_TRUNCATED, bsc_execute_line_with_builtins(&console, &workspace, NULL,
-                                                                                   "help settings wifi security", 27u, &result));
+                                                                                   "help advanced details", 21u, &result));
   BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
   BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
                         builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
@@ -392,7 +435,57 @@ static int test_catalog_help_and_topic_routes(const char *test_name) {
   BUILTIN_ASSERT_STATUS(BSC_STATUS_UNKNOWN_TOPIC, bsc_execute_line_with_builtins(&console, &workspace, NULL,
                                                                                  "help settings wifi missing", 26u, &result));
   BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, bsc_execute_line_with_builtins(&console, &workspace, NULL,
-                                                                                  "help settings wifi security", 27u, &result));
+                                                                                  "help advanced details", 21u, &result));
+  BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0 && fixture.access_calls == 0);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+  return 0;
+}
+
+/** @brief Verify recursion rejection and option snapshots during catalog-aware rendering. */
+static int test_catalog_recursion_and_options_snapshot(const char *test_name) {
+  bsc_console_t console;
+  bsc_console_workspace_t workspace;
+  bsc_console_builtins_result_t result;
+  builtin_fixture_t fixture;
+  builtin_recursive_output_t recursive;
+  bsc_output_t output = {builtin_recursive_write, &recursive};
+  bsc_help_options_t options;
+  const bsc_help_topic_t topics[] = {
+      {&base_commands[5], "reset", "Factory reset topic", "Factory details.", {NULL, 0u}, {NULL, 0u}, NULL, 0u, NULL, 0u},
+  };
+  bsc_help_catalog_t catalog = {base_commands, sizeof(base_commands) / sizeof(base_commands[0]), NULL, 0u,
+                                topics, sizeof(topics) / sizeof(topics[0])};
+
+  memset(&fixture, 0, sizeof(fixture));
+  memset(&recursive, 0, sizeof(recursive));
+  builtin_capture_init(&recursive.capture, sizeof(recursive.capture.buffer));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &catalog, &output));
+  bsc_console_workspace_init(&workspace);
+  recursive.console = &console;
+  recursive.workspace = &workspace;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, NULL,
+                                                                      "help settings wifi", 18u, &result));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_INTERNAL_ERROR, recursive.nested_status);
+  BUILTIN_ASSERT_TRUE(recursive.nested_result.phase == BSC_CONSOLE_PHASE_INPUT);
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_PATH);
+  BUILTIN_ASSERT_TRUE(recursive.capture.used != 0u);
+  BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
+
+  memset(&recursive, 0, sizeof(recursive));
+  builtin_capture_init(&recursive.capture, sizeof(recursive.capture.buffer));
+  bsc_help_options_init(&options);
+  options.include_factory = true;
+  recursive.options_to_mutate = &options;
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK,
+                        builtin_init_catalog_console(&console, &fixture, base_commands, catalog.command_count,
+                                                     &catalog, &output));
+  BUILTIN_ASSERT_STATUS(BSC_STATUS_OK, bsc_execute_line_with_builtins(&console, &workspace, &options,
+                                                                      "help factory reset", 18u, &result));
+  BUILTIN_ASSERT_TRUE(options.include_factory == false);
+  BUILTIN_ASSERT_TRUE(result.builtin == BSC_CONSOLE_BUILTIN_HELP_TOPIC);
+  BUILTIN_ASSERT_TRUE(builtin_bytes_find(recursive.capture.buffer, recursive.capture.used, "Factory reset topic"));
   BUILTIN_ASSERT_TRUE(fixture.handler_calls == 0 && fixture.access_calls == 0);
   BUILTIN_ASSERT_TRUE(builtin_workspace_clean(&workspace));
   return 0;
@@ -989,8 +1082,9 @@ int bsc_run_console_builtins_tests(void) {
   int failures = 0;
   BUILTIN_RUN_TEST(test_builtins_result_clear);
   BUILTIN_RUN_TEST(test_catalog_initialization);
-#if BSC_MAX_HELP_TOPICS > 0
+#if BSC_MAX_HELP_TOPICS >= 5
   BUILTIN_RUN_TEST(test_catalog_help_and_topic_routes);
+  BUILTIN_RUN_TEST(test_catalog_recursion_and_options_snapshot);
 #endif
   BUILTIN_RUN_TEST(test_existing_api_dispatches_help_and_commands);
   BUILTIN_RUN_TEST(test_ordinary_route_equivalence);

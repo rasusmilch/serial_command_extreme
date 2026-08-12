@@ -85,7 +85,7 @@ Discovery can be menu-like through namespaces and help output, but normal operat
 Current status:
 
 ```text
-Stage: Foundational core, bounded tokenizer, static registry validation, longest-path matcher, typed positional argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated help, optional help/commands built-ins, Task 11C-1 extended-help catalog structural validation, and Task 11C-2 extended rendering/topic APIs implemented
+Stage: Foundational core, bounded tokenizer, static registry validation, longest-path matcher, typed positional argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated help, optional help/commands built-ins, Task 11C-1 extended-help catalog structural validation, Task 11C-2 extended rendering/topic APIs, and Task 11C-3 catalog-aware console integration implemented
 Implementation source: C99 core modules for config, status, string views, output, console configuration/workspace/result orchestration, descriptors, tokenizer, registry validation, matcher, typed argument parsing, selected-command dispatch/access enforcement, and internal compact float parsing
 Build system: CMake builds the core library and host tests
 Tests: Host coverage for foundational helpers, descriptor types, tokenizer, registry validation, matcher, typed argument parsing, operator diagnostics, selected-command dispatch/access enforcement, complete-line console orchestration, generated help, extended-help catalog validation, compact float enabled/disabled behavior, and forbidden-pattern checks
@@ -99,7 +99,7 @@ ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, and render pure generated help through explicit APIs, but it still lacks extended help sections, examples, and adapters.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors and extended-help catalogs, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, render ordinary and extended generated help, and route catalog-aware console help. Runnable examples and platform adapters remain future work.
 
 
 ## Optional complete-line help built-ins
@@ -205,7 +205,7 @@ descriptor path and argument metadata rather than from a stored synopsis field. 
 warnings, presentation examples, related descriptor references, and flat topic metadata are
 represented outside `bsc_command_t` by the optional borrowed `bsc_help_catalog_t`; catalog
 structural validation, pure flat-topic lookup, catalog-aware command/group rendering,
-and pure topic-page rendering are implemented, while catalog-aware console grammar is implemented.
+pure topic-page rendering, and catalog-aware console grammar are implemented.
 
 Expected execution flow:
 
@@ -279,7 +279,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-The read-only architecture planning milestone established the implementation direction, and the pure generated-help foundation is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and pure help-rendering foundation; the remaining help work is catalog-aware console grammar, and adapters or examples should not begin ahead of approved remaining core work.
+The read-only architecture planning milestone established the implementation direction, and the generated-help foundation through catalog-aware console routing is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and help-rendering foundation; adapters and examples remain separately staged work.
 
 Future Codex tasks should:
 
