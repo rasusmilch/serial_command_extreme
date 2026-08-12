@@ -51,6 +51,8 @@ typedef struct bsc_console_config {
   const bsc_command_t *commands;
   /** Number of command descriptors in `commands`; must pass registry validation. */
   size_t command_count;
+  /** Optional borrowed immutable extended-help catalog validated during initialization. */
+  const bsc_help_catalog_t *help_catalog;
   /** Opaque caller-owned application context forwarded to access callbacks and handlers. */
   void *app_context;
   /** Optional borrowed output wrapper copied by value during initialization. */
@@ -70,13 +72,15 @@ typedef struct bsc_console {
   const bsc_command_t *commands;
   /** Number of descriptors in `commands`. */
   size_t command_count;
+  /** Optional borrowed immutable catalog with the exact same registry identity. */
+  const bsc_help_catalog_t *help_catalog;
   /** Borrowed application context forwarded unchanged, including NULL. */
   void *app_context;
   /** By-value copy of the optional output wrapper; callback/user remain borrowed. */
   bsc_output_t output;
   /** True when `output` contains a configured wrapper to pass to handlers. */
   bool has_output;
-  /** True only after registry validation succeeds. */
+  /** True only after registry and configured catalog identity/structure validation succeed. */
   bool initialized;
 } bsc_console_t;
 
@@ -138,6 +142,8 @@ typedef enum bsc_console_builtin {
   BSC_CONSOLE_BUILTIN_HELP_INDEX,
   /** The input was `help <path...>` and requested exact descriptor-path help. */
   BSC_CONSOLE_BUILTIN_HELP_PATH,
+  /** Catalog fallback interpreted the final help token as a flat topic ID. */
+  BSC_CONSOLE_BUILTIN_HELP_TOPIC,
   /** The input was `commands` and requested the generated executable-command list. */
   BSC_CONSOLE_BUILTIN_COMMANDS
 } bsc_console_builtin_t;
@@ -233,11 +239,15 @@ void bsc_console_builtins_result_clear(bsc_console_builtins_result_t *result);
  * @param console Required caller-owned console object to initialize.
  * @param config Required borrowed configuration used only for this call.
  * @param validation_error Optional registry diagnostic, cleared on entry.
- * @retval BSC_STATUS_OK Registry validation succeeded and the console is usable.
+ * @retval BSC_STATUS_OK Registry and optional catalog validation succeeded.
  * @retval BSC_STATUS_INTERNAL_ERROR Required API pointers were NULL.
- * @retval BSC_STATUS_INVALID_DESCRIPTOR The registry failed validation.
+ * @retval BSC_STATUS_INVALID_DESCRIPTOR Registry validation, catalog registry
+ *   identity, or configured catalog structural validation failed.
  *
- * Failed initialization leaves `console` in a deterministic inert state with
+ * A non-NULL catalog is borrowed for the console lifetime, must remain immutable
+ * with all nested storage alive, and must use exactly the same `commands` pointer
+ * and count as the console configuration. Identity mismatch or catalog validation
+ * failure returns the corresponding validation status. Failed initialization leaves `console` in a deterministic inert state with
  * initialized false and no partially active configuration. No deinitialization
  * function is required because the core owns no resources.
  */
@@ -294,8 +304,13 @@ bsc_status_t bsc_execute_line(const bsc_console_t *console,
  * longest-prefix command dispatch. Application matcher, access callbacks, typed
  * parsing, dispatch, and handlers are not called for recognized built-ins.
  *
- * `help` renders the existing generated top-level index. `help <path...>` passes
- * every token after `help` as the complete exact help descriptor path.
+ * `help` renders the existing generated top-level index. Without a configured
+ * catalog, `help <path...>` passes every token after `help` to ordinary exact-path
+ * help. With a catalog, the complete visible path is rendered catalog-aware
+ * first. Only after an UNKNOWN_COMMAND miss, and with at least two following
+ * tokens, the final token is retried as a flat topic ID under the preceding exact
+ * parent path. That attempt preserves UNKNOWN_TOPIC for a visible parent with no
+ * matching topic and is reported as #BSC_CONSOLE_BUILTIN_HELP_TOPIC.
  * `commands` renders the existing complete visible executable-command list.
  * `commands <anything>` returns #BSC_STATUS_EXTRA_ARGUMENT and emits no output.
  *

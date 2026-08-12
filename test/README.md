@@ -116,3 +116,5 @@ See `docs/test_strategy.md` for the canonical test policy.
 
 
 `test_bsc_help_catalog.c` covers Task 11C-1 extended-help catalog structural validation, including zero-count pointer policy, exact descriptor-pointer membership, flat topics, deterministic example validation, related-command rules, visibility independence, and callback non-invocation. `test_bsc_help_extended.c` covers Task 11C-2 pure flat-topic lookup, topic-specific statuses, parent visibility inheritance, result clearing, validation precedence, catalog-aware command/group rendering, pure topic-page rendering, extended golden fixtures, no-metadata compatibility, visibility filtering, and exhaustive short-write termination.
+
+`test_bsc_console_builtins.c` also covers Task 11C-3 console initialization with optional catalog identity/validation, no-catalog compatibility, byte-exact integration with the pure catalog path and topic renderers, full descriptor-path precedence, case-insensitive flat-topic fallback, `UNKNOWN_TOPIC`/`UNKNOWN_COMMAND`, visibility, truncation, workspace cleanup, and handler/access-callback isolation. Topic fixtures are capacity-guarded so zero-topic builds remain valid.

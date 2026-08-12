@@ -167,7 +167,8 @@ typedef struct bsc_help_target {
  * Topics are single-token Task 11C records. They inherit their parent descriptor's current static help visibility,
  * can be rendered through #bsc_help_render_topic, have no access levels or visibility flags, cannot contain child topics,
  * and cannot reference other topic records. The optional description is validated when present and must be non-empty. Topic
- * metadata never affects execution, and console topic grammar remains deferred to Task 11C-3.
+ * metadata never affects execution. A configured console catalog may route the final token of a failed exact help path
+ * to this flat topic through #bsc_execute_line_with_builtins.
  */
 typedef struct bsc_help_topic {
   /** Required borrowed parent descriptor pointer; topics inherit this descriptor's current static help visibility. */
@@ -394,7 +395,7 @@ void bsc_help_topic_lookup_result_clear(bsc_help_topic_lookup_result_t *result);
  * exact elements of catalog->commands; metadata never affects tokenizer, matcher, parser, dispatch, aliases, handlers,
  * execution access callbacks, or runtime argument values. Topics are flat single-token non-executable records that
  * inherit their parent descriptor visibility in catalog-aware renderers and can be rendered through
- * #bsc_help_render_topic. Task 11C adds no console topic grammar, nested topics, topic visibility flags, topic access
+ * #bsc_help_render_topic. Console routing uses exact-visible-full-path-first and final-token fallback; Task 11C adds no nested topics, topic visibility flags, topic access
  * levels, or topic-to-topic relationships. Static examples are presentation text only and should use
  * application-authored placeholders such as <new-password>, ********, or <secret> for secret arguments.
  *
