@@ -113,7 +113,7 @@ typedef struct bsc_output {
 
 The current helpers write C strings and C strings followed by `\n` through this callback and report short writes as `BSC_STATUS_OUTPUT_TRUNCATED`. The complete-line console copies the wrapper by value during initialization when one is provided, but the callback and user pointer remain borrowed.
 
-The console orchestration layer is output-neutral. `bsc_execute_line()` performs application execution and only forwards the configured output wrapper to handlers through selected-command dispatch. `bsc_execute_line_with_builtins()` intentionally emits only the explicitly requested pure generated-help renderer output for `help`, exact-path `help <path>`, and `commands`. Neither API automatically writes command echo, parser errors, matcher errors, access errors, prompts, `OK`, `ERR`, or final-result text. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
+The console orchestration layer is output-neutral. `bsc_execute_line()` performs application execution and only forwards the configured output wrapper to handlers through selected-command dispatch. `bsc_execute_line_with_builtins()` intentionally emits only the explicitly requested pure generated-help renderer output for `help`, catalog-aware `help <path...>` requests when a catalog is configured, and `commands`. Neither API automatically writes command echo, parser errors, matcher errors, access errors, prompts, `OK`, `ERR`, or final-result text. Future diagnostic rendering, redacted echo, and automatic final-result formatting require separate approval and tests.
 
 ## 6. Token representation
 
@@ -197,12 +197,13 @@ Path tokens should be literals. For example, `settings wifi set ssid` is a descr
 
 ## 10. Console configuration and execution workspace
 
-The implemented console model separates lightweight configuration from execution storage. `bsc_console_t` is initialized from `bsc_console_config_t`, validates the static descriptor table once, then remains read-only during execution:
+The implemented console model separates lightweight configuration from execution storage. The public definitions in `src/bsc_console.h` are authoritative for the exact C type layouts; the structures below reproduce their current field order. `bsc_console_t` is initialized from `bsc_console_config_t`, validates the ordinary static descriptor table and any configured catalog, then remains read-only during execution:
 
 ```c
 typedef struct bsc_console_config {
   const bsc_command_t *commands;
   size_t command_count;
+  const bsc_help_catalog_t *help_catalog;
   void *app_context;
   const bsc_output_t *output;
 } bsc_console_config_t;
@@ -210,6 +211,7 @@ typedef struct bsc_console_config {
 typedef struct bsc_console {
   const bsc_command_t *commands;
   size_t command_count;
+  const bsc_help_catalog_t *help_catalog;
   void *app_context;
   bsc_output_t output;
   bool has_output;
@@ -217,7 +219,9 @@ typedef struct bsc_console {
 } bsc_console_t;
 ```
 
-`bsc_console_t` owns no line buffer, token array, parsed-argument array, matcher result, diagnostic storage, mutex, or execution-active state. It borrows descriptor metadata and application context for its lifetime. When configured, it stores a by-value copy of the output wrapper while the callback and user pointer remain borrowed.
+Command descriptors and application context remain borrowed for the console lifetime. The optional help catalog is also borrowed, not mandatory; when configured, its `commands` pointer must be exactly the console registry pointer and its `command_count` must exactly equal the console command count. The catalog and all nested metadata remain caller/static-owned, immutable, and alive for the initialized console lifetime. The output wrapper is copied by value when configured, while its callback and user pointer remain borrowed.
+
+Successful initialization first validates the ordinary registry, then, when a catalog is configured, validates its exact registry identity and catalog structure before retaining the catalog pointer. `bsc_console_t` owns no execution workspace: it owns no line buffer, token array, parsed-argument array, matcher result, diagnostic storage, mutex, or execution-active state.
 
 Complete-line execution receives caller-owned workspace per call:
 
@@ -258,7 +262,9 @@ The tokenizer, matcher, typed parser, access enforcement, dispatch, and handler 
 
 ## 12. Built-in commands
 
-The pure generated-help APIs are implemented in `src/bsc_help.h` and `src/bsc_help.c`: callers can validate help metadata, resolve exact descriptor paths, and render top-level indexes, command lists, group pages, and executable-command pages through `bsc_output_t`. The original `bsc_execute_line()` API remains application-only and executes the configured descriptor table with no hard-coded built-in route. Applications that want complete-line help can call `bsc_execute_line_with_builtins()`, which recognizes `help`, exact-path `help <path>`, and `commands` after tokenization and before application matching.
+The pure generated-help APIs are implemented in `src/bsc_help.h` and the help source modules: callers can validate help metadata, resolve exact descriptor paths and flat topics, and render top-level indexes, command lists, command/group pages, and topic pages through `bsc_output_t`. The original `bsc_execute_line()` API remains application-only and executes the configured descriptor table with no hard-coded built-in route. Applications that want complete-line help can call `bsc_execute_line_with_builtins()`, which recognizes `help`, `help <path...>`, and `commands` after tokenization and before application matching.
+
+Without a configured catalog, every token after `help` is one ordinary exact descriptor path. With a catalog, routing tries the complete visible descriptor path first. Only when that lookup returns `BSC_STATUS_UNKNOWN_COMMAND`, and at least two tokens follow `help`, routing retries the final token as a flat topic ID beneath the preceding exact parent path. When final-token topic fallback is attempted, result.builtin is `BSC_CONSOLE_BUILTIN_HELP_TOPIC` regardless of the topic renderer's returned status; a visible parent without the requested topic returns `BSC_STATUS_UNKNOWN_TOPIC`, while a missing or filtered parent returns `BSC_STATUS_UNKNOWN_COMMAND`.
 
 The built-in-aware API preserves output-neutral orchestration: it emits only the selected pure renderer output, uses only the output wrapper copied into `bsc_console_t`, and adds no prompts, fallback diagnostics, echo, or final OK/ERR text. Built-in names are reserved only for the invoked built-in in this API; application descriptors beginning with that built-in name return `BSC_STATUS_INVALID_DESCRIPTOR` with borrowed collision metadata and do not run the matcher, parser, access callbacks, dispatcher, or handlers. The static help visibility behavior remains separate from execution access: normal and advanced descriptors are visible by default, while factory, locked, and hidden descriptors require explicit `bsc_help_options_t`, copied by value per call.
 
