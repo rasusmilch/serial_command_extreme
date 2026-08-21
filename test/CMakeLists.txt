@@ -25,6 +25,13 @@ target_compile_definitions(sce_host_tests PRIVATE BSC_TEST_GOLDEN_DIR="${SCE_GOL
 
 add_test(NAME sce_host_tests COMMAND sce_host_tests)
 
+if(SCE_BUILD_EXAMPLES)
+  add_executable(sce_basic_status_tests test_basic_status_example.c)
+  target_link_libraries(sce_basic_status_tests PRIVATE sce_example_basic_status)
+  target_compile_features(sce_basic_status_tests PRIVATE c_std_99)
+  add_test(NAME sce_basic_status_tests COMMAND sce_basic_status_tests)
+endif()
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(Python3_FOUND)
   add_test(

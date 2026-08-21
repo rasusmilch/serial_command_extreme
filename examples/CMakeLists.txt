@@ -1,0 +1,8 @@
+add_library(sce_example_basic_status STATIC basic_status/basic_status.c)
+target_link_libraries(sce_example_basic_status PUBLIC serial_command_extreme::serial_command_extreme)
+target_include_directories(sce_example_basic_status PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/basic_status")
+target_compile_features(sce_example_basic_status PUBLIC c_std_99)
+
+add_executable(basic_status basic_status/main.c)
+target_link_libraries(basic_status PRIVATE sce_example_basic_status)
+target_compile_features(basic_status PRIVATE c_std_99)

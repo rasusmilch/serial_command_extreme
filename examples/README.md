@@ -1,8 +1,20 @@
 # Examples Directory
 
-This directory is reserved for examples that demonstrate the library without weakening the core architecture.
+This directory contains host-runnable examples that demonstrate the library without weakening the core architecture.
 
-No example source exists yet.
+## Implemented: `basic_status`
+
+`basic_status/` provides the first Phase 4 example. Its shared example-local module owns one static registry with `status` and `reset_stats`, while `main.c` supplies a real console, caller-owned workspace, stdout callback, and a fixed built-in-aware execution sequence. The console deliberately configures `help_catalog == NULL`; ordinary descriptor metadata generates `help status`.
+
+The deterministic demonstration seeds `commands_processed=7` and `errors=2`. `status` reports both counters without mutation, and `reset_stats` clears both to zero. Build and run it with:
+
+```sh
+cmake -S . -B build -DSCE_BUILD_EXAMPLES=ON
+cmake --build build
+./build/examples/basic_status
+```
+
+The shared module is linked into `test/sce_basic_status_tests`, so integration coverage executes the actual descriptors rather than copies. It uses only the public library API and fixed caller-owned storage; it introduces no transport adapter or line accumulator.
 
 ## Example goals
 
@@ -19,12 +31,11 @@ Examples should demonstrate:
 - Arduino adapter usage after the adapter exists.
 - Sensor/settings-style command organization.
 
-## Planned examples
+## Remaining planned examples
 
 The implementation guide currently suggests examples similar to:
 
 ```text
-examples/host_basic/
 examples/host_sensor_settings/
 examples/arduino_basic/
 examples/arduino_sensor_console/
@@ -58,7 +69,7 @@ Arduino examples may use Arduino `Stream` through an adapter. ESP-IDF examples m
 
 ## Example acceptance rules
 
-Future example tasks should include:
+Example tasks should include:
 
 - Build or compile checks when the relevant toolchain is available.
 - A statement when hardware validation was not run.

@@ -2,7 +2,7 @@
 
 This directory is reserved for host-first tests.
 
-An initial self-contained C host test harness exists and runs through CTest. When Python3 is available, CTest also runs the forbidden-pattern checker against `src/`. The core library should remain testable on a normal host machine without Arduino, ESP-IDF, UART hardware, or firmware flashing.
+An initial self-contained C host test harness and a `basic_status` example integration executable run through CTest. When Python3 is available, CTest also runs the forbidden-pattern checker against `src/`. The core library should remain testable on a normal host machine without Arduino, ESP-IDF, UART hardware, or firmware flashing.
 
 ## Purpose
 
@@ -44,7 +44,7 @@ test/
   golden/
 ```
 
-The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for host behavior tests and `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. `test_bsc_args.c` is the current typed-parser suite; `test_bsc_dispatch.c` covers selected-command access enforcement, parser integration, handler invocation, output-pointer passing, handler status propagation, and caller-owned dispatch storage. `test_bsc_console.c` covers registry-backed console initialization, caller-owned execution workspace, explicit-length complete-line execution, result phases, output-neutral behavior, cleanup, and same-workspace recursion rejection. `test_bsc_console_builtins.c` covers the separate built-in-aware complete-line API, exact help routing, commands routing, collision metadata, visibility options, output failures, cleanup, recursion, and secret non-disclosure. Additional parser cases should be added to the parser suite when defects or supported behavior require them. Future dispatch, access, orchestration, broader redaction, extended-help, integration, and golden-output tests may add files such as:
+The harness uses `test/test_main.c` plus module-specific test runner sources and CTest without a third-party framework. CTest registers `sce_host_tests` for core behavior and, when examples are enabled, `sce_basic_status_tests` for complete-line execution of the actual example registry. It registers `sce_forbidden_patterns` for the static guard when Python3 is found by CMake. `test_bsc_args.c` is the current typed-parser suite; `test_bsc_dispatch.c` covers selected-command access enforcement, parser integration, handler invocation, output-pointer passing, handler status propagation, and caller-owned dispatch storage. `test_bsc_console.c` covers registry-backed console initialization, caller-owned execution workspace, explicit-length complete-line execution, result phases, output-neutral behavior, cleanup, and same-workspace recursion rejection. `test_bsc_console_builtins.c` covers the separate built-in-aware complete-line API, exact help routing, commands routing, collision metadata, visibility options, output failures, cleanup, recursion, and secret non-disclosure. Additional parser cases should be added to the parser suite when defects or supported behavior require them. Future dispatch, access, orchestration, broader redaction, extended-help, integration, and golden-output tests may add files such as:
 
 ```text
 test/
