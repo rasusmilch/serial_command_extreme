@@ -161,6 +161,7 @@ Required examples:
    - `status`
    - `reset_stats`
    - `help status`
+   - **Implemented:** host-runnable fixed demonstration and complete-line integration test using its shared registry.
 
 2. `sensor_settings`
    - `gain <enum>`
@@ -185,6 +186,8 @@ Acceptance:
 - Examples compile in host build.
 - Arduino example compiles if Arduino tooling is available.
 - Examples demonstrate command groups, typed arguments, help, and redaction.
+
+Phase 4 is partially implemented: only `basic_status` exists. The sensor, Wi-Fi, factory/locked, and platform examples remain future work.
 
 ## Phase 5 — Arduino adapter
 

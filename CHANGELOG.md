@@ -6,6 +6,8 @@ This file records notable repository changes.
 
 ### Added
 
+- Phase 4 `basic_status` host example with a shared static `status`/`reset_stats` registry, bounded application-owned statistics, generated `help status`, a fixed public-API demonstration driver, and complete-line integration coverage for dispatch, reset behavior, unknown commands, allocation-free storage, and runtime-sensitive-data non-disclosure.
+
 - Output-neutral complete-line console orchestration that coordinates explicit-length caller input through the existing tokenizer, longest-path matcher, and selected-command dispatcher.
 - Caller-owned bounded `bsc_console_workspace_t` execution storage for line, token, match, parsed-argument, and diagnostic state.
 - Explicit-length console input handling with line-length validation and embedded-NUL rejection before tokenization.

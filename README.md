@@ -4,7 +4,7 @@ Serial Command Extreme is a reusable bounded embedded serial command library und
 
 The project goal is a small, predictable command parser/dispatcher core for firmware projects. Firmware should be able to define commands, nested command paths, typed argument schemas, validation rules, callbacks, access metadata, and operator-facing help/manpages from one bounded metadata model.
 
-This repository currently includes the foundational C99 core, bounded tokenizer, static command descriptor types, registry descriptor validation, longest-path matcher, typed runtime positional argument parser with structured diagnostics, selected-command dispatch with access enforcement, output-neutral complete-line console orchestration with caller-owned execution workspace, a pure bounded generated-help core, optional complete-line `help`/`commands` built-in routing, optional extended-help catalog schema, visibility-independent structural validation, pure flat-topic lookup, catalog-aware command/group rendering, and pure topic-page rendering, host tests, golden help-output fixtures, and forbidden-pattern source checks. It is not yet a complete installable serial command parser/dispatcher: examples, and platform adapters remain future work.
+This repository currently includes the bounded C99 core through catalog-aware generated help, host tests, golden help-output fixtures, forbidden-pattern source checks, and the first Phase 4 host example, `basic_status`. It is not yet a complete installable serial command parser/dispatcher: the remaining examples and platform adapters are future work.
 
 ## Intended use
 
@@ -93,13 +93,13 @@ Typed argument parser: implemented for signed integer, unsigned integer, compact
 Selected-command dispatch and access enforcement: implemented
 Output-neutral complete-line console orchestration: implemented
 Generated help/manpages: pure metadata validation, exact path lookup, top-level index, complete command list, group pages, executable command pages, optional complete-line `help`/`commands` routing, catalog structural validation, pure flat-topic lookup, catalog-aware command/group rendering, and pure topic-page rendering implemented; catalog-aware console grammar is implemented
-Examples: not added yet
+Examples: `basic_status` host example implemented; remaining Phase 4 examples not added yet
 Arduino adapter: not added yet
 ESP-IDF adapter: not added yet
 License: not finalized in this README
 ```
 
-Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors and extended-help catalogs, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, render ordinary and extended generated help, and route catalog-aware console help. Runnable examples and platform adapters remain future work.
+Do not treat this repository as a complete installable command parser/dispatcher yet. The current core foundation can tokenize input, validate static descriptors and extended-help catalogs, match command paths, parse typed positional arguments, enforce access for selected commands, dispatch handlers, render ordinary and extended generated help, and route catalog-aware console help. The remaining examples and platform adapters remain future work.
 
 
 ## Optional complete-line help built-ins
@@ -244,7 +244,7 @@ test/
   golden/
 ```
 
-The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated-help validation/lookup/rendering, extended-help catalog structural validation, pure flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, internal compact-float parser, descriptor, status, string-view, and output modules. Optional console help built-ins are implemented through `bsc_execute_line_with_builtins()`; planned future modules still include adapters, and examples. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering/golden output, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, focused extended-help catalog structural validation, pure flat-topic lookup, extended rendering golden fixtures, exhaustive output-failure coverage, capacity overrides, and forbidden-pattern checks; future tests should add broader redaction, adapter, and integration coverage.
+The current core source files include tokenizer, registry validation, matcher, typed argument parser, selected-command dispatch/access enforcement, output-neutral complete-line console orchestration, pure generated-help validation/lookup/rendering, extended-help catalog structural validation, pure flat-topic lookup, catalog-aware command/group rendering, pure topic-page rendering, internal compact-float parser, descriptor, status, string-view, and output modules. Optional console help built-ins are implemented through `bsc_execute_line_with_builtins()`; planned future modules still include adapters and the remaining examples. The real `basic_status` descriptors are covered by complete-line host integration tests. Host tests currently cover foundational helpers, tokenization, registry validation, descriptor types, matcher behavior, typed argument parsing, selected-command dispatch/access enforcement, complete-line console orchestration, generated-help validation/rendering/golden output, exact operator diagnostics, compact-float enabled/disabled behavior, all fractional precision values from 1 through 6, secret non-disclosure behavior, focused extended-help catalog structural validation, pure flat-topic lookup, extended rendering golden fixtures, exhaustive output-failure coverage, capacity overrides, and forbidden-pattern checks; future tests should add broader redaction, adapter, and integration coverage.
 
 ## Example command descriptor intent
 
@@ -279,7 +279,7 @@ For nontrivial work, use this sequence:
 Plan -> Review -> Execute -> Validate
 ```
 
-The read-only architecture planning milestone established the implementation direction, and the generated-help foundation through catalog-aware console routing is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and help-rendering foundation; adapters and examples remain separately staged work.
+The read-only architecture planning milestone established the implementation direction, and the generated-help foundation through catalog-aware console routing is now implemented and host-tested. Future implementation should continue from the current tokenizer, registry-validation, matcher, typed-argument-parser, selected-command dispatch/access, complete-line console orchestration, and help-rendering foundation; adapters and the remaining examples remain separately staged work.
 
 Future Codex tasks should:
 
@@ -305,7 +305,7 @@ In short:
 
 ## Next recommended task
 
-Task 11C-3 catalog-aware console help is implemented and host-tested. The next task should follow the approved roadmap with focused tests and bounded-memory documentation; adapters and examples remain separate staged work.
+Task 11C-3 catalog-aware console help is implemented and host-tested. The next task should follow the approved roadmap with focused tests and bounded-memory documentation; adapters and the remaining examples remain separate staged work.
 
 ## License
 

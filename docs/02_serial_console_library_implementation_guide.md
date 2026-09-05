@@ -68,7 +68,7 @@ tools/
   check_forbidden_patterns.py
 ```
 
-Adapter directories and runnable example applications remain future work. Documentation examples may show API usage, but Phase 4 runnable applications are separate from the Task 11C core catalog work.
+The first Phase 4 application, `examples/basic_status/`, is host-runnable and shares its static registry/state module with an integration test. It demonstrates built-in-aware complete-line execution with no help catalog. Adapter directories and the remaining runnable examples remain future work.
 
 ## 3. Configuration header
 
